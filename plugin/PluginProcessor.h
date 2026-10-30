@@ -95,11 +95,14 @@ private:
     std::vector<HostBinding> bindings_;
     std::array<std::atomic<int>, 1024> hostObservedRaw_{};
 
-    // One JUCE-independent, fixed-size arbiter owns MIDI->host/canonical
-    // causality. It replaces the old value-only mailboxes so a delayed MIDI
-    // mirror can never overwrite newer DAW automation. NRPN 1088 uses the same
-    // epoch domain while remaining outside the 1024-byte program state.
+    // v0.17 causal arbiter. It is JUCE-independent and already covered by the
+    // state test. The legacy value mailboxes remain during this staging commit
+    // so every intermediate branch head still builds; the next wrapper commit
+    // switches their producers/consumers to parameterEvents_ atomically.
     p6plugin::ParameterEventArbiter parameterEvents_{};
+    std::array<std::atomic<int>, 1024> pendingNrpn_{};
+    std::array<std::atomic<int>, 1024> pendingHostMirror_{};
+    std::atomic<int> pendingSequencePlayMirror_ {-1};
     std::atomic<int> hostSequencePlayObserved_ {0};
 
     mutable juce::SpinLock patchLock_;
