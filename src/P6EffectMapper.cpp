@@ -47,8 +47,9 @@ double unit(std::uint16_t raw, double maximum)
 P6EffectType legacyType(std::uint16_t raw, bool slotB)
 {
     const auto maximum = static_cast<std::uint16_t>(slotB ? 9 : 5);
-    const auto clamped = std::min(raw, maximum);
-    return static_cast<P6EffectType>(static_cast<std::uint8_t>(clamped));
+    if (raw > maximum)
+        return P6EffectType::Unknown;
+    return static_cast<P6EffectType>(static_cast<std::uint8_t>(raw));
 }
 
 P6EffectSlotSettings mapSlot(const P6PatchState& patch,
@@ -87,10 +88,9 @@ P6EffectSlotSettings mapSlot(const P6PatchState& patch,
         return out;
     }
 
-    // The remaining legacy effect families are mapped structurally, but their
-    // physical parameter laws stay neutral until their DSP implementations are
-    // added. This avoids inventing values that could later become ABI/state
-    // assumptions.
+    // The remaining legacy effect families and unknown later-OS selectors are
+    // mapped structurally, but their physical parameter laws stay neutral
+    // until their DSP implementations/encodings are established.
     out.primary = unit(p1Raw, 255.0);
     out.secondary = unit(p2Raw, 127.0);
     return out;
