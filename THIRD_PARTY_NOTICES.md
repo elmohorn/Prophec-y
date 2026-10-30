@@ -2,7 +2,9 @@
 
 ## joshjetson/phosphor
 
-Portions of the oscillator morph/band-limiting approach, sub-sample sync strategy, Slop random-walk model, Prophet-6 filter candidates, envelope timing strategy, LFO behavior, distortion candidate, and v0.12 performance-behavior cross-checks (key-priority enumeration, retrigger semantics, Mod-Wheel/LFO interaction and runtime chord-memory transposition) were adapted from or informed directly by the MIT-licensed `joshjetson/phosphor` project. Hardware-facing behavior is kept separate from raw-state compatibility so later measurements or documentation can replace any inferred implementation details.
+Portions of the oscillator morph/band-limiting approach, sub-sample sync strategy, Slop random-walk model, Prophet-6 filter candidates, envelope timing strategy, LFO behavior, distortion candidate, v0.12 performance-behavior cross-checks (key-priority enumeration, retrigger semantics, Mod-Wheel/LFO interaction and runtime chord-memory transposition), and the v0.18 initial BBD/digital-delay/chorus effects architecture were adapted from or informed directly by the MIT-licensed `joshjetson/phosphor` project. Hardware-facing behavior is kept separate from raw-state compatibility so later measurements or documentation can replace any inferred implementation details.
+
+For v0.18 specifically, the adapted starting-point ideas include preallocated delay/modulation buffers, a mono wet delay line preserving stereo dry, BBD repeat low-pass loss plus slow clock wander, cubic interpolation for the wandering BBD read head, and quadrature stereo chorus taps. Numerical constants remain calibration candidates rather than claims about Sequential firmware or circuitry.
 
 Source repository: `https://github.com/joshjetson/phosphor`
 
@@ -41,10 +43,14 @@ Sequential Prophet-6 manuals and MIDI Association reference tables are protocol/
 - **sudara/pamplejuce** — inspected as a reference for modern cross-platform CMake CI, JUCE dependency handling and Tracktion pluginval validation. No Pamplejuce runtime/source files are copied into the plug-in.
 - **Tracktion/pluginval** — planned external validation tool for the first linked VST3 builds; not bundled.
 
-
 ## v0.15 wrapper hardening references
 
 - **JUCE 9.0.4 source/API documentation** — inspected to verify APVTS parameter notification semantics, `AsyncUpdater` realtime caveats, `Timer` message-thread behavior, `GenericAudioProcessorEditor` module location, and Linux module dependencies. JUCE remains an optional external dependency and is not copied into this archive.
 - **Sequential Prophet-6 Operation Manual 2.1, Appendix C** — authoritative protocol reference for standard NRPN CC ordering, Data Increment/Decrement support, and runtime control NRPN 1088 (`Seq Play/Stop`).
 
 No additional third-party runtime source was incorporated in v0.15.
+
+## v0.18 effects references
+
+- **ShmKnd/Patina** — MIT-licensed C++17 analog-modeling DSP library. Inspected as a secondary implementation reference for BBD, modulation, spring/plate reverb and ring-modulation architecture. No Patina source has been copied into the initial v0.18 effects slice. If later code is materially adapted, its MIT copyright/license text must be added here before merge.
+- **Sequential Prophet-6 Operation Manual 2.1** — authoritative behavior reference for serial Effect A -> Effect B order, global true bypass, effect-family availability and the legacy MIDI/NRPN domains. The documented mismatch between the expanded post-OS-1.3 effect list and the legacy FX-select NRPN ranges is intentionally left unresolved rather than guessed.
