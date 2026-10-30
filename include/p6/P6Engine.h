@@ -104,7 +104,7 @@ private:
     void retargetUnison(bool retrigger);
     void releaseUnison();
     VoiceParams paramsForVoice(std::size_t index) const;
-    void updatePanGains() noexcept;
+    static double panPosition(std::size_t index, double spread);
     double applyCandidateDistortion(double x, DcBlockState& state) const;
     void applyPatch(const P6PatchState& patch,
                     const MapperCalibration& calibration,
@@ -116,8 +116,6 @@ private:
     int oversampleFactor_{2};
     VoiceDiagnostics diagnostics_{};
     double panSpread_{};
-    std::array<double, kVoiceCount> panGainLeft_{};
-    std::array<double, kVoiceCount> panGainRight_{};
     double programVolume_{1.0};
     double midiVolume_{1.0};
     double distortion_{};
