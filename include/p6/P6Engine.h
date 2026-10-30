@@ -41,6 +41,14 @@ public:
     bool captureChordMemoryFromHeld();
     void clearChordMemory();
 
+    // Damper pedal is runtime/performance state, never program state. The
+    // sustain-aware Note Off clears physical key ownership immediately while
+    // deferring envelope release until the pedal comes up. A fixed per-voice
+    // age marker makes this allocation-free and prevents pedal-up from killing
+    // a voice that has since been stolen/reused.
+    void setSustainPedal(bool enabled);
+    void noteOffOwnedSustainAware(int midiNote, std::uint32_t owner);
+
     // detuneCents is a non-hardware development extension for A/B tests.
     // Hardware-compatible patch loading passes zero: Prophet-6 unison spread
     // is produced by free-running phases and Slop/Vintage rather than a hidden
@@ -61,6 +69,8 @@ public:
     StereoSample process();
 
     std::size_t activeVoiceCount() const noexcept;
+    std::size_t sustainedVoiceCount() const noexcept;
+    bool sustainPedal() const noexcept { return sustainPedal_; }
     std::size_t unisonVoiceCount() const noexcept { return unisonVoiceCount_; }
     std::uint8_t keyMode() const noexcept { return keyMode_; }
     double pitchBendRangeSemitones() const noexcept { return pitchBendRangeSemitones_; }
@@ -135,6 +145,11 @@ private:
     std::size_t heldCount_{};
     std::uint64_t pressOrder_{};
     std::uint64_t clock_{};
+    bool sustainPedal_{};
+    // Non-zero entry means this exact incarnation of the voice was released
+    // physically while the damper was down. Voice age changes on reuse, so a
+    // stale marker cannot release a newly allocated note when the pedal rises.
+    std::array<std::uint64_t, kVoiceCount> sustainedVoiceAge_{};
     double dcBlockA_{0.995};
     mutable DcBlockState distDcL_{};
     mutable DcBlockState distDcR_{};
