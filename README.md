@@ -1,6 +1,32 @@
-# P6 Core — phase 1 / v0.15
+# P6 Core — phase 1 / v0.17
 
 Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1024-byte hardware program state remains canonical and lossless; DSP blocks are isolated so measured calibration can replace assumptions without breaking SysEx/NRPN compatibility.
+
+## v0.17 headline — close the control/performance and realtime contract
+
+v0.17 freezes the non-FX control/performance contract before digital effects and custom UI work begin.
+
+- Host automation and MIDI NRPN edits now use a versioned lock-free last-writer-wins contract so stale MIDI mirrors cannot overwrite newer host edits.
+- Sustain/Damper CC64 is modeled in the engine with physical-key state separated from sustained voice lifetime; generated arp/sequencer notes are not accidentally turned into a second HOLD mode.
+- MIDI Volume CC7 is runtime gain only and never rewrites the saved 1024-byte Prophet program payload.
+- CC121 Reset All Controllers restores modeled controller state; CC120 All Sound Off and CC123 All Notes Off have distinct channel-mode behavior.
+- Realtime allocation tests are part of CI, and arpeggiator ordering no longer depends on heap-allocation-capable sorting.
+- Synced-LFO first-key phase reset is implemented where evidence is strong. The exact Prophet-6 raw LFO-frequency-to-rhythmic-division law remains intentionally unguessed.
+- Windows/Linux VST3, core/state/control/realtime tests, `pluginval --strictness-level 10`, and Linux ASan+UBSan pass the v0.17 gate.
+
+See `docs/V0_17_CONTROL_CONTRACT.md`, `docs/V0_17_CLOSEOUT.md` and `docs/PROPHET6_PARITY_MATRIX.md`.
+
+## v0.16 headline — wrapper and release stability gate
+
+v0.16 closed the infrastructure/stability phase before new musical behavior resumed.
+
+- Windows and Linux VST3 builds were validated through the same release CI path.
+- `pluginval --strictness-level 10` passed on both release targets.
+- Linux ASan+UBSan remained green.
+- Release-mode tests were hardened so checks do not disappear under `NDEBUG`.
+- Chord-memory held-key behavior and serialized parameter layout/cardinality regressions were fixed and covered by tests.
+
+See `docs/V0_16_STABILITY.md`.
 
 ## v0.15 headline — realtime-safe host/MIDI bridge before the first linked VST3
 
@@ -198,16 +224,16 @@ cmake --build build-plugin --config Release --target P6CorePlugin_VST3 -j2
 ctest --test-dir build-plugin -C Release --output-on-failure
 ```
 
-The test suite covers SysEx round trips, canonical NRPN edits, sequence decode/encode, preservation of sequence high-bit metadata, serialized mapping identities, oscillator/sync behavior, Slop, filters, LFO, aftertouch, voice allocation, pitch bend, Mod Wheel depth, the six Unison key/retrigger modes, runtime chord-memory transposition, all ten clock divisions, host-PPQ and MIDI-clock timing, arpeggiator patterns/HOLD/Assign repeats, conservative sequence playback and source-owned generated notes.
+The test suite covers SysEx round trips, canonical NRPN edits, sequence decode/encode, preservation of sequence high-bit metadata, serialized mapping identities, oscillator/sync behavior, Slop, filters, LFO, aftertouch, voice allocation, pitch bend, Mod Wheel depth, the six Unison key/retrigger modes, runtime chord-memory transposition, all ten clock divisions, host-PPQ and MIDI-clock timing, arpeggiator patterns/HOLD/Assign repeats, conservative sequence playback and source-owned generated notes. v0.17 additionally gates causal host/MIDI ordering, sustain lifetime, MIDI Volume/reset semantics, MIDI channel-mode behavior, synced-LFO first-key reset and realtime no-allocation behavior.
 
-## Priorities after v0.15
+## Priorities after v0.17
 
-1. Run the included three-platform CI in a dedicated project repository so the pinned JUCE 9.0.4 VST3 can be linked and validated by `pluginval`; this container still lacks JUCE/network access, and no unrelated connected repository is used as a substitute.
-2. Load the validated Windows VST3 in at least one real DAW and exercise state reload, hardware-NRPN input, host automation, MIDI clock, arp and sequence transport before designing a bespoke UI.
-3. Add a small purpose-built editor/preset browser on top of the host/state contract; keep the generic editor as a diagnostic fallback.
-4. Complete the digital effects chain now that host BPM/PPQ and MIDI clock feed the same scheduler used by standalone playback.
-5. Measure swing timing and identify sequence bit-7 / sequence-mode semantics from controlled hardware or independently verified implementation evidence; do not infer them from musical demo audio.
-6. Return to hard-sync/Poly-Mod calibration when dry hardware captures with known settings are available.
+1. Start v0.18 with one shared realtime-safe serial FX A -> B architecture using the existing common clock for tempo-synced effects.
+2. Reuse/adapt mature license-compatible delay/chorus concepts where appropriate; do not duplicate timing or state infrastructure already present in the core.
+3. Keep LFO Sync division mapping, CC4, chord-memory storage, swing ratio and sequence opaque semantics unguessed until stronger Prophet-6 evidence or controlled hardware captures exist.
+4. Preserve the generic JUCE editor as a diagnostic surface; bespoke UI and preset-browser work remain a later milestone after FX and sound-matching contracts stabilize.
+5. Continue real-host DAW soak testing and project save/reload coverage as beta-hardening work without reopening the v0.17 feature boundary.
+6. Return to hard-sync/Poly-Mod/filter/envelope calibration when dry hardware captures with known settings are available.
 
 ## Licensing
 

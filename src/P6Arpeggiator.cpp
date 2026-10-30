@@ -4,6 +4,30 @@
 #include <cmath>
 
 namespace p6 {
+namespace {
+
+// Fixed-capacity, stable and allocation-free. Arpeggiator working sets are at
+// most a few dozen items, so O(n^2) insertion sort is preferable here to an
+// implementation of std::stable_sort that may request a temporary heap buffer
+// on the realtime path.
+template <typename T, std::size_t N, typename Less>
+void stableInsertionSort(std::array<T, N>& values, std::size_t count, Less less)
+{
+    count = std::min(count, N);
+    for (std::size_t i = 1; i < count; ++i) {
+        const T value = values[i];
+        std::size_t j = i;
+        // Move only when value is strictly less. Equal elements keep their
+        // original relative order, matching stable_sort semantics.
+        while (j > 0 && less(value, values[j - 1])) {
+            values[j] = values[j - 1];
+            --j;
+        }
+        values[j] = value;
+    }
+}
+
+} // namespace
 
 void P6Arpeggiator::eraseNote(std::array<Key, kMaxKeys>& keys, std::size_t& count, int note)
 {
@@ -71,8 +95,8 @@ void P6Arpeggiator::rebuildAssignFromArpKeys()
 {
     assignCount_ = 0;
     std::array<Key, kMaxKeys> ordered = arpKeys_;
-    std::stable_sort(ordered.begin(), ordered.begin() + static_cast<std::ptrdiff_t>(arpCount_),
-                     [](const Key& a, const Key& b) { return a.order < b.order; });
+    stableInsertionSort(ordered, arpCount_,
+                        [](const Key& a, const Key& b) { return a.order < b.order; });
     for (std::size_t i = 0; i < arpCount_ && assignCount_ < assignEvents_.size(); ++i)
         assignEvents_[assignCount_++] = ordered[i];
 }
@@ -160,11 +184,11 @@ std::size_t P6Arpeggiator::buildExpanded(std::array<ArpNote, kMaxExpandedNotes>&
         keyCount = arpCount_;
         for (std::size_t i = 0; i < keyCount; ++i)
             keys[i] = arpKeys_[i];
-        std::stable_sort(keys.begin(), keys.begin() + static_cast<std::ptrdiff_t>(keyCount),
-                         [](const Key& a, const Key& b) {
-                             if (a.note != b.note) return a.note < b.note;
-                             return a.order < b.order;
-                         });
+        stableInsertionSort(keys, keyCount,
+                            [](const Key& a, const Key& b) {
+                                if (a.note != b.note) return a.note < b.note;
+                                return a.order < b.order;
+                            });
     }
 
     std::size_t n = 0;
@@ -179,8 +203,8 @@ std::size_t P6Arpeggiator::buildExpanded(std::array<ArpNote, kMaxExpandedNotes>&
     }
 
     if (!assignOrder) {
-        std::stable_sort(out.begin(), out.begin() + static_cast<std::ptrdiff_t>(n),
-                         [](const ArpNote& a, const ArpNote& b) { return a.note < b.note; });
+        stableInsertionSort(out, n,
+                            [](const ArpNote& a, const ArpNote& b) { return a.note < b.note; });
     }
     return n;
 }

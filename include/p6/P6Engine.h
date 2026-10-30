@@ -36,10 +36,23 @@ public:
     void setChannelPressure(double pressure01);
     void setModWheel(double amount01);
     void setPitchBend(double bipolar);
+    // CC64 is performance state, not program data. Physical key release is
+    // still recorded immediately while the envelope release may be deferred.
+    void setSustainPedal(bool down);
+    // CC7 is a separate performance multiplier. It never rewrites the saved
+    // Prophet Voice Volume/program byte.
+    void setMidiVolume(double amount01);
     void setKeyMode(std::uint8_t mode);
     void setChordMode(bool enabled);
     bool captureChordMemoryFromHeld();
     void clearChordMemory();
+
+    // Prophet-6 LFO Sync resets the LFO cycle on the first physical key of a
+    // newly started chord. The scheduler owns the physical-key boundary, so it
+    // calls this hook only for that event. Generated arp/sequence notes never
+    // call it. The exact synced Frequency-knob division law remains evidence-
+    // gated and is deliberately not guessed here.
+    void resetSyncedLfoPhase() noexcept { if (lfoClockSync_) lfo_.reset(); }
 
     // detuneCents is a non-hardware development extension for A/B tests.
     // Hardware-compatible patch loading passes zero: Prophet-6 unison spread
@@ -58,6 +71,11 @@ public:
     void noteOnOwned(int midiNote, double velocity01, std::uint32_t owner);
     void noteOffOwned(int midiNote, std::uint32_t owner);
     void allNotesOff();
+    // MIDI channel-mode semantics. All Notes Off behaves like ordinary live
+    // Note Off and therefore remains subject to Damper; All Sound Off is an
+    // immediate audible kill that leaves the controller state itself intact.
+    void midiAllNotesOff();
+    void midiAllSoundOff();
     StereoSample process();
 
     std::size_t activeVoiceCount() const noexcept;
@@ -66,7 +84,13 @@ public:
     double pitchBendRangeSemitones() const noexcept { return pitchBendRangeSemitones_; }
     double pitchBendSemitones() const noexcept { return pitchBend_ * pitchBendRangeSemitones_; }
     double modWheel() const noexcept { return modWheel_; }
+    double midiVolume() const noexcept { return midiVolume_; }
+    bool sustainPedal() const noexcept { return sustainPedal_; }
+    std::size_t sustainedVoiceCount() const noexcept;
     double effectiveLfoDepth() const noexcept;
+    // Diagnostic-only observation for LFO-sync regressions. It deliberately
+    // does not expose a writable phase or become part of host state.
+    double lfoPhaseForDiagnostics() const noexcept { return lfo_.phaseForDiagnostics(); }
     bool chordMode() const noexcept { return chordMode_; }
     bool unisonEnabled() const noexcept { return unison_; }
     std::size_t chordMemorySize() const noexcept { return chordLength_; }
@@ -78,6 +102,7 @@ private:
         P6Voice voice;
         int note{-1};
         bool keyDown{};
+        bool sustainHeld{};
         std::uint64_t age{};
         std::uint32_t owner{};
     };
@@ -113,16 +138,19 @@ private:
     VoiceDiagnostics diagnostics_{};
     double panSpread_{};
     double programVolume_{1.0};
+    double midiVolume_{1.0};
     double distortion_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
-    bool lfoClockSync_{}; // preserved/mapped; DAW/master-clock integration is next layer
+    bool lfoClockSync_{}; // first-key phase reset implemented; tempo-division law remains evidence-gated
     double channelPressure_{};
     double modWheel_{};
     double pitchBend_{};
     double pitchBendRangeSemitones_{};
     double slopAmount_{};
     SlopMode slopMode_{SlopMode::Standard};
+    bool sustainPedal_{};
+    bool unisonSustainHeld_{};
     bool unison_{};
     std::size_t unisonVoiceCount_{kVoiceCount};
     double unisonDetuneCents_{};

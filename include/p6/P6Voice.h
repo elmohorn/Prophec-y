@@ -150,6 +150,10 @@ public:
     void noteOn(int midiNote, double velocity01 = 1.0,
                 bool retriggerEnvelope = true, bool resetEnvelopeFromZero = false);
     void noteOff();
+    // MIDI All Sound Off closes the envelopes immediately but deliberately
+    // leaves oscillator/slop/filter phase history running. reset() is a much
+    // stronger lifecycle operation and must not be used as a channel panic.
+    void silence();
     void reset();
     VoiceSample process(double lfoSignal = 0.0, double pressure01 = 0.0);
 

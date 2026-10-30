@@ -23,7 +23,6 @@ bool isSupportedProgramNrpn(std::uint16_t nrpn)
 
 } // namespace
 
-
 int P6MidiRouter::rawValueFor(const P6PatchState& patch, std::uint16_t nrpn, int fallback)
 {
     for (const auto& raw : patch.rawParameters)
@@ -70,9 +69,6 @@ MidiRouteResult P6MidiRouter::applyNrpn(P6PatchState& patch,
         return out;
     }
 
-    // Do not turn arbitrary/global NRPNs into new program-state vector entries
-    // on the realtime thread. Unsupported selections are consumed but ignored
-    // until their semantics/storage domain are implemented explicitly.
     if (!isSupportedProgramNrpn(update.parameter)) {
         MidiRouteResult out;
         out.consumed = true;
@@ -80,8 +76,6 @@ MidiRouteResult P6MidiRouter::applyNrpn(P6PatchState& patch,
     }
 
     applyRawNrpn(patch, update);
-    // updatePatch() is deliberately a live refresh, not a program load: held
-    // notes/chord memory/transport survive a front-panel-style NRPN edit.
     scheduler.updatePatch(patch, calibration);
 
     MidiRouteResult out;
@@ -112,9 +106,6 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
     default: break;
     }
 
-    // A host may deliver a complete SysEx message in its MIDI event buffer.
-    // Recognise it but never call SysexCodec here; the wrapper can copy it into
-    // a fixed queue and decode on a non-realtime thread.
     if (status == 0xF0) {
         out.consumed = true;
         out.sysexDeferred = true;
@@ -139,8 +130,6 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
         out.consumed = true;
         return out;
     case 0xB0: {
-        // Prophet-6 Appendix C uses standard NRPN CC99/98 + Data Entry 6/38,
-        // and explicitly states that Data Increment/Decrement are accepted.
         if (d1 == 96 || d1 == 97) {
             const auto selected = nrpn_.selectedParameter();
             if (!selected) {
@@ -161,13 +150,19 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
 
         if (d1 == 1)
             scheduler.setModWheel(static_cast<double>(d2) / 127.0);
-        else if (d1 == 120 || d1 == 123)
-            scheduler.allNotesOff();
+        else if (d1 == 7)
+            scheduler.setMidiVolume(static_cast<double>(d2) / 127.0);
+        else if (d1 == 64)
+            scheduler.setSustainPedal(d2 >= 64);
+        else if (d1 == 120)
+            scheduler.midiAllSoundOff();
+        else if (d1 == 121)
+            scheduler.resetMidiControllers();
+        else if (d1 == 123)
+            scheduler.midiAllNotesOff();
 
-        // NRPN-selection/data-entry CCs are consumed even before a complete
-        // update is emitted. Other CCs are left unconsumed for future mappings
-        // (e.g. sustain pedal) rather than silently pretending support.
-        out.consumed = d1 == 1 || d1 == 120 || d1 == 123
+        out.consumed = d1 == 1 || d1 == 7 || d1 == 64 || d1 == 120
+                    || d1 == 121 || d1 == 123
                     || d1 == 99 || d1 == 98 || d1 == 6 || d1 == 38
                     || d1 == 100 || d1 == 101;
         return out;

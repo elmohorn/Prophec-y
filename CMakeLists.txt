@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(P6Core VERSION 0.16.0 LANGUAGES C CXX)
+project(P6Core VERSION 0.17.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,6 +13,7 @@ add_library(p6core
     src/P6Arpeggiator.cpp
     src/P6SequencerPlayer.cpp
     src/P6PerformanceScheduler.cpp
+    src/P6PerformanceMidiMode.cpp
     src/P6MidiRouter.cpp
     src/PolyBLEPOscillator.cpp
     src/ADSREnvelope.cpp
@@ -25,6 +26,7 @@ add_library(p6core
     src/P6Voice.cpp
     src/NrpnCodec.cpp
     src/P6Engine.cpp
+    src/P6EngineMidiMode.cpp
 )
 
 target_include_directories(p6core PUBLIC include)
@@ -40,9 +42,6 @@ endif()
 enable_testing()
 add_executable(p6core_tests tests/test_main.cpp)
 target_link_libraries(p6core_tests PRIVATE p6core)
-# The regression suite intentionally uses assert() extensively. Release builds
-# normally define NDEBUG, which would compile those checks out completely. Keep
-# assertions active for test executables on every platform/configuration.
 if(MSVC)
   target_compile_options(p6core_tests PRIVATE /UNDEBUG)
 else()
@@ -50,8 +49,6 @@ else()
 endif()
 add_test(NAME p6core_tests COMMAND p6core_tests)
 
-# The host-state codec is intentionally JUCE-free so lossless 1024-byte state
-# round-trips can be regression-tested even when the optional plugin SDK is absent.
 add_executable(p6_plugin_state_tests
     tests/plugin_state_test.cpp
     plugin/PluginStateCodec.cpp)
@@ -64,36 +61,39 @@ else()
 endif()
 add_test(NAME p6_plugin_state_tests COMMAND p6_plugin_state_tests)
 
+find_package(Threads REQUIRED)
+add_executable(p6_control_contract_tests tests/control_contract_test.cpp)
+target_link_libraries(p6_control_contract_tests PRIVATE p6core Threads::Threads)
+add_test(NAME p6_control_contract_tests COMMAND p6_control_contract_tests)
+
+# Test-only global new/delete instrumentation proves that the prepared core
+# realtime path (MIDI routing -> scheduler -> engine) performs no ordinary heap
+# allocations during sustained processing. All setup/reserve work happens first.
+add_executable(p6_realtime_contract_tests tests/realtime_contract_test.cpp)
+target_link_libraries(p6_realtime_contract_tests PRIVATE p6core Threads::Threads)
+add_test(NAME p6_realtime_contract_tests COMMAND p6_realtime_contract_tests)
+
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
-
 add_executable(p6_inspect tools/inspect_sysex.cpp)
 target_link_libraries(p6_inspect PRIVATE p6core)
-
 add_executable(p6_sequence_dump tools/sequence_dump.cpp)
 target_link_libraries(p6_sequence_dump PRIVATE p6core)
-
 add_executable(p6_render_events tools/render_events.cpp)
 target_link_libraries(p6_render_events PRIVATE p6core)
-
 add_executable(p6_render_cal tools/render_calibration.cpp)
 target_link_libraries(p6_render_cal PRIVATE p6core)
-
 add_executable(p6_render_events_cal tools/render_events_calibration.cpp)
 target_link_libraries(p6_render_events_cal PRIVATE p6core)
-
 add_executable(p6_sync_probe tools/sync_probe.cpp)
 target_link_libraries(p6_sync_probe PRIVATE p6core)
-
 add_executable(p6_polymod_probe tools/polymod_probe.cpp)
 target_link_libraries(p6_polymod_probe PRIVATE p6core)
-
 add_executable(p6_sync_microscope tools/sync_microscope.cpp)
 target_link_libraries(p6_sync_microscope PRIVATE p6core)
-
 add_executable(p6_timing_probe tools/timing_probe.cpp)
 target_link_libraries(p6_timing_probe PRIVATE p6core)
-# Optional JUCE wrapper. The DSP/core remains independently buildable and testable.
+
 option(P6_BUILD_PLUGIN "Build the JUCE VST3/Standalone wrapper" OFF)
 option(P6_FETCH_JUCE "Fetch the pinned JUCE release if it is not otherwise available" ON)
 set(P6_JUCE_PATH "" CACHE PATH "Path to a JUCE source checkout (optional when JUCE is installed)")

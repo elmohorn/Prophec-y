@@ -20,9 +20,11 @@ This file is the **master scope document** for Prophec-y. It exists to prevent l
 6. Custom UI work must not redefine synth behavior. The engine/parameter contract comes first.
 7. New ideas that do not close a row in this matrix go to backlog instead of interrupting the active milestone.
 
-## Snapshot after v0.16
+## Snapshot after v0.17
 
-The project is **not a finished Prophet-6 emulation yet**. It is a mature synthesis/compatibility core wrapped in a now-valid Windows/Linux VST3. The strongest areas are state compatibility, the six-voice engine architecture, hard-sync/Poly-Mod infrastructure, performance scheduling, NRPN/SysEx handling, and host integration. The largest functional gaps are digital effects, LFO clock sync, several performance MIDI controls, exact sequencer edge semantics, chord-memory persistence, and final acoustic calibration.
+The project is **not a finished Prophet-6 emulation yet**. It is a mature synthesis/compatibility core with a validated Windows/Linux VST3 wrapper and a now-closed control/performance contract. The strongest areas are state compatibility, six-voice engine architecture, hard-sync/Poly-Mod infrastructure, performance scheduling, NRPN/SysEx handling, host integration, controller semantics and realtime ownership.
+
+v0.17 validated sustain/Damper CC64, MIDI Volume CC7, CC120/121/123 channel-mode behavior, causal host-vs-MIDI edit ordering, realtime no-allocation regression coverage, and the evidence-backed first-key synced-LFO phase reset. Exact Prophet-6 synced-LFO rhythmic divisions, Foot Controller CC4, several sequence/chord-memory storage semantics and final acoustic calibration remain intentionally unguessed.
 
 The current JUCE generic editor is diagnostic only. A control being visible there means the host parameter exists; it does **not** imply that the corresponding hardware behavior is complete.
 
@@ -34,14 +36,14 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 |---|---|---|---|---|
 | 1024-byte canonical program payload | VALIDATED | `P6PatchState` preserves full raw payload | Keep immutable contract | Done / regression gate |
 | Program vs Edit Buffer SysEx | VALIDATED | Correct `0x02` / `0x03` handling | Maintain tests | Done |
-| Sequential 7-bit pack/unpack | VALIDATED | Codec + concatenated-bank scanning | Fuzz malformed streams further | v0.17 |
+| Sequential 7-bit pack/unpack | VALIDATED | Codec + concatenated-bank scanning | Fuzz malformed streams further | Ongoing |
 | Known serialized parameter mapping | VALIDATED | 87 verified entries after v0.16 cardinality fix | Extend only with evidence | Ongoing |
 | Unknown serialized bytes | VALIDATED | Preserved losslessly | Never reinterpret without evidence | Ongoing |
 | Program name NRPN 236..255 | VALIDATED | Updates payload and visible name | UI text editing later | v0.20 |
 | Sequence note/velocity NRPN 256..1023 | VALIDATED | Updates stored sequence bytes in place | Preserve unknown metadata | Done |
-| Sequence controls NRPN 168..171 | FUNCTIONAL / PROVISIONAL | Kept as NRPN state; no guessed SysEx offsets | Identify storage offsets only from evidence | v0.17+ |
-| Sequence velocity bit 7 | OPAQUE / MEASURE | Preserved untouched | Determine tie/retrigger/other semantics from hardware or strong public evidence | v0.17/v0.19 |
-| Chord-memory program storage | OPAQUE / MEASURE | Runtime chord exists; program load clears it | Differential real-hardware SysEx captures to locate storage | v0.17/v0.19 |
+| Sequence controls NRPN 168..171 | FUNCTIONAL / PROVISIONAL | Kept as NRPN state; no guessed SysEx offsets | Identify storage offsets only from evidence | v0.19+ |
+| Sequence velocity bit 7 | OPAQUE / MEASURE | Preserved untouched | Determine tie/retrigger/other semantics from hardware or strong public evidence | v0.19 |
+| Chord-memory program storage | OPAQUE / MEASURE | Runtime chord exists; program load clears it | Differential real-hardware SysEx captures to locate storage | v0.19 |
 | Host state codec | VALIDATED | Versioned JUCE-independent codec, 1024-byte round-trip | Keep backward compatibility when format evolves | Ongoing |
 
 ## B. Voice engine and analog signal path
@@ -81,7 +83,7 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 | LFO Initial Amount | VALIDATED behavior / provisional depth | Routed | Depth calibration | v0.19 |
 | Mod Wheel -> LFO depth | VALIDATED behavior | `initial + wheel*(1-initial)` model | Hardware A/B only | v0.19 |
 | LFO destinations | FUNCTIONAL / PROVISIONAL | Osc1/2 pitch, PW, amp, LPF, HPF routing | Destination depth calibration | v0.19 |
-| **LFO Sync** | CONNECTED / INCOMPLETE | Parameter decoded and retained as `lfoClockSync_` | Connect LFO phase/rate to common Internal/Host/MIDI clock | **v0.17 P0** |
+| **LFO Sync** | CONNECTED / INCOMPLETE | Sync state retained; first physical key of a new chord resets synced LFO phase and is regression-tested | Establish exact Prophet-6 raw-frequency-to-rhythmic-division law before clock-rate mapping | v0.19 / hardware evidence |
 | Channel pressure amount/destinations | FUNCTIONAL / PROVISIONAL | Pressure routing including LFO amount | Final depth calibration | v0.19 |
 | Poly Mod filter-envelope source | FUNCTIONAL / PROVISIONAL | Audio-rate-capable source/dest path | Range calibration | v0.19 |
 | Poly Mod Osc2 source | FUNCTIONAL / PROVISIONAL | Audio-rate modulation | Range and analog bandwidth calibration | v0.19 |
@@ -93,15 +95,18 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Pitch bend | VALIDATED behavior | Bipolar bend, program range capped physically to 12 semitones while raw state is preserved | Verify range edge cases | v0.17/v0.19 |
+| Pitch bend | VALIDATED behavior | Bipolar bend, program range capped physically to 12 semitones while raw state is preserved | Verify range edge cases | v0.19 |
 | Unison voice count | VALIDATED behavior | 1..6 stack, CHD selects six | Final hardware behavior A/B | v0.19 |
 | Key modes Low/High/Last | VALIDATED behavior | Implemented | Hardware A/B | v0.19 |
 | Retrigger variants | VALIDATED behavior | Low/High/Last retrigger from zero | Hardware A/B | v0.19 |
-| Chord memory runtime | VALIDATED behavior | Capture up to six intervals; high/low anchoring | Program persistence unknown | v0.17/v0.19 |
-| Sustain pedal CC64 | MISSING | No sustain state in MIDI router/engine | Implement pedal-held release semantics | **v0.17 P0** |
-| Foot Controller CC4 | MISSING | Not routed | Map documented behavior without duplicating parameter logic | v0.17 |
-| MIDI Volume CC7 | MISSING | Not routed | Decide hardware-compatible placement vs host output gain | v0.17 |
-| Full panel MIDI CC map | MISSING / PARTIAL | NRPN path is mature; CC panel translation incomplete | Translate CC -> existing NRPN semantics | v0.17 |
+| Chord memory runtime | VALIDATED behavior | Capture up to six intervals; high/low anchoring | Program persistence unknown | v0.19 |
+| Sustain pedal CC64 | VALIDATED | Physical Note Off clears held-key state immediately; Damper defers live-voice release; pedal-up releases only non-held live voices | Hardware A/B edge cases | Done / regression gate |
+| Foot Controller CC4 | OPAQUE / MEASURE | Not routed; deliberately deferred rather than guessed | Establish Prophet-6 mapping/placement from strong evidence | v0.19+ |
+| MIDI Volume CC7 | VALIDATED | Runtime performance gain, independent of saved program Voice Volume | Hardware A/B gain law if needed | Done / regression gate |
+| Reset All Controllers CC121 | VALIDATED | Resets Mod Wheel, Sustain and MIDI Volume for modeled CC state | Extend only as new controller classes become validated | Done |
+| All Sound Off CC120 | VALIDATED | Immediate voice silence without redefining controller state | Maintain regression | Done |
+| All Notes Off CC123 | VALIDATED | Releases physical-note ownership while respecting Damper semantics | Maintain regression | Done |
+| Full panel MIDI CC map | MISSING / PARTIAL | NRPN path is mature; selected evidence-backed performance CCs implemented | Extend only from documented/evidence-backed mappings | Ongoing |
 
 ## E. Clock, arpeggiator and sequencer
 
@@ -109,7 +114,7 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 |---|---|---|---|---|
 | Internal clock | VALIDATED | Sample-domain scheduler | Long-duration drift soak | v0.21 |
 | Host/DAW PPQ clock | VALIDATED | Host PPQ anchor, no second wrapper clock | Multi-host reposition/loop tests | v0.21 |
-| MIDI Clock 24 PPQN | VALIDATED | Start/Continue/Stop + no-start/stop policy support | External hardware soak | v0.17/v0.21 |
+| MIDI Clock 24 PPQN | VALIDATED | Start/Continue/Stop + no-start/stop policy support | External hardware soak | v0.21 |
 | 10 clock divisions | VALIDATED | All documented divisions represented | Keep regression tests | Done |
 | Swing divisions | OPAQUE / MEASURE | Correct average division; straight fallback | Measure actual long:short ratio | v0.19 |
 | Arp Up / Down / Up-Down | VALIDATED behavior | Sample-accurate scheduler | Hardware A/B endpoints | v0.19 |
@@ -118,11 +123,12 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 | Arp Range 1..3 octaves | VALIDATED behavior | Implemented | Hardware A/B | v0.19 |
 | Arp Hold / relatch | VALIDATED behavior | Implemented | Host/UI exposure later | v0.20 |
 | Arp Beat Sync | VALIDATED behavior | Immediate vs next-grid behavior | Hardware A/B | v0.19 |
+| Arpeggiator realtime ordering | VALIDATED | Fixed-size deterministic insertion sorting; no heap allocation on realtime path | Keep allocation regression green | Done / regression gate |
 | Stored sequencer decode 6x64 | VALIDATED | 384 cells decoded losslessly | Preserve unknown flag | Done |
-| Sequencer playback | FUNCTIONAL / PROVISIONAL | Six tracks, length, velocity low-7-bit, transposition | Tie/retrigger and mode semantics incomplete | v0.17/v0.19 |
+| Sequencer playback | FUNCTIONAL / PROVISIONAL | Six tracks, length, velocity low-7-bit, transposition | Tie/retrigger and mode semantics incomplete | v0.19 |
 | Sequencer transpose | VALIDATED behavior | Middle-C reference | Hardware A/B | v0.19 |
-| Sequencer Mode NRPN 170 | OPAQUE / MEASURE | State preserved | Determine exact behavior | v0.17/v0.19 |
-| Sequencer Play Mode NRPN 171 | OPAQUE / MEASURE | State preserved | Determine exact behavior | v0.17/v0.19 |
+| Sequencer Mode NRPN 170 | OPAQUE / MEASURE | State preserved | Determine exact behavior | v0.19 |
+| Sequencer Play Mode NRPN 171 | OPAQUE / MEASURE | State preserved | Determine exact behavior | v0.19 |
 | Seq Play/Stop NRPN 1088 | VALIDATED | Runtime-only, not serialized into program | Keep state/host regression | Done |
 | Generated MIDI output from arp/seq | MISSING | Internal generated notes only | Optional MIDI output parity after core behavior is stable | v0.18+ |
 
@@ -147,26 +153,26 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 |---|---|---|---|---|
 | Note On/Off sample offsets | VALIDATED | JUCE MIDI consumed at sample positions | DAW soak | v0.21 |
 | Mod Wheel / pitch bend / channel pressure | VALIDATED | Unified `P6MidiRouter` | Keep regression | Done |
-| Complete NRPN stream | VALIDATED | CC99/98 + CC6/38 | Fuzz malformed/reordered streams | v0.17 |
-| Data Increment/Decrement CC96/97 | VALIDATED | Implemented | Edge-domain tests | v0.17 |
+| Complete NRPN stream | VALIDATED | CC99/98 + CC6/38 | Fuzz malformed/reordered streams | Ongoing |
+| Data Increment/Decrement CC96/97 | VALIDATED | Implemented | Edge-domain tests | Ongoing |
 | RPN reset 127/127 | VALIDATED | Correct pair semantics | Keep regression | Done |
-| Host automation -> raw patch | VALIDATED basic path | Individual NRPN updates, no whole-patch overwrite | More conflict tests | v0.17 |
-| MIDI NRPN -> audio patch | VALIDATED basic path | Sample-accurate application | More conflict tests | v0.17 |
-| **Host automation vs pending MIDI mirror ordering** | CONNECTED / INCOMPLETE | Separate audio/canonical patch domains and atomic mailbox exist | Add explicit causal ordering/generation test so stale UI mirror can never beat a newer host edit | **v0.17 P0** |
-| SysEx received inside audio callback | CONNECTED / INCOMPLETE | Recognised but deliberately not decoded realtime | Fixed RT->message-thread queue | v0.17 |
-| Realtime allocation proof | FUNCTIONAL / PROVISIONAL | Major known allocations moved out of callback; buffers reserved | Add explicit no-allocation / realtime guard test | **v0.17 P0** |
-| Realtime lock behavior | FUNCTIONAL / PROVISIONAL | `tryEnter()` avoids blocking audio thread | Stress preset/state edits while processing | v0.17/v0.21 |
+| Host automation -> raw patch | VALIDATED | Individual NRPN updates, no whole-patch overwrite | More real-host conflict soak | v0.21 |
+| MIDI NRPN -> audio patch | VALIDATED | Sample-accurate application | More real-host conflict soak | v0.21 |
+| **Host automation vs pending MIDI mirror ordering** | VALIDATED | `VersionedEditMailbox` supplies monotonic generations and last-writer-wins canonical/UI acceptance | Keep cross-thread regression green | Done / regression gate |
+| SysEx received inside audio callback | CONNECTED / INCOMPLETE | Recognised but deliberately not decoded realtime | Fixed RT->message-thread handoff if/when realtime SysEx support is required | v0.18+ |
+| Realtime allocation proof | VALIDATED | Explicit realtime allocation contract test; arpeggiator allocation source removed | Extend gate as new realtime subsystems are added | Done / regression gate |
+| Realtime lock behavior | FUNCTIONAL / PROVISIONAL | `tryEnter()` avoids blocking audio thread | Stress preset/state edits while processing | v0.21 |
 
 ## H. VST3 wrapper and platform support
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
 | JUCE isolation from core | VALIDATED | JUCE optional; core remains C++20-only | Maintain boundary | Ongoing |
-| Windows VST3 build | VALIDATED | GitHub Actions build PASS | Real DAW matrix | v0.21 |
-| Linux VST3 build | VALIDATED | GitHub Actions build PASS | Real DAW matrix | v0.21 |
-| `pluginval` strictness 10 Windows | VALIDATED | PASS in v0.16 gate | Keep release gate | Ongoing |
-| `pluginval` strictness 10 Linux | VALIDATED | PASS in v0.16 gate | Keep release gate | Ongoing |
-| Linux ASan+UBSan | VALIDATED | PASS | Keep release gate | Ongoing |
+| Windows VST3 build | VALIDATED | GitHub Actions build PASS in v0.17 gate | Real DAW matrix | v0.21 |
+| Linux VST3 build | VALIDATED | GitHub Actions build PASS in v0.17 gate | Real DAW matrix | v0.21 |
+| `pluginval` strictness 10 Windows | VALIDATED | PASS in v0.17 gate | Keep release gate | Ongoing |
+| `pluginval` strictness 10 Linux | VALIDATED | PASS in v0.17 gate | Keep release gate | Ongoing |
+| Linux ASan+UBSan | VALIDATED | PASS in v0.17 gate | Keep release gate | Ongoing |
 | State restoration through VST3 | VALIDATED | pluginval + independent codec tests | DAW project restore matrix | v0.21 |
 | Host tempo/PPQ | VALIDATED basic path | JUCE playhead -> common clock | Multi-host loops/reposition tests | v0.21 |
 | Oversampling quality setting | VALIDATED host behavior | Applied only from `prepareToPlay()` to avoid RT reallocations | Better UX/restart semantics later | v0.20 |
@@ -178,7 +184,7 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 |---|---|---|---|---|
 | Diagnostic parameter UI | VALIDATED | JUCE `GenericAudioProcessorEditor` | Retain as debug option | Ongoing |
 | Custom Prophet-style editor | MISSING | None | Build only after parameter/behavior contract stabilises | **v0.20** |
-| Panel controls connected to real DSP | PARTIAL by definition | Generic editor exposes host parameters | Matrix rows above decide whether each control is truly functional | v0.17-v0.20 |
+| Panel controls connected to real DSP | PARTIAL by definition | Generic editor exposes host parameters | Matrix rows above decide whether each control is truly functional | v0.18-v0.20 |
 | Preset browser | MISSING | Host state and SysEx APIs exist underneath | Browser, bank/program navigation, favorites/search later | v0.20 |
 | SysEx import/export UI | MISSING | Non-realtime APIs exist | File picker + validation + error UX | v0.20 |
 | Init / compare / A-B workflow | MISSING | Core can load/update states | Design after state contract is frozen | v0.20 |
@@ -189,7 +195,7 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Deterministic DSP regression | VALIDATED | Controlled hard-sync probe remains byte-identical across wrapper/stability work | Keep immutable golden probes | Ongoing |
+| Deterministic DSP regression | VALIDATED | Controlled hard-sync probe remains byte-identical across wrapper/control work | Keep immutable golden probes | Ongoing |
 | Reference-A comparison harness | FUNCTIONAL / PROVISIONAL | Spectral/envelope/stereo metrics and patch-aware inference | Source is compressed web audio, not calibration truth | v0.19 |
 | Real hardware dry capture corpus | MISSING | Capture protocol defined | Obtain controlled oscillator/filter/env/sync sweeps | **v0.19 P0** |
 | Hard-sync residual analysis | FUNCTIONAL / PROVISIONAL | v0.11 microscope excludes several simple causes | Model finite analog reset/discharge/recovery only with evidence | v0.19 |
@@ -206,35 +212,35 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 
 # Milestone plan
 
-## v0.16 — Stability gate — **CLOSE NOW**
+## v0.16 — Stability gate — **CLOSED**
 
-Scope only:
+Completed:
 
 - Windows VST3 build + CTest + pluginval strictness 10.
 - Linux VST3 build + CTest + pluginval strictness 10.
 - Linux ASan+UBSan.
-- Real Release-mode checks (not tests compiled away by `NDEBUG`).
+- Real Release-mode checks.
 - Chord-memory held-key bug fixed.
 - Serialized parameter registry/layout integrity fixed and regression-tested.
 - Valid bundle ID and one canonical CI workflow.
 
-**Definition of done:** final closeout commit passes the same three jobs. No new synth features are added to v0.16.
+## v0.17 — Complete the control/performance contract — **CLOSED**
 
-## v0.17 — Complete the control/performance contract
-
-Priority order:
+Completed release scope:
 
 1. Causal ordering for host automation vs MIDI NRPN/UI mirroring.
-2. Explicit realtime no-allocation/stress tests.
+2. Explicit realtime no-allocation regression tests.
 3. Sustain pedal CC64.
-4. LFO Sync connected to the common clock.
-5. Remaining documented performance CC translation through the existing NRPN/source-of-truth path.
-6. Realtime-safe SysEx handoff to message thread.
-7. Investigate — but do not guess — chord-memory storage and sequencer opaque semantics.
+4. Evidence-backed synced-LFO first-key phase reset; unknown division law explicitly deferred rather than guessed.
+5. MIDI Volume CC7 and controller/channel-mode semantics for CC120/121/123.
+6. Realtime arpeggiator allocation risk removed.
+7. Unknown CC4, chord-memory storage and sequencer opaque semantics documented rather than fabricated.
 
-**Exit criterion:** all non-FX musical controls intended for the first beta either work, are explicitly marked hardware-unknown, or are deliberately deferred with reason.
+**Exit criterion met:** non-FX musical controls intended for this milestone either work, are explicitly hardware-unknown, or are deliberately deferred with reason. Windows/Linux VST3, control/realtime tests, pluginval strictness 10 and Linux ASan+UBSan passed the closeout gate.
 
-## v0.18 — Digital effects
+See `V0_17_CONTROL_CONTRACT.md` and `V0_17_CLOSEOUT.md`.
+
+## v0.18 — Digital effects — **ACTIVE**
 
 - One realtime-safe serial FX A -> B architecture.
 - Reuse/adapt mature license-compatible delay/chorus concepts where available instead of reinventing them.
@@ -286,4 +292,4 @@ Only after the parameter/musical contract above is stable:
 
 At any point there should be **one active milestone**. Work may only enter it when it closes a matrix row assigned to that milestone or fixes a regression blocking its exit criterion. Everything else stays in backlog.
 
-The next active milestone after the v0.16 closeout gate is **v0.17: Complete the control/performance contract**. Digital FX, acoustic calibration and custom UI are explicitly later milestones so the project does not oscillate between unrelated subsystems.
+The active milestone after the v0.17 closeout gate is **v0.18: Digital effects**. Acoustic calibration and custom UI remain later milestones so the project does not oscillate between unrelated subsystems.

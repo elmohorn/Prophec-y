@@ -284,6 +284,12 @@ bool P6AudioProcessor::applyHostParameterChangesToPatch (p6::P6PatchState& targe
         if (current == previous)
             continue;
 
+        // Establish causal order before applying the host value. Any delayed
+        // MIDI edit with an older generation will be discarded by the UI/state
+        // mailbox rather than resurfacing after this newer DAW automation.
+        if (binding.nrpn < 1024)
+            static_cast<void> (nrpnMailbox_.markHost (binding.nrpn));
+
         const p6::NrpnUpdate update { binding.nrpn, static_cast<std::uint16_t> (std::max (0, current)) };
         p6::applyRawNrpn (target, update);
         if (mirrorTarget != nullptr)
@@ -293,6 +299,27 @@ bool P6AudioProcessor::applyHostParameterChangesToPatch (p6::P6PatchState& targe
         changed = true;
     }
     return changed;
+}
+
+void P6AudioProcessor::invalidateMidiMirrorsForUnobservedHostChanges() noexcept
+{
+    // The host can change APVTS before processBlock has consumed the new value.
+    // Mark that parameter as newer now so the message-thread timer cannot write
+    // an older MIDI mirror back over pending host automation.
+    for (const auto& binding : bindings_)
+    {
+        if (binding.value == nullptr || binding.nrpn >= hostObservedRaw_.size())
+            continue;
+        const int current = static_cast<int> (std::lround (binding.value->load()));
+        const int observed = hostObservedRaw_[binding.nrpn].load (std::memory_order_acquire);
+        if (current != observed)
+            static_cast<void> (nrpnMailbox_.markHost (binding.nrpn));
+    }
+
+    const int currentSeq = apvts_.getRawParameterValue (kSequencePlayID)->load() >= 0.5f ? 1 : 0;
+    const int observedSeq = hostSequencePlayObserved_.load (std::memory_order_acquire);
+    if (currentSeq != observedSeq)
+        static_cast<void> (sequencePlayMailbox_.markHost (0));
 }
 
 int P6AudioProcessor::selectedOversampling() const
@@ -363,7 +390,8 @@ void P6AudioProcessor::applyRuntimeControls (bool force)
     const auto newSequencePlay = apvts_.getRawParameterValue (kSequencePlayID)->load() >= 0.5f;
     const int newSequencePlayInt = newSequencePlay ? 1 : 0;
     const int previousHostSequencePlay = hostSequencePlayObserved_.load (std::memory_order_acquire);
-    const bool hostSequencePlayChanged = force || newSequencePlayInt != previousHostSequencePlay;
+    const bool actualHostSequencePlayChanged = newSequencePlayInt != previousHostSequencePlay;
+    const bool applySequencePlay = force || actualHostSequencePlayChanged;
 
     const bool qualityChanged = newOversampling != oversampling_;
     const bool mappingChanged = newSlop != slopMode_ || newCalibration != calibrationProfile_;
@@ -403,8 +431,10 @@ void P6AudioProcessor::applyRuntimeControls (bool force)
     scheduler_.setMidiStartStopEnabled (midiStartStop_);
     scheduler_.setArpHold (arpHold_);
     scheduler_.setArpBeatSync (arpBeatSync_);
-    if (hostSequencePlayChanged)
+    if (applySequencePlay)
     {
+        if (actualHostSequencePlayChanged)
+            static_cast<void> (sequencePlayMailbox_.markHost (0));
         sequencePlay_.store (newSequencePlay, std::memory_order_release);
         scheduler_.setSequencePlaying (newSequencePlay);
         hostSequencePlayObserved_.store (newSequencePlayInt, std::memory_order_release);
@@ -438,73 +468,52 @@ void P6AudioProcessor::applyHostTransport()
 
 void P6AudioProcessor::queueNrpnMirror (p6::NrpnUpdate update) noexcept
 {
-    if (update.parameter >= pendingNrpn_.size())
+    if (update.parameter >= 1024)
         return;
-    const int encoded = static_cast<int> (update.value) + 1;
-    pendingNrpn_[update.parameter].store (encoded, std::memory_order_release);
-    pendingHostMirror_[update.parameter].store (encoded, std::memory_order_release);
+    static_cast<void> (nrpnMailbox_.publishMidi (update.parameter, update.value));
 }
 
 void P6AudioProcessor::clearPendingNrpn() noexcept
 {
-    for (auto& value : pendingNrpn_)
-        value.store (0, std::memory_order_relaxed);
-    for (auto& value : pendingHostMirror_)
-        value.store (0, std::memory_order_relaxed);
-    pendingSequencePlayMirror_.store (-1, std::memory_order_relaxed);
+    nrpnMailbox_.clear();
+    sequencePlayMailbox_.clear();
 }
 
 void P6AudioProcessor::drainPendingNrpnToCanonical (bool mirrorHost)
 {
-    std::array<int, 1024> canonical{};
-    canonical.fill (-1);
-    bool anyCanonical = false;
-    for (std::size_t i = 0; i < pendingNrpn_.size(); ++i)
-    {
-        const int encoded = pendingNrpn_[i].exchange (0, std::memory_order_acq_rel);
-        if (encoded == 0)
-            continue;
-        canonical[i] = encoded - 1;
-        anyCanonical = true;
-    }
+    // A host edit may be visible in APVTS before the audio callback has applied
+    // it. Invalidate older MIDI mirrors first so delayed UI work cannot win.
+    invalidateMidiMirrorsForUnobservedHostChanges();
 
-    if (anyCanonical)
     {
         const juce::SpinLock::ScopedLockType lock (patchLock_);
-        for (std::size_t i = 0; i < canonical.size(); ++i)
-            if (canonical[i] >= 0)
-                p6::applyRawNrpn (patch_, { static_cast<std::uint16_t> (i),
-                                            static_cast<std::uint16_t> (canonical[i]) });
+        for (std::size_t i = 0; i < 1024; ++i)
+        {
+            const auto edit = nrpnMailbox_.takeCanonicalIfLatest (i);
+            if (! edit || ! nrpnMailbox_.isLatest (i, edit->generation))
+                continue;
+            p6::applyRawNrpn (patch_, { static_cast<std::uint16_t> (i), edit->value });
+        }
     }
 
     if (! mirrorHost)
         return;
 
-    std::array<int, 1024> mirror{};
-    mirror.fill (-1);
-    bool anyMirror = false;
-    for (std::size_t i = 0; i < pendingHostMirror_.size(); ++i)
-    {
-        const int encoded = pendingHostMirror_[i].exchange (0, std::memory_order_acq_rel);
-        if (encoded == 0)
-            continue;
-        mirror[i] = encoded - 1;
-        anyMirror = true;
-    }
-    if (! anyMirror)
-        return;
+    // Re-check after canonical state work; host automation can move while this
+    // message-thread callback is running.
+    invalidateMidiMirrorsForUnobservedHostChanges();
 
     // This runs on JUCE's message thread via Timer, never in the audio
-    // callback. Mirror hardware-style MIDI edits into the host parameter model
-    // so generic/custom editors and automation readers see the same value.
-    for (std::size_t i = 0; i < mirror.size(); ++i)
+    // callback. Mirror only the latest causally valid hardware-style MIDI edit.
+    for (std::size_t i = 0; i < 1024; ++i)
     {
-        if (mirror[i] < 0)
+        const auto edit = nrpnMailbox_.takeMirrorIfLatest (i);
+        if (! edit || ! nrpnMailbox_.isLatest (i, edit->generation))
             continue;
         if (auto* p = apvts_.getParameter (hardwareParameterID (static_cast<std::uint16_t> (i))))
         {
-            p->setValueNotifyingHost (p->convertTo0to1 (static_cast<float> (mirror[i])));
-            hostObservedRaw_[i].store (mirror[i], std::memory_order_release);
+            p->setValueNotifyingHost (p->convertTo0to1 (static_cast<float> (edit->value)));
+            hostObservedRaw_[i].store (edit->value, std::memory_order_release);
         }
     }
 }
@@ -512,15 +521,24 @@ void P6AudioProcessor::drainPendingNrpnToCanonical (bool mirrorHost)
 void P6AudioProcessor::timerCallback()
 {
     // Message-thread-only host/UI mirror. The audio callback only performs
-    // atomic stores into the pending arrays and never posts OS messages.
+    // atomic stores into the versioned mailbox and never posts OS messages.
     drainPendingNrpnToCanonical (true);
 
-    const int seqPlay = pendingSequencePlayMirror_.exchange (-1, std::memory_order_acq_rel);
-    if (seqPlay >= 0)
+    const int currentHostSeq = apvts_.getRawParameterValue (kSequencePlayID)->load() >= 0.5f ? 1 : 0;
+    const int observedSeq = hostSequencePlayObserved_.load (std::memory_order_acquire);
+    if (currentHostSeq != observedSeq)
+        static_cast<void> (sequencePlayMailbox_.markHost (0));
+
+    // Runtime sequence play is already applied sample-accurately to the audio
+    // scheduler. The canonical side has no program byte, so consume that queue
+    // solely to keep the mailbox bounded and mirror only the host/UI side.
+    static_cast<void> (sequencePlayMailbox_.takeCanonicalIfLatest (0));
+    const auto seqPlay = sequencePlayMailbox_.takeMirrorIfLatest (0);
+    if (seqPlay && sequencePlayMailbox_.isLatest (0, seqPlay->generation))
     {
         if (auto* p = apvts_.getParameter (kSequencePlayID))
-            p->setValueNotifyingHost (p->convertTo0to1 (static_cast<float> (seqPlay)));
-        hostSequencePlayObserved_.store (seqPlay, std::memory_order_release);
+            p->setValueNotifyingHost (p->convertTo0to1 (static_cast<float> (seqPlay->value != 0)));
+        hostSequencePlayObserved_.store (seqPlay->value != 0 ? 1 : 0, std::memory_order_release);
     }
 }
 
@@ -533,19 +551,19 @@ void P6AudioProcessor::handleMidiMessage (const juce::MidiMessageMetadata& metad
         std::span<const std::uint8_t> (metadata.data, static_cast<std::size_t> (metadata.numBytes)),
         audioPatch_, scheduler_, selectedCalibration());
 
-    if (result.nrpnUpdate && result.nrpnUpdate->parameter < pendingNrpn_.size())
+    if (result.nrpnUpdate && result.nrpnUpdate->parameter < 1024)
         queueNrpnMirror (*result.nrpnUpdate);
     if (result.sequencePlay)
     {
-        const int value = *result.sequencePlay ? 1 : 0;
+        const auto value = static_cast<std::uint16_t> (*result.sequencePlay ? 1 : 0);
         sequencePlay_.store (*result.sequencePlay, std::memory_order_release);
-        pendingSequencePlayMirror_.store (value, std::memory_order_release);
+        static_cast<void> (sequencePlayMailbox_.publishMidi (0, value));
     }
 
     // A complete Prophet-6 SysEx delivered by the host is recognised by the
-    // JUCE-independent router, but v0.15 still defers decoding to the explicit
-    // non-realtime loadSysex() API. A fixed RT->UI SysEx queue is a later UI
-    // feature; never allocate/parse a 1176/1178-byte dump here.
+    // JUCE-independent router, but v0.17 still defers decoding to the explicit
+    // non-realtime loadSysex() API. A fixed RT->UI SysEx queue remains a later
+    // control-contract item; never allocate/parse a 1176/1178-byte dump here.
 }
 
 void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
@@ -604,8 +622,8 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
 juce::AudioProcessorEditor* P6AudioProcessor::createEditor()
 {
-    // v0.15 intentionally uses JUCE's maintained generic editor. It lets us
-    // validate the host contract before spending time on a bespoke UI.
+    // The generic editor remains deliberately diagnostic until the engine and
+    // control contract are complete enough to support a purpose-built UI.
     return new juce::GenericAudioProcessorEditor (*this);
 }
 
@@ -631,7 +649,7 @@ void P6AudioProcessor::changeProgramName (int, const juce::String& newName)
 void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // State save may occur before the message-thread mirror callback. Flush any
-    // pending MIDI NRPN edits first so the saved 1024-byte payload is current.
+    // causally valid pending MIDI NRPN edits first so the saved payload is current.
     drainPendingNrpnToCanonical (false);
     p6plugin::WrapperState state;
     {
@@ -708,6 +726,7 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual (kCalibrationID, std::clamp<int> (state.extras[6], 0, 1));
     setActual (kSequencePlayID, state.extras[7] != 0);
     sequencePlay_.store (state.extras[7] != 0, std::memory_order_release);
+    hostSequencePlayObserved_.store (state.extras[7] != 0 ? 1 : 0, std::memory_order_release);
 
     fullPatchLoadPending_.store (true, std::memory_order_release);
 }
