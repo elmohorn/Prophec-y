@@ -66,8 +66,12 @@ add_test(NAME p6_plugin_state_tests COMMAND p6_plugin_state_tests)
 
 # v0.17 controller/lifetime tests intentionally use an always-on check helper
 # rather than assert(), so their semantics are identical in Debug and Release.
+# The mailbox race regression uses real producer threads; ask CMake for the
+# platform threading target rather than relying on incidental libc/toolchain
+# linkage on a particular CI image.
+find_package(Threads REQUIRED)
 add_executable(p6_control_contract_tests tests/control_contract_test.cpp)
-target_link_libraries(p6_control_contract_tests PRIVATE p6core)
+target_link_libraries(p6_control_contract_tests PRIVATE p6core Threads::Threads)
 add_test(NAME p6_control_contract_tests COMMAND p6_control_contract_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
