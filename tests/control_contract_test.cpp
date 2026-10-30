@@ -49,15 +49,15 @@ void testVersionedMailboxLastWriterWins()
     P6_CHECK(canonical->value == 80);
     P6_CHECK(mirror->value == 80);
 
-    mailbox.publishMidi(3, 90);
+    static_cast<void>(mailbox.publishMidi(3, 90));
     const auto newest = mailbox.publishMidi(3, 100);
     const auto collapsed = mailbox.takeCanonicalIfLatest(3);
     P6_CHECK(collapsed.has_value());
     P6_CHECK(collapsed->generation == newest);
     P6_CHECK(collapsed->value == 100);
 
-    mailbox.publishMidi(4, 44);
-    mailbox.markHost(3);
+    static_cast<void>(mailbox.publishMidi(4, 44));
+    static_cast<void>(mailbox.markHost(3));
     const auto independent = mailbox.takeCanonicalIfLatest(4);
     P6_CHECK(independent.has_value());
     P6_CHECK(independent->value == 44);
@@ -253,6 +253,74 @@ void testAllSoundOffIsImmediateButDoesNotResetControllers()
     P6_CHECK(patch.rawPayload == payloadBefore);
 }
 
+p6::P6PatchState makeLfoSyncPatch(bool sync)
+{
+    p6::P6PatchState patch;
+    patch.rawPayload.fill(0);
+    // Use a midrange free-running rate so phase advancement is easily visible.
+    patch.rawParameters.push_back(p6::RawParameter{88, 100, 0.0f, true});
+    patch.rawParameters.push_back(p6::RawParameter{90, 0, 0.0f, true});
+    patch.rawParameters.push_back(p6::RawParameter{91, static_cast<std::uint16_t>(sync ? 1 : 0), 0.0f, true});
+    return patch;
+}
+
+void advanceLfo(p6::P6PerformanceScheduler& scheduler, int samples = 256)
+{
+    for (int i = 0; i < samples; ++i)
+        static_cast<void>(scheduler.process());
+}
+
+void testSyncedLfoResetsOnlyOnFirstPhysicalKey()
+{
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    p6::P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+    auto patch = makeLfoSyncPatch(true);
+    scheduler.loadPatch(patch);
+
+    advanceLfo(scheduler);
+    P6_CHECK(engine.lfoPhaseForDiagnostics() > 0.0);
+
+    scheduler.noteOn(60, 1.0);
+    P6_CHECK(engine.lfoPhaseForDiagnostics() == 0.0);
+
+    advanceLfo(scheduler, 64);
+    const double phaseWithFirstHeld = engine.lfoPhaseForDiagnostics();
+    P6_CHECK(phaseWithFirstHeld > 0.0);
+
+    // An overlapping additional key belongs to the same physical chord and
+    // must not restart the synced LFO.
+    scheduler.noteOn(64, 1.0);
+    P6_CHECK(engine.lfoPhaseForDiagnostics() == phaseWithFirstHeld);
+
+    scheduler.noteOff(60);
+    scheduler.noteOff(64);
+    advanceLfo(scheduler, 64);
+    P6_CHECK(engine.lfoPhaseForDiagnostics() > 0.0);
+
+    // After all physical keys are released, the next first key starts a new
+    // synced-LFO cycle.
+    scheduler.noteOn(67, 1.0);
+    P6_CHECK(engine.lfoPhaseForDiagnostics() == 0.0);
+}
+
+void testUnsyncedLfoDoesNotResetOnFirstPhysicalKey()
+{
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    p6::P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+    auto patch = makeLfoSyncPatch(false);
+    scheduler.loadPatch(patch);
+
+    advanceLfo(scheduler);
+    const double phaseBefore = engine.lfoPhaseForDiagnostics();
+    P6_CHECK(phaseBefore > 0.0);
+    scheduler.noteOn(60, 1.0);
+    P6_CHECK(engine.lfoPhaseForDiagnostics() == phaseBefore);
+}
+
 } // namespace
 
 int main()
@@ -267,6 +335,8 @@ int main()
     testSustainThresholdIsExactly64();
     testAllNotesOffRespectsDamper();
     testAllSoundOffIsImmediateButDoesNotResetControllers();
+    testSyncedLfoResetsOnlyOnFirstPhysicalKey();
+    testUnsyncedLfoDoesNotResetOnFirstPhysicalKey();
     std::cout << "p6 v0.17 control-contract tests passed\n";
     return 0;
 }

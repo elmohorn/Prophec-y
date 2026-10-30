@@ -47,6 +47,13 @@ public:
     bool captureChordMemoryFromHeld();
     void clearChordMemory();
 
+    // Prophet-6 LFO Sync resets the LFO cycle on the first physical key of a
+    // newly started chord. The scheduler owns the physical-key boundary, so it
+    // calls this hook only for that event. Generated arp/sequence notes never
+    // call it. The exact synced Frequency-knob division law remains evidence-
+    // gated and is deliberately not guessed here.
+    void resetSyncedLfoPhase() noexcept { if (lfoClockSync_) lfo_.reset(); }
+
     // detuneCents is a non-hardware development extension for A/B tests.
     // Hardware-compatible patch loading passes zero: Prophet-6 unison spread
     // is produced by free-running phases and Slop/Vintage rather than a hidden
@@ -135,7 +142,7 @@ private:
     double distortion_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
-    bool lfoClockSync_{}; // phase-reset behavior is implemented; tempo-division law remains evidence-gated
+    bool lfoClockSync_{}; // first-key phase reset implemented; tempo-division law remains evidence-gated
     double channelPressure_{};
     double modWheel_{};
     double pitchBend_{};

@@ -122,6 +122,16 @@ void P6PerformanceScheduler::noteOn(int midiNote, double velocity01)
 {
     midiNote = std::clamp(midiNote, 0, 127);
     velocity01 = std::clamp(velocity01, 0.0, 1.0);
+
+    // Prophet-6 LFO Sync resets the LFO cycle on the first physical key of a
+    // newly started chord, not on overlapping additional keys. Detect that
+    // boundary before mutating the arpeggiator's physical-key set. This stays
+    // correct even while Arp/Seq owns the audible notes, because generated
+    // notes bypass this physical-input entry point.
+    const bool firstPhysicalKey = arpeggiator_.physicalKeyCount() == 0;
+    if (firstPhysicalKey)
+        engine_.resetSyncedLfoPhase();
+
     arpeggiator_.noteOn(midiNote, velocity01);
 
     if (sequencePlaying_) {
