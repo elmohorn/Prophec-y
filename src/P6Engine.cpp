@@ -385,6 +385,12 @@ void P6Engine::noteOnOwned(int midiNote, double velocity01, std::uint32_t owner)
         return;
     }
 
+    // Chord-memory capture is based on physically held live keys, not on
+    // whether Unison happens to be enabled. Generated arp/sequencer notes use
+    // non-zero owners and must not enter this capture set.
+    if (owner == 0)
+        rememberHeld(midiNote, velocity01);
+
     ++clock_;
     auto& slot = allocateVoice();
     const auto index = static_cast<std::size_t>(&slot - voices_.data());
@@ -404,6 +410,9 @@ void P6Engine::noteOffOwned(int midiNote, std::uint32_t owner)
         retargetUnison(false);
         return;
     }
+
+    if (owner == 0)
+        forgetHeld(midiNote);
 
     for (auto& slot : voices_) {
         if (slot.keyDown && slot.note == midiNote && slot.owner == owner) {
