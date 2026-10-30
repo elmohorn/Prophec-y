@@ -1,0 +1,30 @@
+P6 Core v0.15 validation summary
+================================
+
+Clean Release core build:
+  CTest: 2/2 PASS
+
+Validated test areas include:
+  - core synthesis/performance regression suite
+  - PluginStateCodec 1024-byte opaque payload round-trip
+  - MIDI/NRPN routing
+  - Data Increment/Decrement
+  - runtime Seq Play/Stop (NRPN 1088)
+  - sequence edits without playback reset
+  - host/audio patch separation
+
+Deterministic DSP regression SHA-256:
+  d5701a38fdc467104a602412a5a197139700527dee7975d9c0840968457a0487
+
+This digest is byte-identical to the corresponding v0.13 and v0.14 hard-sync regression render.
+
+Distribution audit:
+  - no factory .syx payloads
+  - no Reference-A WAV/MP3 captures
+  - no build directories
+  - no vendored JUCE source
+
+JUCE wrapper status before GitHub CI:
+  - adapter API/syntax checked against JUCE 9.0.4 interfaces used by the project
+  - a real linked VST3 could not be produced in the original local container because JUCE was not installed and external DNS was blocked
+  - GitHub Actions is configured to perform the actual cross-platform JUCE build and pluginval validation
