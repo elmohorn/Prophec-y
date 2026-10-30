@@ -23,7 +23,6 @@ bool isSupportedProgramNrpn(std::uint16_t nrpn)
 
 } // namespace
 
-
 int P6MidiRouter::rawValueFor(const P6PatchState& patch, std::uint16_t nrpn, int fallback)
 {
     for (const auto& raw : patch.rawParameters)
@@ -159,15 +158,22 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
         if (const auto update = nrpn_.processCC(d1, d2))
             return applyNrpn(patch, scheduler, calibration, *update);
 
-        if (d1 == 1)
+        if (d1 == 1) {
             scheduler.setModWheel(static_cast<double>(d2) / 127.0);
-        else if (d1 == 120 || d1 == 123)
+        } else if (d1 == 64) {
+            // Sequential documents Damper as the standard MIDI threshold:
+            // 0..63 off, 64..127 on. This is intentionally independent of
+            // Arp Hold; note ownership leaves the arp as soon as Note Off is
+            // received while only the envelopes remain pedal-held.
+            scheduler.setSustainPedal(d2 >= 64);
+        } else if (d1 == 120 || d1 == 123) {
             scheduler.allNotesOff();
+        }
 
         // NRPN-selection/data-entry CCs are consumed even before a complete
-        // update is emitted. Other CCs are left unconsumed for future mappings
-        // (e.g. sustain pedal) rather than silently pretending support.
-        out.consumed = d1 == 1 || d1 == 120 || d1 == 123
+        // update is emitted. Performance controllers are handled here rather
+        // than being turned into duplicate program parameters.
+        out.consumed = d1 == 1 || d1 == 64 || d1 == 120 || d1 == 123
                     || d1 == 99 || d1 == 98 || d1 == 6 || d1 == 38
                     || d1 == 100 || d1 == 101;
         return out;
