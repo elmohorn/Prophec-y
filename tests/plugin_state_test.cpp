@@ -1,5 +1,6 @@
 #include "PluginStateCodec.h"
 #include "p6/NrpnCodec.h"
+#include "p6/ParameterRegistry.h"
 #include "p6/ProgramLayout.h"
 #include "p6/SysexCodec.h"
 
@@ -7,9 +8,28 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
+#include <unordered_set>
 
 int main()
 {
+    // Catch accidental std::array over-sizing: a default-initialised trailing
+    // SerializedParameterInfo previously created a duplicate NRPN 0 parameter
+    // with min == max, which JUCE normalised to NaN and pluginval correctly
+    // rejected. Every serialized entry must be real, uniquely addressable, and
+    // backed by registry metadata.
+    const auto layout = p6::serializedParameterLayout();
+    assert(layout.size() == 87);
+    std::unordered_set<std::uint16_t> seenNrpns;
+    std::unordered_set<std::size_t> seenOffsets;
+    for (const auto& entry : layout)
+    {
+        assert(!entry.name.empty());
+        assert(entry.maximum > entry.minimum);
+        assert(seenNrpns.insert(entry.nrpn).second);
+        assert(seenOffsets.insert(entry.sysexOffset).second);
+        assert(p6::findProgramParameter(entry.nrpn) != nullptr);
+    }
+
     p6plugin::WrapperState a;
     a.patch.bank = -1;
     a.patch.program = 499;
@@ -43,6 +63,6 @@ int main()
     assert(!p6plugin::decodeState(broken, b));
     assert(!p6plugin::decodeState(std::span<const std::uint8_t>(bytes.data(), bytes.size() - 1), b));
 
-    std::cout << "p6 wrapper state codec v0.15 tests passed\n";
+    std::cout << "p6 wrapper state/layout v0.16 tests passed\n";
     return 0;
 }
