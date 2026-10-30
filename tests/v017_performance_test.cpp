@@ -58,6 +58,8 @@ int main()
     const std::array<std::uint8_t, 3> pedalOff {0xB0, 64, 0};
     const std::array<std::uint8_t, 3> pedalBelowThreshold {0xB0, 64, 63};
     const std::array<std::uint8_t, 3> pedalAtThreshold {0xB0, 64, 64};
+    const std::array<std::uint8_t, 3> modWheelFull {0xB0, 1, 127};
+    const std::array<std::uint8_t, 3> resetControllers {0xB0, 121, 0};
 
     P6_CHECK(router.process(noteOn, patch, scheduler).consumed);
     for (int i = 0; i < 64; ++i)
@@ -91,6 +93,44 @@ int main()
     P6_CHECK(router.process(noteOn, patch, scheduler).consumed);
     P6_CHECK(router.process(noteOff, patch, scheduler).consumed);
     P6_CHECK(engine.sustainedVoiceCount() == 0);
+
+    // CC121 resets the performance-controller state we currently implement.
+    P6_CHECK(router.process(pedalOn, patch, scheduler).consumed);
+    P6_CHECK(router.process(modWheelFull, patch, scheduler).consumed);
+    P6_CHECK(engine.sustainPedal());
+    P6_CHECK(engine.modWheel() > 0.999);
+    P6_CHECK(router.process(resetControllers, patch, scheduler).consumed);
+    P6_CHECK(!engine.sustainPedal());
+    P6_CHECK(engine.modWheel() == 0.0);
+
+    // A deferred marker is tied to the exact voice age. If all six pedal-held
+    // voices are stolen/reused, pedal-up must never release the new notes.
+    {
+        p6::P6Engine stealEngine;
+        stealEngine.prepare(48000.0, 1);
+        p6::P6PerformanceScheduler stealScheduler(stealEngine);
+        stealScheduler.prepare(48000.0);
+        auto stealPatch = makeSustainPatch();
+        stealScheduler.loadPatch(stealPatch);
+        stealScheduler.setSustainPedal(true);
+
+        for (int n = 60; n < 66; ++n) {
+            stealScheduler.noteOn(n, 1.0);
+            stealScheduler.noteOff(n);
+        }
+        P6_CHECK(stealEngine.sustainedVoiceCount() == p6::P6Engine::kVoiceCount);
+
+        for (int n = 72; n < 78; ++n)
+            stealScheduler.noteOn(n, 1.0);
+        P6_CHECK(stealEngine.activeVoiceCount() == p6::P6Engine::kVoiceCount);
+
+        stealScheduler.setSustainPedal(false);
+        P6_CHECK(stealEngine.sustainedVoiceCount() == 0);
+        P6_CHECK(stealEngine.activeVoiceCount() == p6::P6Engine::kVoiceCount);
+        for (int i = 0; i < 256; ++i)
+            (void)stealScheduler.process();
+        P6_CHECK(stealEngine.activeVoiceCount() == p6::P6Engine::kVoiceCount);
+    }
 
     std::cout << "p6 v0.17 sustain/performance tests passed\n";
     return 0;
