@@ -37,8 +37,6 @@ public:
     void setPitchBend(double bipolar);
     void setSustainPedal(bool down);
     void setMidiVolume(double amount01);
-    // Scheduler/clock owns tempo. The engine only forwards that physical BPM
-    // into the global effects path for synced delays.
     void setEffectsRuntimeBpm(double bpm) noexcept { effects_.setRuntimeBpm(bpm); }
     void setKeyMode(std::uint8_t mode);
     void setChordMode(bool enabled);
@@ -106,7 +104,7 @@ private:
     void retargetUnison(bool retrigger);
     void releaseUnison();
     VoiceParams paramsForVoice(std::size_t index) const;
-    static double panPosition(std::size_t index, double spread);
+    void updatePanGains() noexcept;
     double applyCandidateDistortion(double x, DcBlockState& state) const;
     void applyPatch(const P6PatchState& patch,
                     const MapperCalibration& calibration,
@@ -118,6 +116,8 @@ private:
     int oversampleFactor_{2};
     VoiceDiagnostics diagnostics_{};
     double panSpread_{};
+    std::array<double, kVoiceCount> panGainLeft_{};
+    std::array<double, kVoiceCount> panGainRight_{};
     double programVolume_{1.0};
     double midiVolume_{1.0};
     double distortion_{};
