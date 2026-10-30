@@ -33,6 +33,8 @@ public:
     void setModWheel(double amount01) { engine_.setModWheel(amount01); }
     void setChannelPressure(double pressure01) { engine_.setChannelPressure(pressure01); }
     void setPitchBend(double bipolar) { engine_.setPitchBend(bipolar); }
+    // Damper is a performance controller, not Arp Hold and not program state.
+    void setSustainPedal(bool enabled) { engine_.setSustainPedal(enabled); }
 
     void setArpeggiatorEnabled(bool enabled);
     void setArpMode(ArpMode mode);
