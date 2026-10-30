@@ -1,0 +1,113 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+
+namespace p6 {
+
+// The first ten values intentionally match the verified legacy Prophet-6
+// program/NRPN domains already used by Prophec-y. The later OS effects are
+// represented as internal-only extension values until their serialized/MIDI
+// identities are established independently; do not write those values into a
+// hardware program dump.
+enum class P6EffectType : std::uint8_t {
+    Off = 0,
+    BbdDelay = 1,
+    DigitalDelay = 2,
+    Chorus = 3,
+    Phaser1 = 4,
+    Phaser2 = 5,
+    Hall = 6,
+    Room = 7,
+    Plate = 8,
+    Spring = 9,
+    Phaser3 = 10,
+    RingMod = 11,
+    Flanger1 = 12,
+    Flanger2 = 13,
+};
+
+// DSP-domain settings. ParameterMapper is responsible for converting hardware
+// raw values to these physical/normalised values.
+//
+// For BbdDelay / DigitalDelay:
+//   primary   = delay time in seconds
+//   secondary = feedback 0..1
+// For Chorus:
+//   primary   = modulation rate in Hz
+//   secondary = sweep depth 0..1
+// Other effect families are deliberately dry until their algorithms and
+// parameter laws are implemented in v0.18.
+struct P6EffectSlotSettings {
+    P6EffectType type{P6EffectType::Off};
+    double mix{};       // 0=dry, 1=wet
+    double primary{};
+    double secondary{};
+};
+
+struct P6EffectsSettings {
+    bool enabled{};     // Prophet EFFECTS ON/OFF true-bypass control
+    P6EffectSlotSettings a{};
+    P6EffectSlotSettings b{};
+};
+
+struct P6EffectsStereoSample {
+    double left{};
+    double right{};
+};
+
+// JUCE-independent, allocation-free-after-prepare stereo FX chain.
+//
+// Signal order is always A -> B. prepare() owns every allocation; setSettings()
+// and process() never resize their storage. Unsupported types pass through dry
+// while preserving their settings in the caller's canonical patch state.
+class P6Effects {
+public:
+    void prepare(double sampleRate);
+    void reset() noexcept;
+    void setSettings(const P6EffectsSettings& settings) noexcept;
+
+    [[nodiscard]] const P6EffectsSettings& settings() const noexcept { return settings_; }
+    [[nodiscard]] double sampleRate() const noexcept { return sampleRate_; }
+
+    [[nodiscard]] P6EffectsStereoSample process(double left, double right) noexcept;
+
+private:
+    struct Slot {
+        std::vector<double> delay;
+        std::vector<double> chorusLeft;
+        std::vector<double> chorusRight;
+        std::size_t delayWrite{};
+        std::size_t chorusWrite{};
+        double loopLowPass{};
+        double chorusPhase{};
+        double wowPhase{};
+        double wowFrom{};
+        double wowTo{};
+        std::uint32_t rng{0x5a5a1234u};
+
+        void prepare(double sampleRate, std::uint32_t seed);
+        void reset() noexcept;
+        [[nodiscard]] P6EffectsStereoSample process(double left, double right,
+                                                     const P6EffectSlotSettings& settings,
+                                                     double sampleRate) noexcept;
+
+    private:
+        [[nodiscard]] double randomBipolar() noexcept;
+        [[nodiscard]] double wander(double sampleRate) noexcept;
+        [[nodiscard]] static double tapLinear(const std::vector<double>& buffer,
+                                              std::size_t write,
+                                              double samplesBack) noexcept;
+        [[nodiscard]] static double tapCubic(const std::vector<double>& buffer,
+                                             std::size_t write,
+                                             double samplesBack) noexcept;
+    };
+
+    double sampleRate_{48000.0};
+    P6EffectsSettings settings_{};
+    Slot slotA_{};
+    Slot slotB_{};
+};
+
+} // namespace p6
