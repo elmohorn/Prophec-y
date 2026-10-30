@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "ParameterEventArbiter.h"
 #include "p6/P6Engine.h"
 #include "p6/P6PerformanceScheduler.h"
 #include "p6/P6MidiRouter.h"
@@ -93,13 +94,12 @@ private:
     juce::AudioProcessorValueTreeState apvts_;
     std::vector<HostBinding> bindings_;
     std::array<std::atomic<int>, 1024> hostObservedRaw_{};
-    // NRPN 0..1023 covers scalar controls, program-name chars and all 6x64
-    // sequencer note/velocity addresses. value+1 is stored so 0 means empty.
-    std::array<std::atomic<int>, 1024> pendingNrpn_{};
-    std::array<std::atomic<int>, 1024> pendingHostMirror_{};
-    // Runtime control NRPN 1088 is not part of the program payload. -1 means
-    // no pending message-thread mirror; 0/1 are the Seq Play/Stop state.
-    std::atomic<int> pendingSequencePlayMirror_ {-1};
+
+    // One JUCE-independent, fixed-size arbiter owns MIDI->host/canonical
+    // causality. It replaces the old value-only mailboxes so a delayed MIDI
+    // mirror can never overwrite newer DAW automation. NRPN 1088 uses the same
+    // epoch domain while remaining outside the 1024-byte program state.
+    p6plugin::ParameterEventArbiter parameterEvents_{};
     std::atomic<int> hostSequencePlayObserved_ {0};
 
     mutable juce::SpinLock patchLock_;
