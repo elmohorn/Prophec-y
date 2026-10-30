@@ -6,6 +6,7 @@ endif()
 
 juce_add_plugin(P6CorePlugin
     COMPANY_NAME "P6 Core Project"
+    BUNDLE_ID "com.elmohorn.p6core"
     PLUGIN_MANUFACTURER_CODE P6Co
     PLUGIN_CODE P6cr
     FORMATS ${P6_PLUGIN_FORMATS}
