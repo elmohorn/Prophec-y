@@ -69,6 +69,8 @@ void P6ReverbEffects::invalidateRealtimeState() noexcept
     }
     earlyWrite_ = 0;
     earlyValidSamples_ = 0;
+    // Coefficients are independent of delay-buffer contents; keep a valid
+    // cache across panic/type-state clears when the parameters are unchanged.
 }
 
 double P6ReverbEffects::readDelay(const Line& line, std::size_t delaySamples) noexcept
@@ -91,6 +93,37 @@ void P6ReverbEffects::writeDelay(Line& line, double value) noexcept
     line.validSamples = std::min(line.validSamples + 1u, line.buffer.size());
 }
 
+void P6ReverbEffects::updateCachedCoefficients(Type type,
+                                               double primary,
+                                               double secondary) noexcept
+{
+    if (cached_.valid && cached_.type == type
+        && cached_.primary == primary && cached_.secondary == secondary)
+        return;
+
+    const auto v = voicing(type, secondary);
+    const double timeSeconds = v.minTimeSeconds
+        + (v.maxTimeSeconds - v.minTimeSeconds) * primary * primary;
+
+    cached_.type = type;
+    cached_.primary = primary;
+    cached_.secondary = secondary;
+    cached_.dampingAlpha = 1.0 - std::exp(-kTau * v.dampingHz / sampleRate_);
+    cached_.diffusion = v.diffusion;
+    cached_.earlyDelaySamples = std::clamp<std::size_t>(
+        msToSamples(sampleRate_, v.earlyMs), 1u, early_.size() - 1u);
+    cached_.spring = type == Type::Spring;
+    cached_.earlyAmount = cached_.spring ? 0.24 : secondary;
+
+    for (std::size_t i = 0; i < kLines; ++i) {
+        cached_.delaySamples[i] = msToSamples(sampleRate_, v.delayMs[i]);
+        const double lineSeconds = v.delayMs[i] * 0.001;
+        cached_.feedbackGain[i] = std::pow(
+            0.001, lineSeconds / std::max(0.05, timeSeconds));
+    }
+    cached_.valid = true;
+}
+
 P6ReverbStereoSample P6ReverbEffects::process(double left, double right,
                                                Type type,
                                                double primary01,
@@ -101,18 +134,13 @@ P6ReverbStereoSample P6ReverbEffects::process(double left, double right,
 
     const double primary = std::clamp(primary01, 0.0, 1.0);
     const double secondary = std::clamp(secondary01, 0.0, 1.0);
-    const auto v = voicing(type, secondary);
-    const double timeSeconds = v.minTimeSeconds
-        + (v.maxTimeSeconds - v.minTimeSeconds) * primary * primary;
-    const double alpha = 1.0 - std::exp(-kTau * v.dampingHz / sampleRate_);
+    updateCachedCoefficients(type, primary, secondary);
 
     const double input = 0.5 * (left + right);
     std::array<double, kLines> y{};
     std::array<double, kLines> feedback{};
-    for (std::size_t i = 0; i < kLines; ++i) {
-        const auto delaySamples = msToSamples(sampleRate_, v.delayMs[i]);
-        y[i] = readDelay(lines_[i], delaySamples);
-    }
+    for (std::size_t i = 0; i < kLines; ++i)
+        y[i] = readDelay(lines_[i], cached_.delaySamples[i]);
 
     feedback[0] = 0.5 * ( y[0] + y[1] + y[2] + y[3]);
     feedback[1] = 0.5 * ( y[0] - y[1] + y[2] - y[3]);
@@ -121,31 +149,26 @@ P6ReverbStereoSample P6ReverbEffects::process(double left, double right,
 
     for (std::size_t i = 0; i < kLines; ++i) {
         auto& line = lines_[i];
-        line.dampingState += alpha * (feedback[i] - line.dampingState);
-        const double lineSeconds = v.delayMs[i] * 0.001;
-        const double gain = std::pow(0.001, lineSeconds / std::max(0.05, timeSeconds));
-        const double injection = input * ((i & 1u) ? -v.diffusion : v.diffusion);
-        writeDelay(line, injection + line.dampingState * gain);
+        line.dampingState += cached_.dampingAlpha * (feedback[i] - line.dampingState);
+        const double injection = input * ((i & 1u) ? -cached_.diffusion : cached_.diffusion);
+        writeDelay(line, injection + line.dampingState * cached_.feedbackGain[i]);
     }
 
-    const auto earlyDelay = std::clamp<std::size_t>(
-        msToSamples(sampleRate_, v.earlyMs), 1u, early_.size() - 1u);
     double early = 0.0;
-    if (earlyValidSamples_ >= earlyDelay) {
-        const auto earlyIndex = (earlyWrite_ + early_.size() - earlyDelay) % early_.size();
+    if (earlyValidSamples_ >= cached_.earlyDelaySamples) {
+        const auto earlyIndex = (earlyWrite_ + early_.size() - cached_.earlyDelaySamples) % early_.size();
         early = early_[earlyIndex];
     }
     early_[earlyWrite_] = input;
     earlyWrite_ = (earlyWrite_ + 1u) % early_.size();
     earlyValidSamples_ = std::min(earlyValidSamples_ + 1u, early_.size());
-    const double earlyAmount = type == Type::Spring ? 0.24 : secondary;
 
     double wetL = 0.34 * (y[0] + y[2]) - 0.22 * (y[1] + y[3]);
     double wetR = 0.34 * (y[1] + y[3]) - 0.22 * (y[0] + y[2]);
-    wetL += early * earlyAmount * 0.45;
-    wetR -= early * earlyAmount * 0.35;
+    wetL += early * cached_.earlyAmount * 0.45;
+    wetR -= early * cached_.earlyAmount * 0.35;
 
-    if (type == Type::Spring) {
+    if (cached_.spring) {
         wetL += 0.10 * (y[0] - y[2]);
         wetR += 0.10 * (y[1] - y[3]);
     }
