@@ -16,6 +16,7 @@ constexpr double kBbdWowHz = 0.6;
 constexpr double kChorusCentreSeconds = 0.0072;
 constexpr double kChorusSweepSeconds = 0.0048;
 constexpr double kChorusMaxSeconds = 0.02;
+constexpr double kParameterSmoothingSeconds = 0.005;
 
 constexpr std::array<double, 11> kSyncBeats{
     4.0, 3.0, 2.0, 2.0 / 3.0, 1.5, 1.0,
@@ -63,6 +64,8 @@ double syncedEffectDelaySeconds(std::uint8_t division, double bpm) noexcept
 void P6Effects::Slot::prepare(double sampleRate, std::uint32_t seed)
 {
     rng = seed != 0u ? seed : 0x5a5a1234u;
+    smoothingCoefficient_ = 1.0 - std::exp(
+        -1.0 / (std::max(8000.0, sampleRate) * kParameterSmoothingSeconds));
 
     const auto delayFrames = static_cast<std::size_t>(
         std::ceil(sampleRate * kDelayMaxSeconds * (1.0 + kBbdWow))) + 4u;
@@ -99,8 +102,34 @@ void P6Effects::Slot::invalidateRealtimeState() noexcept
     wowPhase = 0.0;
     wowFrom = 0.0;
     wowTo = 0.0;
+    smoothingInitialised_ = false;
+    smoothedMix_ = 0.0;
+    smoothedPrimary_ = 0.0;
+    smoothedSecondary_ = 0.0;
     modulation.invalidateRealtimeState();
     reverb.invalidateRealtimeState();
+}
+
+void P6Effects::Slot::updateSmoothedSettings(double targetMix,
+                                             double targetPrimary,
+                                             double targetSecondary) noexcept
+{
+    targetMix = std::clamp(targetMix, 0.0, 1.0);
+    if (!smoothingInitialised_) {
+        smoothedMix_ = targetMix;
+        smoothedPrimary_ = targetPrimary;
+        smoothedSecondary_ = targetSecondary;
+        smoothingInitialised_ = true;
+        return;
+    }
+
+    const auto advance = [this](double current, double target) noexcept {
+        const double next = current + smoothingCoefficient_ * (target - current);
+        return std::abs(target - next) < 1.0e-10 ? target : next;
+    };
+    smoothedMix_ = advance(smoothedMix_, targetMix);
+    smoothedPrimary_ = advance(smoothedPrimary_, targetPrimary);
+    smoothedSecondary_ = advance(smoothedSecondary_, targetSecondary);
 }
 
 double P6Effects::Slot::randomBipolar() noexcept
@@ -179,8 +208,18 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
                                                double sampleRate,
                                                double runtimeBpm) noexcept
 {
-    const double mix = std::clamp(settings.mix, 0.0, 1.0);
-    if (settings.type == P6EffectType::Off || mix <= 0.0)
+    if (settings.type == P6EffectType::Off || settings.type == P6EffectType::Unknown)
+        return {left, right};
+
+    const double targetPrimary =
+        (settings.type == P6EffectType::BbdDelay || settings.type == P6EffectType::DigitalDelay)
+            && settings.tempoSync
+        ? syncedEffectDelaySeconds(settings.syncDivision, runtimeBpm)
+        : settings.primary;
+    updateSmoothedSettings(settings.mix, targetPrimary, settings.secondary);
+
+    const double mix = std::clamp(smoothedMix_, 0.0, 1.0);
+    if (mix <= 1.0e-10 && settings.mix <= 0.0)
         return {left, right};
 
     switch (settings.type) {
@@ -190,10 +229,7 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
             return {left, right};
 
         const double mono = 0.5 * (left + right);
-        const double delaySeconds = settings.tempoSync
-            ? syncedEffectDelaySeconds(settings.syncDivision, runtimeBpm)
-            : settings.primary;
-        double samplesBack = std::clamp(delaySeconds, 0.0, kDelayMaxSeconds) * sampleRate;
+        double samplesBack = std::clamp(smoothedPrimary_, 0.0, kDelayMaxSeconds) * sampleRate;
         double delayed = 0.0;
         if (settings.type == P6EffectType::BbdDelay) {
             samplesBack *= 1.0 + wander(sampleRate) * kBbdWow;
@@ -209,7 +245,7 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
             feedbackSample = tanhApprox(loopLowPass);
         }
 
-        const double feedback = std::clamp(settings.secondary, 0.0, 0.999);
+        const double feedback = std::clamp(smoothedSecondary_, 0.0, 0.999);
         delay[delayWrite] = mono + feedbackSample * feedback;
         delayWrite = (delayWrite + 1u) % delay.size();
         delayValidSamples = std::min(delayValidSamples + 1u, delay.size());
@@ -221,13 +257,13 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         if (chorusLeft.empty() || chorusRight.empty())
             return {left, right};
 
-        const double rateHz = std::clamp(settings.primary, 0.0, sampleRate * 0.25);
+        const double rateHz = std::clamp(smoothedPrimary_, 0.0, sampleRate * 0.25);
         chorusPhase += rateHz / sampleRate;
         chorusPhase -= std::floor(chorusPhase);
 
         const double sweepLeft = std::sin(kTau * chorusPhase);
         const double sweepRight = std::sin(kTau * chorusPhase + kPi * 0.5);
-        const double depthSeconds = std::clamp(settings.secondary, 0.0, 1.0) * kChorusSweepSeconds;
+        const double depthSeconds = std::clamp(smoothedSecondary_, 0.0, 1.0) * kChorusSweepSeconds;
         const double backLeft = (kChorusCentreSeconds + depthSeconds * sweepLeft) * sampleRate;
         const double backRight = (kChorusCentreSeconds + depthSeconds * sweepRight) * sampleRate;
 
@@ -247,20 +283,20 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         const int variant = settings.type == P6EffectType::Phaser1 ? 1
             : (settings.type == P6EffectType::Phaser2 ? 2 : 3);
         const auto wet = modulation.processPhaser(
-            left, right, settings.primary, settings.secondary, variant);
+            left, right, smoothedPrimary_, smoothedSecondary_, variant);
         return mixWet(left, right, wet.left, wet.right, mix);
     }
 
     case P6EffectType::Flanger1:
     case P6EffectType::Flanger2: {
         const auto wet = modulation.processFlanger(
-            left, right, settings.primary, settings.secondary,
+            left, right, smoothedPrimary_, smoothedSecondary_,
             settings.type == P6EffectType::Flanger1);
         return mixWet(left, right, wet.left, wet.right, mix);
     }
 
     case P6EffectType::RingMod: {
-        const auto wet = modulation.processRingMod(left, right, settings.primary);
+        const auto wet = modulation.processRingMod(left, right, smoothedPrimary_);
         return mixWet(left, right, wet.left, wet.right, mix);
     }
 
@@ -276,7 +312,7 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         else if (settings.type == P6EffectType::Spring)
             type = P6ReverbEffects::Type::Spring;
         const auto wet = reverb.process(left, right, type,
-                                        settings.primary, settings.secondary);
+                                        smoothedPrimary_, smoothedSecondary_);
         return mixWet(left, right, wet.left, wet.right, mix);
     }
 
