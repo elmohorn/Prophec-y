@@ -185,10 +185,25 @@ v0.18 adds explicit tests for:
 - CC120 clearing FX tails,
 - no ordinary heap allocation after `prepare()` with active delay, phaser, flanger and reverb processing.
 
+## v0.18 hardening and performance gate
+
+Before the milestone is closed, v0.18 also needs a small correctness/performance gate so the broader Prophet-6 scope does not become an avoidably expensive realtime engine.
+
+1. **Effect-type transition state:** changing a slot type must not leave a frozen algorithm state that can reappear when the old type is selected again. Define an explicit deterministic transition/reset policy and add regression coverage without guessing undocumented Prophet tail semantics.
+2. **Bounded-time CC120:** the current no-allocation guarantee is necessary but not sufficient. `All Sound Off` must avoid bulk buffer clearing on the audio thread; use an O(1) or bounded-time invalidation/lazy-clear strategy while preserving immediate silence.
+3. **Common runtime clock:** synced FX timing must consume the engine's existing host/MIDI/internal scheduler clock rather than relying only on the BPM value stored in the patch. There must remain one clock authority.
+4. **Minimum parameter smoothing:** delay-time/rate/depth/feedback automation must avoid obvious discontinuities and clicks. Exact hardware smoothing remains calibratable later; v0.18 only requires deterministic click-safe behavior.
+5. **DSP fingerprint baseline:** add deterministic rendered-audio fingerprints for representative patches/FX states so later speed work can prove it did not accidentally change the sound. Exact-bit fingerprints may be used where platform-stable; robust acoustic fingerprints should cover cross-platform-sensitive paths.
+6. **Performance benchmark baseline:** measure one and six voices, FX off/on, representative A+B chains, 48/96 kHz and practical block sizes. Record average processing cost and worst-block/late-block behaviour, because realtime safety is determined by the worst block rather than average CPU alone.
+7. **Safe high-value optimizations:** move parameter-invariant coefficient work out of per-sample paths (notably reverb/phaser coefficient calculation and fixed Pan Spread gains) and gate genuinely idle voice work where analog free-running state does not require full DSP processing. Do not switch numeric precision, introduce SIMD approximations or make calibration-sensitive shortcuts until profiling proves they are needed.
+
+The fingerprint and benchmark infrastructure becomes part of the v0.19 sound-matching workflow rather than a one-off v0.18 tool: Reference-A remains the authority for fidelity to the hardware, while fingerprints protect against accidental regressions during optimization.
+
 ## Remaining v0.18 work
 
-1. Establish the actual Prophet-6/OB-6 later-OS raw selector/control encoding for PH3, Ring, FL1 and FL2 from strong independent evidence or differential SysEx/hardware captures; do not guess it.
-2. Wire Ring Mod low-note tracking once that control identity is established.
-3. Confirm exact FX bypass/tail behavior on hardware (whether internal tails advance while global true bypass is engaged).
-4. Run the Windows/Linux VST3 + `pluginval --strictness-level 10` + Linux ASan/UBSan gate with the complete FX test set.
-5. Update the parity matrix only after the complete gate is green; acoustic matching of the effect constants remains a v0.19 task.
+1. Complete the hardening/performance gate above: effect-state transitions, bounded-time CC120, common-clock FX sync, minimum smoothing, fingerprint baseline and benchmark baseline.
+2. Establish the actual Prophet-6/OB-6 later-OS raw selector/control encoding for PH3, Ring, FL1 and FL2 from strong independent evidence or differential SysEx/hardware captures; do not guess it.
+3. Wire Ring Mod low-note tracking once that control identity is established.
+4. Confirm exact FX bypass/tail behavior on hardware (whether internal tails advance while global true bypass is engaged).
+5. Run the Windows/Linux VST3 + `pluginval --strictness-level 10` + Linux ASan/UBSan gate with the complete FX and hardening test set.
+6. Update the parity matrix only after the complete gate is green; acoustic matching of effect constants remains a v0.19 task.
