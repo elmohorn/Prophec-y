@@ -159,15 +159,25 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
         if (const auto update = nrpn_.processCC(d1, d2))
             return applyNrpn(patch, scheduler, calibration, *update);
 
+        // Performance CCs deliberately stay outside P6PatchState. This mirrors
+        // the hardware distinction between saved Voice Volume/program data and
+        // transient controller state.
         if (d1 == 1)
             scheduler.setModWheel(static_cast<double>(d2) / 127.0);
+        else if (d1 == 7)
+            scheduler.setMidiVolume(static_cast<double>(d2) / 127.0);
+        else if (d1 == 64)
+            scheduler.setSustainPedal(d2 >= 64);
+        else if (d1 == 121)
+            scheduler.resetMidiControllers();
         else if (d1 == 120 || d1 == 123)
             scheduler.allNotesOff();
 
         // NRPN-selection/data-entry CCs are consumed even before a complete
-        // update is emitted. Other CCs are left unconsumed for future mappings
-        // (e.g. sustain pedal) rather than silently pretending support.
-        out.consumed = d1 == 1 || d1 == 120 || d1 == 123
+        // update is emitted. Unsupported panel CCs are left unconsumed rather
+        // than pretending semantics we have not yet established.
+        out.consumed = d1 == 1 || d1 == 7 || d1 == 64 || d1 == 120
+                    || d1 == 121 || d1 == 123
                     || d1 == 99 || d1 == 98 || d1 == 6 || d1 == 38
                     || d1 == 100 || d1 == 101;
         return out;
