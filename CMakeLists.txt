@@ -20,6 +20,7 @@ add_library(p6core
     src/AnalogSlop.cpp
     src/P6LFO.cpp
     src/P6Effects.cpp
+    src/P6EffectMapper.cpp
     src/ParameterRegistry.cpp
     src/ProgramLayout.cpp
     src/ParameterMapper.cpp
