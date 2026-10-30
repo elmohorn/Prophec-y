@@ -70,9 +70,6 @@ add_executable(p6_control_contract_tests tests/control_contract_test.cpp)
 target_link_libraries(p6_control_contract_tests PRIVATE p6core Threads::Threads)
 add_test(NAME p6_control_contract_tests COMMAND p6_control_contract_tests)
 
-# Test-only global new/delete instrumentation proves that the prepared core
-# realtime path (MIDI routing -> scheduler -> engine) performs no ordinary heap
-# allocations during sustained processing. All setup/reserve work happens first.
 add_executable(p6_realtime_contract_tests tests/realtime_contract_test.cpp)
 target_link_libraries(p6_realtime_contract_tests PRIVATE p6core Threads::Threads)
 add_test(NAME p6_realtime_contract_tests COMMAND p6_realtime_contract_tests)
@@ -106,6 +103,10 @@ add_executable(p6_sync_microscope tools/sync_microscope.cpp)
 target_link_libraries(p6_sync_microscope PRIVATE p6core)
 add_executable(p6_timing_probe tools/timing_probe.cpp)
 target_link_libraries(p6_timing_probe PRIVATE p6core)
+add_executable(p6_perf_benchmark tools/perf_benchmark.cpp)
+target_link_libraries(p6_perf_benchmark PRIVATE p6core)
+add_executable(p6_dsp_fingerprint tools/dsp_fingerprint.cpp)
+target_link_libraries(p6_dsp_fingerprint PRIVATE p6core)
 
 option(P6_BUILD_PLUGIN "Build the JUCE VST3/Standalone wrapper" OFF)
 option(P6_FETCH_JUCE "Fetch the pinned JUCE release if it is not otherwise available" ON)
