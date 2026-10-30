@@ -4,9 +4,6 @@ namespace p6 {
 
 void P6Engine::midiAllNotesOff()
 {
-    // MIDI All Notes Off is equivalent to releasing the currently held keys.
-    // Damper remains authoritative: physically held bookkeeping is cleared,
-    // but owner-0 voices whose release is deferred by CC64 keep sounding.
     heldCount_ = 0;
 
     if (unison_) {
@@ -46,9 +43,6 @@ void P6Engine::midiAllNotesOff()
 
 void P6Engine::midiAllSoundOff()
 {
-    // CC120 is the emergency audible kill. It does not reset controllers and
-    // it must not use P6Voice::reset(), because that would also restart the
-    // Prophet-style free-running VCO/slop state.
     heldCount_ = 0;
     unisonSustainHeld_ = false;
 
@@ -60,11 +54,10 @@ void P6Engine::midiAllSoundOff()
         slot.voice.silence();
     }
 
-    // Once global effects exist, "All Sound Off" must include their stored
-    // energy too. Otherwise a delay/reverb tail would remain audible after the
-    // emergency kill even though every voice had been silenced. reset() only
-    // clears preallocated DSP state; it does not allocate or change controllers.
-    effects_.reset();
+    // Emergency audible kill must also invalidate delay/reverb energy, but it
+    // must not walk second-long buffers on the audio thread. The FX layer marks
+    // all pre-panic ring-buffer samples invalid in bounded time instead.
+    effects_.clearRealtimeState();
 }
 
 } // namespace p6
