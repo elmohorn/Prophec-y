@@ -1,0 +1,26 @@
+# v0.16 stability gate — Windows + Linux
+
+This milestone is intentionally about correctness and host portability rather than new synthesis features.
+
+## Fixed before CI
+
+- Release test executables explicitly undefine `NDEBUG`, so the existing `assert()` regression checks remain active instead of compiling away.
+- Chord-memory capture now tracks physically held live keys in normal polyphonic mode; generated arp/sequencer notes do not enter the capture set.
+- The plug-in uses an explicit valid bundle identifier: `com.elmohorn.p6core`.
+- The CI matrix is reduced to the two target platforms requested for distribution: Windows and Linux.
+- Windows uses the pinned JUCE default from CMake rather than passing a dotted tag through PowerShell, avoiding the previous `9` / `.0.4` argument split.
+- CI explicitly builds `p6core_tests`, `p6_plugin_state_tests`, and the VST3 target before invoking CTest.
+- Linux adds a Debug ASan+UBSan job in addition to the Release VST3 + pluginval validation.
+- The obsolete Linux smoke workflow was removed so one workflow is the source of truth.
+
+## Local validation before CI
+
+- Debug CTest: 2/2 pass.
+- Release CTest with assertions active: 2/2 pass.
+- Debug ASan+UBSan: 2/2 pass.
+- Deterministic hard-sync regression remains byte-identical to v0.15 for the controlled probe:
+  `766936d0c6467c527cce32f88d933c46de2660819886e8f779deae74b7657e9b`.
+
+## Gate to merge into main
+
+The branch is ready to merge only after both Windows and Linux build the VST3, run the core/state tests, and pass `pluginval --strictness-level 10`. The Linux sanitizer job must also remain green.
