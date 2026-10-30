@@ -1,4 +1,5 @@
 #include "p6/P6Engine.h"
+#include "p6/P6EffectMapper.h"
 
 #include <algorithm>
 #include <cmath>
@@ -21,6 +22,7 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
         voices_[i].owner = 0;
     }
     lfo_.prepare(sampleRate_);
+    effects_.prepare(sampleRate_);
     clock_ = 0;
     pressOrder_ = 0;
     heldCount_ = 0;
@@ -69,6 +71,7 @@ void P6Engine::applyPatch(const P6PatchState& patch,
     panSpread_ = std::clamp(mapped.panSpread, 0.0, 1.0);
     programVolume_ = std::clamp(mapped.programVolume, 0.0, 1.0);
     distortion_ = std::clamp(mapped.distortion, 0.0, 1.0);
+    effects_.setSettings(mapEffectsFromPatch(patch));
     slopAmount_ = std::clamp(mapped.slopAmount, 0.0, 1.0);
     slopMode_ = mapped.slopMode;
     keyMode_ = std::min<std::uint8_t>(mapped.keyMode, 5);
@@ -547,6 +550,13 @@ StereoSample P6Engine::process()
     const double performanceGain = programVolume_ * midiVolume_;
     out.left = applyCandidateDistortion(out.left * performanceGain, distDcL_);
     out.right = applyCandidateDistortion(out.right * performanceGain, distDcR_);
+
+    // Prophet-6 digital effects are a serial global path: Effect A feeds
+    // Effect B. The single P6Effects instance owns that order and its true
+    // bypass behavior; no scheduler/wrapper effect path exists in parallel.
+    const auto effected = effects_.process(out.left, out.right);
+    out.left = effected.left;
+    out.right = effected.right;
     return out;
 }
 
