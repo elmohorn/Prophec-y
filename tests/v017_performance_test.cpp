@@ -4,6 +4,7 @@
 #include "p6/P6PerformanceScheduler.h"
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 
@@ -59,6 +60,9 @@ int main()
     const std::array<std::uint8_t, 3> pedalBelowThreshold {0xB0, 64, 63};
     const std::array<std::uint8_t, 3> pedalAtThreshold {0xB0, 64, 64};
     const std::array<std::uint8_t, 3> modWheelFull {0xB0, 1, 127};
+    const std::array<std::uint8_t, 3> midiVolumeZero {0xB0, 7, 0};
+    const std::array<std::uint8_t, 3> midiVolumeHalf {0xB0, 7, 64};
+    const std::array<std::uint8_t, 3> midiVolumeFull {0xB0, 7, 127};
     const std::array<std::uint8_t, 3> resetControllers {0xB0, 121, 0};
 
     P6_CHECK(router.process(noteOn, patch, scheduler).consumed);
@@ -94,14 +98,34 @@ int main()
     P6_CHECK(router.process(noteOff, patch, scheduler).consumed);
     P6_CHECK(engine.sustainedVoiceCount() == 0);
 
-    // CC121 resets the performance-controller state we currently implement.
+    // CC7 is independent performance gain. It never rewrites the stored patch,
+    // and zero must mute the next rendered sample even while a voice is active.
+    P6_CHECK(router.process(midiVolumeHalf, patch, scheduler).consumed);
+    P6_CHECK(std::abs(scheduler.midiVolume() - (64.0 / 127.0)) < 1.0e-12);
+    P6_CHECK(router.process(noteOn, patch, scheduler).consumed);
+    for (int i = 0; i < 64; ++i)
+        (void)scheduler.process();
+    P6_CHECK(router.process(midiVolumeZero, patch, scheduler).consumed);
+    P6_CHECK(scheduler.midiVolume() == 0.0);
+    const auto muted = scheduler.process();
+    P6_CHECK(muted.left == 0.0);
+    P6_CHECK(muted.right == 0.0);
+    P6_CHECK(router.process(midiVolumeFull, patch, scheduler).consumed);
+    P6_CHECK(scheduler.midiVolume() == 1.0);
+    P6_CHECK(router.process(noteOff, patch, scheduler).consumed);
+
+    // CC121 clears controllers but restores MIDI Volume to maximum, matching
+    // the Prophet-6 receive-controller table.
     P6_CHECK(router.process(pedalOn, patch, scheduler).consumed);
     P6_CHECK(router.process(modWheelFull, patch, scheduler).consumed);
+    P6_CHECK(router.process(midiVolumeHalf, patch, scheduler).consumed);
     P6_CHECK(engine.sustainPedal());
     P6_CHECK(engine.modWheel() > 0.999);
+    P6_CHECK(scheduler.midiVolume() < 1.0);
     P6_CHECK(router.process(resetControllers, patch, scheduler).consumed);
     P6_CHECK(!engine.sustainPedal());
     P6_CHECK(engine.modWheel() == 0.0);
+    P6_CHECK(scheduler.midiVolume() == 1.0);
 
     // A deferred marker is tied to the exact voice age. If all six pedal-held
     // voices are stolen/reused, pedal-up must never release the new notes.
@@ -132,6 +156,6 @@ int main()
         P6_CHECK(stealEngine.activeVoiceCount() == p6::P6Engine::kVoiceCount);
     }
 
-    std::cout << "p6 v0.17 sustain/performance tests passed\n";
+    std::cout << "p6 v0.17 sustain/MIDI-volume/performance tests passed\n";
     return 0;
 }
