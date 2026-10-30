@@ -109,11 +109,9 @@ void testCoreRealtimePathDoesNotAllocateAfterPrepare()
     const std::array<std::uint8_t, 3> sustainOff {0xB0, 64, 0};
     const std::array<std::uint8_t, 3> pitchBend {0xE0, 0, 80};
     const std::array<std::uint8_t, 3> nrpnMsb {0xB0, 99, 0};
-    const std::array<std::uint8_t, 3> nrpnLsb {0xB0, 98, 45}; // LPF cutoff
+    const std::array<std::uint8_t, 3> nrpnLsb {0xB0, 98, 45};
     const std::array<std::uint8_t, 3> dataMsb {0xB0, 6, 80};
 
-    // Warm every path before the allocation fence. Preparation, vector reserve,
-    // codec setup and any one-time library work are explicitly non-realtime.
     router.process(noteOn, patch, scheduler);
     for (int i = 0; i < 64; ++i)
         static_cast<void>(scheduler.process());
@@ -133,8 +131,6 @@ void testCoreRealtimePathDoesNotAllocateAfterPrepare()
             router.process(sustainOn, patch, scheduler);
             router.process(noteOff, patch, scheduler);
 
-            // Exercise a hardware-style live patch edit while voices and the
-            // scheduler are running. rawParameters already has fixed capacity.
             router.process(nrpnMsb, patch, scheduler);
             router.process(nrpnLsb, patch, scheduler);
             router.process(dataMsb, patch, scheduler);
@@ -167,8 +163,6 @@ void testPreparedActiveEffectsDoNotAllocate()
     settings.b = {p6::P6EffectType::Plate, 0.35, 0.5, 0.4};
     effects.setSettings(settings);
 
-    // Warm transcendental/libm and every prepared state machine outside the
-    // allocation fence. setSettings() itself is a fixed-size copy.
     for (const auto family : activeFamilies) {
         settings.a = family;
         effects.setSettings(settings);
@@ -187,7 +181,7 @@ void testPreparedActiveEffectsDoNotAllocate()
                 static_cast<void>(effects.process(x, -x));
             }
         }
-        effects.reset(); // clearing tails must also remain realtime-safe
+        effects.clearRealtimeState();
         allocations = guard.count();
     }
 
