@@ -7,6 +7,7 @@
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PatchState.h"
 #include "p6/ParameterMapper.h"
+#include "p6/VersionedEditMailbox.h"
 
 #include <array>
 #include <atomic>
@@ -72,6 +73,7 @@ private:
     void syncHostParametersFromPatch (const p6::P6PatchState& source);
     bool applyHostParameterChangesToPatch (p6::P6PatchState& target, bool updateBindingCache,
                                            p6::P6PatchState* mirrorTarget = nullptr);
+    void invalidateMidiMirrorsForUnobservedHostChanges() noexcept;
     void applyRuntimeControls (bool force = false);
     void applyHostTransport();
     void handleMidiMessage (const juce::MidiMessageMetadata& metadata);
@@ -93,13 +95,12 @@ private:
     juce::AudioProcessorValueTreeState apvts_;
     std::vector<HostBinding> bindings_;
     std::array<std::atomic<int>, 1024> hostObservedRaw_{};
-    // NRPN 0..1023 covers scalar controls, program-name chars and all 6x64
-    // sequencer note/velocity addresses. value+1 is stored so 0 means empty.
-    std::array<std::atomic<int>, 1024> pendingNrpn_{};
-    std::array<std::atomic<int>, 1024> pendingHostMirror_{};
-    // Runtime control NRPN 1088 is not part of the program payload. -1 means
-    // no pending message-thread mirror; 0/1 are the Seq Play/Stop state.
-    std::atomic<int> pendingSequencePlayMirror_ {-1};
+
+    // Audio-thread MIDI edits are published with a generation. Host automation
+    // advances the same per-parameter generation, so an older delayed MIDI
+    // mirror can never overwrite a newer DAW edit on the message thread.
+    p6::VersionedEditMailbox<1024> nrpnMailbox_{};
+    p6::VersionedEditMailbox<1> sequencePlayMailbox_{};
     std::atomic<int> hostSequencePlayObserved_ {0};
 
     mutable juce::SpinLock patchLock_;
