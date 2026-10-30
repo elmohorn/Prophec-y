@@ -32,6 +32,8 @@ struct P6EffectSlotSettings {
     double mix{};
     double primary{};
     double secondary{};
+    bool tempoSync{};
+    std::uint8_t syncDivision{5};
 };
 
 struct P6EffectsSettings {
@@ -45,20 +47,23 @@ struct P6EffectsStereoSample {
     double right{};
 };
 
+// Prophet delay-sync divisions from the published panel/manual behavior.
+[[nodiscard]] double syncedEffectDelaySeconds(std::uint8_t division,
+                                              double bpm) noexcept;
+
 class P6Effects {
 public:
     void prepare(double sampleRate);
-    // Full lifecycle reset; may clear preallocated storage and is intended for
-    // prepare/non-realtime use.
     void reset() noexcept;
-    // Realtime-safe logical clear for CC120 and type transitions. This is O(1)
-    // with respect to delay/reverb buffer length: old ring-buffer samples are
-    // marked invalid instead of being bulk-filled on the audio thread.
     void clearRealtimeState() noexcept;
     void setSettings(const P6EffectsSettings& settings) noexcept;
+    // The scheduler/clock is the sole tempo authority. This setter only updates
+    // the physical tempo used by synced FX; it does not create a second clock.
+    void setRuntimeBpm(double bpm) noexcept;
 
     [[nodiscard]] const P6EffectsSettings& settings() const noexcept { return settings_; }
     [[nodiscard]] double sampleRate() const noexcept { return sampleRate_; }
+    [[nodiscard]] double runtimeBpm() const noexcept { return runtimeBpm_; }
 
     [[nodiscard]] P6EffectsStereoSample process(double left, double right) noexcept;
 
@@ -85,7 +90,8 @@ private:
         void invalidateRealtimeState() noexcept;
         [[nodiscard]] P6EffectsStereoSample process(double left, double right,
                                                      const P6EffectSlotSettings& settings,
-                                                     double sampleRate) noexcept;
+                                                     double sampleRate,
+                                                     double runtimeBpm) noexcept;
 
     private:
         [[nodiscard]] double randomBipolar() noexcept;
@@ -101,6 +107,7 @@ private:
     };
 
     double sampleRate_{48000.0};
+    double runtimeBpm_{120.0};
     P6EffectsSettings settings_{};
     Slot slotA_{};
     Slot slotB_{};
