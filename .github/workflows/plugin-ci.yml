@@ -1,0 +1,84 @@
+name: plugin-ci
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+concurrency:
+  group: plugin-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-validate:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+            pluginval: ./pluginval
+          - name: macOS
+            os: macos-14
+            pluginval: ./pluginval.app/Contents/MacOS/pluginval
+          - name: Windows
+            os: windows-latest
+            pluginval: ./pluginval.exe
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Linux JUCE dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libfontconfig1-dev libfreetype6-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxi-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev xvfb
+
+      - name: Configure
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DP6_BUILD_PLUGIN=ON
+          -DP6_FETCH_JUCE=ON
+          -DP6_JUCE_TAG=9.0.4
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target P6CorePlugin_VST3 -j 2
+
+      - name: Core and state tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Download pluginval
+        shell: bash
+        run: |
+          curl -L -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_${{ runner.os }}.zip"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z x pluginval.zip
+          else
+            unzip -q pluginval.zip
+            chmod +x "${{ matrix.pluginval }}" || true
+          fi
+
+      - name: Validate VST3
+        shell: bash
+        run: |
+          VST3_PATH="$(find build -name 'P6 Core.vst3' -print -quit)"
+          test -n "$VST3_PATH"
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            xvfb-run -a "${{ matrix.pluginval }}" --strictness-level 10 --verbose --validate "$VST3_PATH"
+          else
+            "${{ matrix.pluginval }}" --strictness-level 10 --verbose --validate "$VST3_PATH"
+          fi
+
+      - name: Upload validated VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: P6-Core-v0.15-${{ runner.os }}-VST3
+          path: |
+            build/**/P6 Core.vst3
+          if-no-files-found: error
