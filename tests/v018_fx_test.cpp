@@ -1,5 +1,6 @@
 #include "p6/P6EffectMapper.h"
 #include "p6/P6Effects.h"
+#include "p6/P6Engine.h"
 
 #include <algorithm>
 #include <cmath>
@@ -202,6 +203,61 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     P6_CHECK(out.right == -0.5);
 }
 
+p6::P6PatchState audibleDelayPatch()
+{
+    p6::P6PatchState patch;
+    // A simple open-filter oscillator patch with immediate amp sustain.
+    setRaw(patch, 0, 24);    // Osc1 reference octave
+    setRaw(patch, 2, 127);   // Osc1 level
+    setRaw(patch, 3, 127);   // Osc1 saw-ish shape
+    setRaw(patch, 4, 127);   // square-centred pulse width
+    setRaw(patch, 45, 164);  // LPF open
+    setRaw(patch, 49, 0);    // HPF low/bypass-like
+    setRaw(patch, 62, 127);  // program volume
+    setRaw(patch, 66, 127);  // VCA envelope amount
+    setRaw(patch, 67, 0);    // attack
+    setRaw(patch, 68, 0);    // decay
+    setRaw(patch, 69, 127);  // sustain
+    setRaw(patch, 70, 0);    // release
+
+    setRaw(patch, 119, 2);   // FX A digital delay
+    setRaw(patch, 120, 127); // full wet
+    setRaw(patch, 121, 66);  // about 10 ms
+    setRaw(patch, 122, 0);   // no feedback required for this regression
+    setRaw(patch, 127, 0);   // FX B off
+    setRaw(patch, 135, 1);   // effects on
+    return patch;
+}
+
+void testEngineOwnsFxMappingAndAllSoundOffClearsTail()
+{
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    const auto patch = audibleDelayPatch();
+    engine.loadPatch(patch);
+
+    const auto& settings = engine.effectsSettingsForDiagnostics();
+    P6_CHECK(settings.enabled);
+    P6_CHECK(settings.a.type == p6::P6EffectType::DigitalDelay);
+    P6_CHECK(settings.a.mix == 1.0);
+    P6_CHECK(settings.b.type == p6::P6EffectType::Off);
+
+    engine.noteOn(60, 1.0);
+    double beforeKillPeak = 0.0;
+    for (int i = 0; i < 2000; ++i) {
+        const auto out = engine.process();
+        beforeKillPeak = std::max(beforeKillPeak, std::max(std::abs(out.left), std::abs(out.right)));
+    }
+    P6_CHECK(beforeKillPeak > 1.0e-6);
+
+    engine.midiAllSoundOff();
+    for (int i = 0; i < 2000; ++i) {
+        const auto out = engine.process();
+        P6_CHECK(out.left == 0.0);
+        P6_CHECK(out.right == 0.0);
+    }
+}
+
 } // namespace
 
 int main()
@@ -214,6 +270,7 @@ int main()
     testChorusCreatesStereoModulation();
     testHardwareMapperLaws();
     testPatchMappingPreservesLegacyDomainsAndUnknowns();
+    testEngineOwnsFxMappingAndAllSoundOffClearsTail();
     std::cout << "p6 v0.18 FX core tests passed\n";
     return 0;
 }
