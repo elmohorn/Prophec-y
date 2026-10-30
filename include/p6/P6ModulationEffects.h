@@ -19,6 +19,9 @@ class P6ModulationEffects {
 public:
     void prepare(double sampleRate);
     void reset() noexcept;
+    // Realtime-safe logical clear. No vector walk: old ring-buffer samples are
+    // ignored until overwritten after the invalidation point.
+    void invalidateRealtimeState() noexcept;
 
     [[nodiscard]] P6ModulationStereoSample processPhaser(
         double left, double right, double rateHz, double depth01,
@@ -44,6 +47,7 @@ private:
                                        int variant) noexcept;
     [[nodiscard]] static double tapLinear(const std::vector<double>& buffer,
                                           std::size_t write,
+                                          std::size_t validSamples,
                                           double samplesBack) noexcept;
 
     double sampleRate_{48000.0};
@@ -56,6 +60,7 @@ private:
     std::vector<double> flangerLeft_{};
     std::vector<double> flangerRight_{};
     std::size_t flangerWrite_{};
+    std::size_t flangerValidSamples_{};
     double flangerFeedbackLeft_{};
     double flangerFeedbackRight_{};
 };
