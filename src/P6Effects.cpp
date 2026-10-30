@@ -48,8 +48,6 @@ void P6Effects::Slot::prepare(double sampleRate, std::uint32_t seed)
 {
     rng = seed != 0u ? seed : 0x5a5a1234u;
 
-    // Longest possible delay plus BBD clock-wander margin and interpolation
-    // guard samples. These vectors are never resized from process().
     const auto delayFrames = static_cast<std::size_t>(
         std::ceil(sampleRate * kDelayMaxSeconds * (1.0 + kBbdWow))) + 4u;
     delay.assign(std::max<std::size_t>(delayFrames, 8u), 0.0);
@@ -69,21 +67,28 @@ void P6Effects::Slot::reset() noexcept
     std::fill(delay.begin(), delay.end(), 0.0);
     std::fill(chorusLeft.begin(), chorusLeft.end(), 0.0);
     std::fill(chorusRight.begin(), chorusRight.end(), 0.0);
+    modulation.reset();
+    reverb.reset();
+    invalidateRealtimeState();
+}
+
+void P6Effects::Slot::invalidateRealtimeState() noexcept
+{
     delayWrite = 0;
+    delayValidSamples = 0;
     chorusWrite = 0;
+    chorusValidSamples = 0;
     loopLowPass = 0.0;
     chorusPhase = 0.0;
     wowPhase = 0.0;
     wowFrom = 0.0;
     wowTo = 0.0;
-    modulation.reset();
-    reverb.reset();
+    modulation.invalidateRealtimeState();
+    reverb.invalidateRealtimeState();
 }
 
 double P6Effects::Slot::randomBipolar() noexcept
 {
-    // Small deterministic xorshift generator. This is effect-local clock drift,
-    // not a claim about any Prophet firmware RNG.
     rng ^= rng << 13u;
     rng ^= rng >> 17u;
     rng ^= rng << 5u;
@@ -106,6 +111,7 @@ double P6Effects::Slot::wander(double sampleRate) noexcept
 
 double P6Effects::Slot::tapLinear(const std::vector<double>& buffer,
                                   std::size_t write,
+                                  std::size_t validSamples,
                                   double samplesBack) noexcept
 {
     const auto frames = buffer.size();
@@ -113,6 +119,9 @@ double P6Effects::Slot::tapLinear(const std::vector<double>& buffer,
         return 0.0;
 
     const double back = std::clamp(samplesBack, 1.0, static_cast<double>(frames - 2u));
+    if (validSamples < static_cast<std::size_t>(std::ceil(back)))
+        return 0.0;
+
     const double read = static_cast<double>(write) - back;
     const auto base = static_cast<std::ptrdiff_t>(std::floor(read));
     const double fraction = read - std::floor(read);
@@ -123,6 +132,7 @@ double P6Effects::Slot::tapLinear(const std::vector<double>& buffer,
 
 double P6Effects::Slot::tapCubic(const std::vector<double>& buffer,
                                  std::size_t write,
+                                 std::size_t validSamples,
                                  double samplesBack) noexcept
 {
     const auto frames = buffer.size();
@@ -130,6 +140,10 @@ double P6Effects::Slot::tapCubic(const std::vector<double>& buffer,
         return 0.0;
 
     const double back = std::clamp(samplesBack, 2.0, static_cast<double>(frames - 3u));
+    const auto required = static_cast<std::size_t>(std::ceil(back)) + 1u;
+    if (validSamples < required)
+        return 0.0;
+
     const double read = static_cast<double>(write) - back;
     const auto i1 = static_cast<std::ptrdiff_t>(std::floor(read));
     const double f = read - std::floor(read);
@@ -138,7 +152,6 @@ double P6Effects::Slot::tapCubic(const std::vector<double>& buffer,
     const double p2 = buffer[wrappedIndex(i1 + 1, frames)];
     const double p3 = buffer[wrappedIndex(i1 + 2, frames)];
 
-    // Catmull-Rom cubic interpolation.
     const double a = -p0 + 3.0 * p1 - 3.0 * p2 + p3;
     const double b = 2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3;
     const double c = -p0 + p2;
@@ -164,9 +177,9 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         double delayed = 0.0;
         if (settings.type == P6EffectType::BbdDelay) {
             samplesBack *= 1.0 + wander(sampleRate) * kBbdWow;
-            delayed = tapCubic(delay, delayWrite, samplesBack);
+            delayed = tapCubic(delay, delayWrite, delayValidSamples, samplesBack);
         } else {
-            delayed = tapLinear(delay, delayWrite, samplesBack);
+            delayed = tapLinear(delay, delayWrite, delayValidSamples, samplesBack);
         }
 
         double feedbackSample = delayed;
@@ -179,9 +192,8 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         const double feedback = std::clamp(settings.secondary, 0.0, 0.999);
         delay[delayWrite] = mono + feedbackSample * feedback;
         delayWrite = (delayWrite + 1u) % delay.size();
+        delayValidSamples = std::min(delayValidSamples + 1u, delay.size());
 
-        // Prophet-6-style single delay line: wet repeat is mono and is mixed
-        // equally into both channels while the dry path remains stereo.
         return mixWet(left, right, delayed, delayed, mix);
     }
 
@@ -199,11 +211,12 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         const double backLeft = (kChorusCentreSeconds + depthSeconds * sweepLeft) * sampleRate;
         const double backRight = (kChorusCentreSeconds + depthSeconds * sweepRight) * sampleRate;
 
-        const double wetLeft = tapLinear(chorusLeft, chorusWrite, backLeft);
-        const double wetRight = tapLinear(chorusRight, chorusWrite, backRight);
+        const double wetLeft = tapLinear(chorusLeft, chorusWrite, chorusValidSamples, backLeft);
+        const double wetRight = tapLinear(chorusRight, chorusWrite, chorusValidSamples, backRight);
         chorusLeft[chorusWrite] = left;
         chorusRight[chorusWrite] = right;
         chorusWrite = (chorusWrite + 1u) % chorusLeft.size();
+        chorusValidSamples = std::min(chorusValidSamples + 1u, chorusLeft.size());
 
         return mixWet(left, right, wetLeft, wetRight, mix);
     }
@@ -268,8 +281,22 @@ void P6Effects::reset() noexcept
     slotB_.reset();
 }
 
+void P6Effects::clearRealtimeState() noexcept
+{
+    slotA_.invalidateRealtimeState();
+    slotB_.invalidateRealtimeState();
+}
+
 void P6Effects::setSettings(const P6EffectsSettings& settings) noexcept
 {
+    // A type change is a topology change, not ordinary parameter automation.
+    // Invalidate the slot in O(1) so a delay/reverb tail from an old algorithm
+    // cannot be frozen and then reappear if that algorithm is selected later.
+    if (settings_.a.type != settings.a.type)
+        slotA_.invalidateRealtimeState();
+    if (settings_.b.type != settings.b.type)
+        slotB_.invalidateRealtimeState();
+
     settings_ = settings;
     settings_.a.mix = std::clamp(settings_.a.mix, 0.0, 1.0);
     settings_.b.mix = std::clamp(settings_.b.mix, 0.0, 1.0);
@@ -277,10 +304,6 @@ void P6Effects::setSettings(const P6EffectsSettings& settings) noexcept
 
 P6EffectsStereoSample P6Effects::process(double left, double right) noexcept
 {
-    // The hardware ON/OFF control is specified as a true bypass. At this layer
-    // bypass is bit-transparent and does not touch the wet state. Whether the
-    // hardware continues advancing tails while bypassed remains a measurement
-    // question and is deliberately not guessed here.
     if (!settings_.enabled)
         return {left, right};
 
