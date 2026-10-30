@@ -10,8 +10,8 @@ namespace {
 constexpr double kDelayMinSeconds = 0.002;
 constexpr double kDelayMaxSeconds = 1.0;
 constexpr double kDelayFeedbackMax = 0.92;
-constexpr double kChorusMinHz = 0.05;
-constexpr double kChorusMaxHz = 8.0;
+constexpr double kModulationMinHz = 0.05;
+constexpr double kModulationMaxHz = 8.0;
 
 constexpr std::array<double, 11> kSyncBeats{
     4.0,
@@ -70,7 +70,13 @@ P6EffectSlotSettings mapSlot(const P6PatchState& patch,
     const auto p1Raw = rawByNrpn(patch, p1Nrpn, 0);
     const auto p2Raw = rawByNrpn(patch, p2Nrpn, 0);
 
-    if (out.type == P6EffectType::Chorus) {
+    if (out.type == P6EffectType::Chorus
+        || out.type == P6EffectType::Phaser1
+        || out.type == P6EffectType::Phaser2) {
+        // Sequential documents Parameter 1 as rate and Parameter 2 as depth
+        // for Chorus and the legacy phasers. The exact control taper remains a
+        // calibration candidate; v0.18 reuses the evidence-backed modulation
+        // rate law already established for Chorus.
         out.primary = rawEffectChorusRateHz(p1Raw);
         out.secondary = unit(p2Raw, 127.0);
         return out;
@@ -88,9 +94,21 @@ P6EffectSlotSettings mapSlot(const P6PatchState& patch,
         return out;
     }
 
-    // The remaining legacy effect families and unknown later-OS selectors are
-    // mapped structurally, but their physical parameter laws stay neutral
-    // until their DSP implementations/encodings are established.
+    if (out.type == P6EffectType::Hall
+        || out.type == P6EffectType::Room
+        || out.type == P6EffectType::Plate
+        || out.type == P6EffectType::Spring) {
+        // Current public documentation establishes the meanings (time/early
+        // reflections, or decay/tone for Spring) but not a physical-unit taper,
+        // so keep the hardware domain normalised and calibratable.
+        out.primary = unit(p1Raw, 255.0);
+        out.secondary = unit(p2Raw, 127.0);
+        return out;
+    }
+
+    // Unknown later-OS selectors are retained as Unknown and dry. Their raw
+    // values remain untouched in P6PatchState; no guessed selector encoding is
+    // allowed to enter the DSP/state contract.
     out.primary = unit(p1Raw, 255.0);
     out.secondary = unit(p2Raw, 127.0);
     return out;
@@ -107,7 +125,7 @@ double rawEffectDelaySeconds(std::uint16_t raw)
 double rawEffectChorusRateHz(std::uint16_t raw)
 {
     const double t = unit(std::min<std::uint16_t>(raw, 255), 255.0);
-    return kChorusMinHz * std::pow(kChorusMaxHz / kChorusMinHz, t);
+    return kModulationMinHz * std::pow(kModulationMaxHz / kModulationMinHz, t);
 }
 
 double rawEffectFeedback(std::uint16_t raw)
