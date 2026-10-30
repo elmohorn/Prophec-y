@@ -31,6 +31,17 @@ constexpr double kChorusMaxSeconds = 0.02;
     return static_cast<std::size_t>(index);
 }
 
+P6EffectsStereoSample mixWet(double left, double right,
+                             double wetLeft, double wetRight,
+                             double mix) noexcept
+{
+    const double wet = std::clamp(mix, 0.0, 1.0);
+    return {
+        left * (1.0 - wet) + wetLeft * wet,
+        right * (1.0 - wet) + wetRight * wet,
+    };
+}
+
 } // namespace
 
 void P6Effects::Slot::prepare(double sampleRate, std::uint32_t seed)
@@ -48,6 +59,8 @@ void P6Effects::Slot::prepare(double sampleRate, std::uint32_t seed)
     chorusLeft.assign(std::max<std::size_t>(chorusFrames, 8u), 0.0);
     chorusRight.assign(std::max<std::size_t>(chorusFrames, 8u), 0.0);
 
+    modulation.prepare(sampleRate);
+    reverb.prepare(sampleRate);
     reset();
 }
 
@@ -63,6 +76,8 @@ void P6Effects::Slot::reset() noexcept
     wowPhase = 0.0;
     wowFrom = 0.0;
     wowTo = 0.0;
+    modulation.reset();
+    reverb.reset();
 }
 
 double P6Effects::Slot::randomBipolar() noexcept
@@ -167,10 +182,7 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
 
         // Prophet-6-style single delay line: wet repeat is mono and is mixed
         // equally into both channels while the dry path remains stereo.
-        return {
-            left * (1.0 - mix) + delayed * mix,
-            right * (1.0 - mix) + delayed * mix,
-        };
+        return mixWet(left, right, delayed, delayed, mix);
     }
 
     case P6EffectType::Chorus: {
@@ -193,25 +205,49 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
         chorusRight[chorusWrite] = right;
         chorusWrite = (chorusWrite + 1u) % chorusLeft.size();
 
-        return {
-            left * (1.0 - mix) + wetLeft * mix,
-            right * (1.0 - mix) + wetRight * mix,
-        };
+        return mixWet(left, right, wetLeft, wetRight, mix);
     }
 
-    // v0.18 intentionally grows into these cases one family at a time. State
-    // may select them already, but no placeholder coloration is preferable to
-    // pretending a generic phaser/reverb is Prophet-6 behavior.
     case P6EffectType::Phaser1:
     case P6EffectType::Phaser2:
+    case P6EffectType::Phaser3: {
+        const int variant = settings.type == P6EffectType::Phaser1 ? 1
+            : (settings.type == P6EffectType::Phaser2 ? 2 : 3);
+        const auto wet = modulation.processPhaser(
+            left, right, settings.primary, settings.secondary, variant);
+        return mixWet(left, right, wet.left, wet.right, mix);
+    }
+
+    case P6EffectType::Flanger1:
+    case P6EffectType::Flanger2: {
+        const auto wet = modulation.processFlanger(
+            left, right, settings.primary, settings.secondary,
+            settings.type == P6EffectType::Flanger1);
+        return mixWet(left, right, wet.left, wet.right, mix);
+    }
+
+    case P6EffectType::RingMod: {
+        const auto wet = modulation.processRingMod(left, right, settings.primary);
+        return mixWet(left, right, wet.left, wet.right, mix);
+    }
+
     case P6EffectType::Hall:
     case P6EffectType::Room:
     case P6EffectType::Plate:
-    case P6EffectType::Spring:
-    case P6EffectType::Phaser3:
-    case P6EffectType::RingMod:
-    case P6EffectType::Flanger1:
-    case P6EffectType::Flanger2:
+    case P6EffectType::Spring: {
+        P6ReverbEffects::Type type = P6ReverbEffects::Type::Hall;
+        if (settings.type == P6EffectType::Room)
+            type = P6ReverbEffects::Type::Room;
+        else if (settings.type == P6EffectType::Plate)
+            type = P6ReverbEffects::Type::Plate;
+        else if (settings.type == P6EffectType::Spring)
+            type = P6ReverbEffects::Type::Spring;
+        const auto wet = reverb.process(left, right, type,
+                                        settings.primary, settings.secondary);
+        return mixWet(left, right, wet.left, wet.right, mix);
+    }
+
+    case P6EffectType::Unknown:
     case P6EffectType::Off:
         return {left, right};
     }
