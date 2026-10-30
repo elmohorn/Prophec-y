@@ -7,10 +7,10 @@
 namespace p6 {
 
 // The first ten values intentionally match the verified legacy Prophet-6
-// program/NRPN domains already used by Prophec-y. The later OS effects are
-// represented as internal-only extension values until their serialized/MIDI
-// identities are established independently; do not write those values into a
-// hardware program dump.
+// program/NRPN domains already used by Prophec-y. Later-OS effects use
+// internal-only identifiers outside that hardware range until their actual
+// serialized/MIDI identities are established independently. Unknown hardware
+// values must never be coerced into a different known effect.
 enum class P6EffectType : std::uint8_t {
     Off = 0,
     BbdDelay = 1,
@@ -22,14 +22,18 @@ enum class P6EffectType : std::uint8_t {
     Room = 7,
     Plate = 8,
     Spring = 9,
-    Phaser3 = 10,
-    RingMod = 11,
-    Flanger1 = 12,
-    Flanger2 = 13,
+
+    // Internal extension identifiers only; not valid serialized values yet.
+    Phaser3 = 32,
+    RingMod = 33,
+    Flanger1 = 34,
+    Flanger2 = 35,
+
+    Unknown = 255,
 };
 
-// DSP-domain settings. ParameterMapper is responsible for converting hardware
-// raw values to these physical/normalised values.
+// DSP-domain settings. The effect mapper is responsible for converting
+// verified hardware raw values to these physical/normalised values.
 //
 // For BbdDelay / DigitalDelay:
 //   primary   = delay time in seconds
@@ -60,8 +64,9 @@ struct P6EffectsStereoSample {
 // JUCE-independent, allocation-free-after-prepare stereo FX chain.
 //
 // Signal order is always A -> B. prepare() owns every allocation; setSettings()
-// and process() never resize their storage. Unsupported types pass through dry
-// while preserving their settings in the caller's canonical patch state.
+// and process() never resize their storage. Unsupported or unknown types pass
+// through dry while the canonical P6PatchState continues to preserve the raw
+// selector value losslessly.
 class P6Effects {
 public:
     void prepare(double sampleRate);
