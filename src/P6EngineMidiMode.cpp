@@ -59,6 +59,12 @@ void P6Engine::midiAllSoundOff()
         slot.note = -1;
         slot.voice.silence();
     }
+
+    // Once global effects exist, "All Sound Off" must include their stored
+    // energy too. Otherwise a delay/reverb tail would remain audible after the
+    // emergency kill even though every voice had been silenced. reset() only
+    // clears preallocated DSP state; it does not allocate or change controllers.
+    effects_.reset();
 }
 
 } // namespace p6
