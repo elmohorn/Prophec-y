@@ -151,15 +151,18 @@ void P6PerformanceScheduler::noteOn(int midiNote, double velocity01)
 void P6PerformanceScheduler::noteOff(int midiNote)
 {
     midiNote = std::clamp(midiNote, 0, 127);
+    // Physical ownership is removed from the arpeggiator immediately even when
+    // the damper is down. CC64 therefore sustains envelopes but never turns
+    // into Arp Hold.
     arpeggiator_.noteOff(midiNote);
 
     if (sequencePlaying_) {
-        engine_.noteOffOwned(midiNote, 0);
+        engine_.noteOffOwnedSustainAware(midiNote, 0);
         return;
     }
 
     if (!arpEnabled_) {
-        engine_.noteOffOwned(midiNote, 0);
+        engine_.noteOffOwnedSustainAware(midiNote, 0);
         return;
     }
 
@@ -235,7 +238,7 @@ void P6PerformanceScheduler::releaseArpNote()
 {
     if (activeArpNote_ < 0)
         return;
-    engine_.noteOffOwned(activeArpNote_, kArpOwner);
+    engine_.noteOffOwnedSustainAware(activeArpNote_, kArpOwner);
     activeArpNote_ = -1;
 }
 
@@ -256,7 +259,7 @@ void P6PerformanceScheduler::fireArpStep()
 void P6PerformanceScheduler::releaseSequenceNotes()
 {
     for (std::size_t i = 0; i < activeSequenceCount_; ++i)
-        engine_.noteOffOwned(activeSequenceNotes_[i], kSeqOwner);
+        engine_.noteOffOwnedSustainAware(activeSequenceNotes_[i], kSeqOwner);
     activeSequenceCount_ = 0;
 }
 
