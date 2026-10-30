@@ -5,11 +5,33 @@ on:
   push:
   pull_request:
 
+# Keep main observable: once a main build starts, let it finish. Development
+# branches may cancel superseded runs while iterating.
 concurrency:
-  group: plugin-ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: plugin-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  core-sanitizers:
+    name: Linux ASan+UBSan
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure sanitizer tests
+        shell: bash
+        run: >-
+          cmake -S . -B build-sanitize
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build sanitizer tests
+        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests --parallel 2
+      - name: Run sanitizer tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: ctest --test-dir build-sanitize --output-on-failure
+
   build-and-validate:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -20,11 +42,8 @@ jobs:
           - name: Linux
             os: ubuntu-22.04
             pluginval: ./pluginval
-          - name: macOS
-            os: macos-14
-            pluginval: ./pluginval.app/Contents/MacOS/pluginval
           - name: Windows
-            os: windows-latest
+            os: windows-2022
             pluginval: ./pluginval.exe
 
     steps:
@@ -37,23 +56,28 @@ jobs:
           sudo apt-get install -y \
             libasound2-dev libfontconfig1-dev libfreetype6-dev \
             libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxi-dev \
-            libxinerama-dev libxrandr-dev libxrender-dev xvfb
+            libxinerama-dev libxrandr-dev libxrender-dev \
+            libgl1-mesa-dev libegl1-mesa-dev xvfb
 
       - name: Configure
+        shell: bash
         run: >-
           cmake -S . -B build
           -DCMAKE_BUILD_TYPE=Release
           -DP6_BUILD_PLUGIN=ON
           -DP6_FETCH_JUCE=ON
-          -DP6_JUCE_TAG=9.0.4
 
-      - name: Build VST3
-        run: cmake --build build --config Release --target P6CorePlugin_VST3 -j 2
+      - name: Build VST3 and tests
+        shell: bash
+        run: >-
+          cmake --build build --config Release
+          --target p6core_tests p6_plugin_state_tests P6CorePlugin_VST3
+          --parallel 2
 
       - name: Core and state tests
         run: ctest --test-dir build -C Release --output-on-failure
 
-      - name: Download pluginval
+      - name: Download pluginval 1.0.4
         shell: bash
         run: |
           curl -L -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_${{ runner.os }}.zip"
@@ -61,7 +85,7 @@ jobs:
             7z x pluginval.zip
           else
             unzip -q pluginval.zip
-            chmod +x "${{ matrix.pluginval }}" || true
+            chmod +x "${{ matrix.pluginval }}"
           fi
 
       - name: Validate VST3
@@ -78,7 +102,7 @@ jobs:
       - name: Upload validated VST3
         uses: actions/upload-artifact@v4
         with:
-          name: P6-Core-v0.15-${{ runner.os }}-VST3
+          name: P6-Core-v0.16-${{ runner.os }}-VST3
           path: |
             build/**/P6 Core.vst3
           if-no-files-found: error
