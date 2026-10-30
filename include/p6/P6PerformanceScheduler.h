@@ -33,6 +33,17 @@ public:
     void setModWheel(double amount01) { engine_.setModWheel(amount01); }
     void setChannelPressure(double pressure01) { engine_.setChannelPressure(pressure01); }
     void setPitchBend(double bipolar) { engine_.setPitchBend(bipolar); }
+    void setSustainPedal(bool down) { engine_.setSustainPedal(down); }
+    void setMidiVolume(double amount01) { engine_.setMidiVolume(amount01); }
+    // CC121 resets the continuous controllers currently modeled by this core.
+    // Channel pressure and pitch bend are separate MIDI message classes and are
+    // intentionally not rewritten by this CC operation.
+    void resetMidiControllers()
+    {
+        engine_.setModWheel(0.0);
+        engine_.setSustainPedal(false);
+        engine_.setMidiVolume(1.0);
+    }
 
     void setArpeggiatorEnabled(bool enabled);
     void setArpMode(ArpMode mode);
