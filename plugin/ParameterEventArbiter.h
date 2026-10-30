@@ -69,6 +69,17 @@ public:
         return takeIfCurrent(parameter, pendingHostMirror_[parameter]);
     }
 
+    // A consumer may dequeue an event before it can acquire the canonical
+    // patch lock. Re-check immediately after acquiring that lock so a host edit
+    // observed in the meantime wins deterministically instead of allowing an
+    // older MIDI mirror to overwrite it.
+    [[nodiscard]] bool isCurrent(const Event& event) const noexcept
+    {
+        if (event.parameter >= kParameterSlots || event.epoch == 0)
+            return false;
+        return event.epoch >= latestHostEpoch_[event.parameter].load(std::memory_order_acquire);
+    }
+
     void clearPending() noexcept
     {
         for (auto& value : pendingCanonical_)
@@ -118,8 +129,7 @@ private:
         if (packed == 0)
             return std::nullopt;
         const auto event = unpack(parameter, packed);
-        const auto hostEpoch = latestHostEpoch_[parameter].load(std::memory_order_acquire);
-        if (event.epoch < hostEpoch)
+        if (!isCurrent(event))
             return std::nullopt;
         return event;
     }
