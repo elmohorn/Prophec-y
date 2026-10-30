@@ -1,10 +1,11 @@
-# Build products
+# Build trees
 build/
 build-*/
-Builds/
 cmake-build-*/
+Builds/
 CMakeFiles/
 CMakeCache.txt
+_deps/
 *.cmake.user
 
 # Compiled binaries / plug-ins
@@ -16,21 +17,34 @@ CMakeCache.txt
 *.dylib
 *.dll
 *.exe
+*.vst3
 *.vst3/
+*.component
 *.component/
+*.aaxplugin
+*.clap
 
 # Private calibration / hardware captures
 *.syx
+*.mid
+*.midi
 *.wav
 *.mp3
 *.flac
+reference_audio/
+reference_private/
+factory_rom/
 
 # IDE / OS
 .vscode/
 .idea/
+*.user
+*.suo
+*.VC.db
 .DS_Store
 Thumbs.db
 
 # Python
 __pycache__/
 *.pyc
+.venv/
