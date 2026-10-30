@@ -95,14 +95,11 @@ private:
     std::vector<HostBinding> bindings_;
     std::array<std::atomic<int>, 1024> hostObservedRaw_{};
 
-    // v0.17 causal arbiter. It is JUCE-independent and already covered by the
-    // state test. The legacy value mailboxes remain during this staging commit
-    // so every intermediate branch head still builds; the next wrapper commit
-    // switches their producers/consumers to parameterEvents_ atomically.
+    // v0.17: one lock-free, per-parameter causal source of truth for delayed
+    // MIDI->canonical/UI mirrors. Host edits receive a newer epoch as soon as
+    // the audio wrapper observes them, so an older MIDI mirror cannot reappear
+    // tens of milliseconds later and overwrite newer DAW automation.
     p6plugin::ParameterEventArbiter parameterEvents_{};
-    std::array<std::atomic<int>, 1024> pendingNrpn_{};
-    std::array<std::atomic<int>, 1024> pendingHostMirror_{};
-    std::atomic<int> pendingSequencePlayMirror_ {-1};
     std::atomic<int> hostSequencePlayObserved_ {0};
 
     mutable juce::SpinLock patchLock_;
