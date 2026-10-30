@@ -1,6 +1,7 @@
 #include "p6/P6EffectMapper.h"
 #include "p6/P6Effects.h"
 #include "p6/P6Engine.h"
+#include "p6/P6PerformanceScheduler.h"
 
 #include <algorithm>
 #include <array>
@@ -85,6 +86,39 @@ void testDigitalDelayTiming()
     P6_CHECK(atExpected > 0.99);
 }
 
+void testSyncedDelayUsesRuntimeTempo()
+{
+    constexpr double sampleRate = 48000.0;
+    p6::P6Effects fx;
+    fx.prepare(sampleRate);
+
+    p6::P6EffectsSettings settings;
+    settings.enabled = true;
+    settings.a = {p6::P6EffectType::DigitalDelay, 1.0, 0.002, 0.0, true, 10};
+    fx.setSettings(settings);
+
+    fx.setRuntimeBpm(120.0);
+    constexpr int expected120 = 6000; // 16th = 0.25 quarter notes = 125 ms
+    double hit120 = 0.0;
+    for (int i = 0; i <= expected120; ++i) {
+        const auto out = fx.process(i == 0 ? 1.0 : 0.0, i == 0 ? 1.0 : 0.0);
+        if (i == expected120)
+            hit120 = out.left;
+    }
+    P6_CHECK(hit120 > 0.99);
+
+    fx.clearRealtimeState();
+    fx.setRuntimeBpm(60.0);
+    constexpr int expected60 = 12000;
+    double hit60 = 0.0;
+    for (int i = 0; i <= expected60; ++i) {
+        const auto out = fx.process(i == 0 ? 1.0 : 0.0, i == 0 ? 1.0 : 0.0);
+        if (i == expected60)
+            hit60 = out.left;
+    }
+    P6_CHECK(hit60 > 0.99);
+}
+
 void testSlotsAreSerialAThenB()
 {
     constexpr double sampleRate = 48000.0;
@@ -155,9 +189,8 @@ void testChorusCreatesStereoModulation()
 
 void testTypeChangeDoesNotResurrectOldTail()
 {
-    constexpr double sampleRate = 48000.0;
     p6::P6Effects fx;
-    fx.prepare(sampleRate);
+    fx.prepare(48000.0);
 
     p6::P6EffectsSettings settings;
     settings.enabled = true;
@@ -247,7 +280,19 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     P6_CHECK(mapped.a.mix == 1.0);
     P6_CHECK(std::abs(mapped.a.primary - 1.0) < 1.0e-12);
     P6_CHECK(std::abs(mapped.a.secondary - 0.92) < 1.0e-12);
+    P6_CHECK(!mapped.a.tempoSync);
     P6_CHECK(mapped.b.type == p6::P6EffectType::Hall);
+
+    p6::P6PatchState synced;
+    setRaw(synced, 119, 2);
+    setRaw(synced, 121, 0);
+    setRaw(synced, 123, 1);
+    setRaw(synced, 124, 10);
+    setRaw(synced, 135, 1);
+    const auto syncedMapped = p6::mapEffectsFromPatch(synced);
+    P6_CHECK(syncedMapped.a.tempoSync);
+    P6_CHECK(syncedMapped.a.syncDivision == 10);
+    P6_CHECK(std::abs(syncedMapped.a.primary - 0.002) < 1.0e-12);
 
     p6::P6PatchState phaser;
     setRaw(phaser, 119, 4);
@@ -273,6 +318,29 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     const auto out = fx.process(0.25, -0.5);
     P6_CHECK(out.left == 0.25);
     P6_CHECK(out.right == -0.5);
+}
+
+void testSchedulerOwnsFxTempoAcrossInternalHostAndMidiClock()
+{
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    p6::P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+
+    scheduler.setClockBpm(93.0);
+    P6_CHECK(std::abs(engine.effectsRuntimeBpmForDiagnostics() - 93.0) < 1.0e-12);
+
+    scheduler.alignToHostPpq(0.0, 137.0, true);
+    P6_CHECK(std::abs(engine.effectsRuntimeBpmForDiagnostics() - 137.0) < 1.0e-12);
+
+    scheduler.setClockSyncMode(p6::ClockSyncMode::MidiClock);
+    scheduler.midiClockStart();
+    scheduler.midiTimingClock();
+    for (int i = 0; i < 1000; ++i)
+        static_cast<void>(scheduler.process());
+    scheduler.midiTimingClock();
+    P6_CHECK(std::abs(scheduler.clock().bpm() - 120.0) < 1.0e-9);
+    P6_CHECK(std::abs(engine.effectsRuntimeBpmForDiagnostics() - 120.0) < 1.0e-9);
 }
 
 void testLegacyPhasersAreAudibleAndFinite()
@@ -421,6 +489,7 @@ int main()
     testGlobalBypassIsTransparent();
     testOffSlotsAreTransparent();
     testDigitalDelayTiming();
+    testSyncedDelayUsesRuntimeTempo();
     testSlotsAreSerialAThenB();
     testBbdSilenceStaysSilentAndFinite();
     testChorusCreatesStereoModulation();
@@ -428,6 +497,7 @@ int main()
     testRealtimeClearKillsOldTailButAcceptsNewAudioImmediately();
     testHardwareMapperLaws();
     testPatchMappingPreservesLegacyDomainsAndUnknowns();
+    testSchedulerOwnsFxTempoAcrossInternalHostAndMidiClock();
     testLegacyPhasersAreAudibleAndFinite();
     testLegacyReverbsCreateFiniteTails();
     testLaterOsInternalCandidatesAreAudibleButNotRawMapped();
