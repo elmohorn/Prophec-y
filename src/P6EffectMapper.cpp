@@ -1,7 +1,6 @@
 #include "p6/P6EffectMapper.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 
 namespace p6 {
@@ -12,20 +11,6 @@ constexpr double kDelayMaxSeconds = 1.0;
 constexpr double kDelayFeedbackMax = 0.92;
 constexpr double kModulationMinHz = 0.05;
 constexpr double kModulationMaxHz = 8.0;
-
-constexpr std::array<double, 11> kSyncBeats{
-    4.0,
-    3.0,
-    2.0,
-    2.0 / 3.0,
-    1.5,
-    1.0,
-    0.75,
-    0.5,
-    1.0 / 3.0,
-    0.375,
-    0.25,
-};
 
 std::uint16_t rawByNrpn(const P6PatchState& patch,
                         std::uint16_t nrpn,
@@ -52,9 +37,7 @@ P6EffectType legacyType(std::uint16_t raw, bool slotB)
     return static_cast<P6EffectType>(static_cast<std::uint8_t>(raw));
 }
 
-P6EffectSlotSettings mapSlot(const P6PatchState& patch,
-                             bool slotB,
-                             double bpm)
+P6EffectSlotSettings mapSlot(const P6PatchState& patch, bool slotB)
 {
     const std::uint16_t typeNrpn = slotB ? 127 : 119;
     const std::uint16_t mixNrpn = slotB ? 128 : 120;
@@ -73,24 +56,19 @@ P6EffectSlotSettings mapSlot(const P6PatchState& patch,
     if (out.type == P6EffectType::Chorus
         || out.type == P6EffectType::Phaser1
         || out.type == P6EffectType::Phaser2) {
-        // Sequential documents Parameter 1 as rate and Parameter 2 as depth
-        // for Chorus and the legacy phasers. The exact control taper remains a
-        // calibration candidate; v0.18 reuses the evidence-backed modulation
-        // rate law already established for Chorus.
         out.primary = rawEffectChorusRateHz(p1Raw);
         out.secondary = unit(p2Raw, 127.0);
         return out;
     }
 
     if (out.type == P6EffectType::BbdDelay || out.type == P6EffectType::DigitalDelay) {
-        if (rawByNrpn(patch, syncNrpn, 0) != 0) {
-            out.primary = syncedEffectDelaySeconds(
-                static_cast<std::uint8_t>(std::min<std::uint16_t>(
-                    rawByNrpn(patch, divisionNrpn, 5), 10)), bpm);
-        } else {
-            out.primary = rawEffectDelaySeconds(p1Raw);
-        }
+        // Keep the free-time law and the sync intent separately. Runtime tempo
+        // belongs to the shared scheduler clock, not to patch mapping.
+        out.primary = rawEffectDelaySeconds(p1Raw);
         out.secondary = rawEffectFeedback(p2Raw);
+        out.tempoSync = rawByNrpn(patch, syncNrpn, 0) != 0;
+        out.syncDivision = static_cast<std::uint8_t>(std::min<std::uint16_t>(
+            rawByNrpn(patch, divisionNrpn, 5), 10));
         return out;
     }
 
@@ -98,17 +76,11 @@ P6EffectSlotSettings mapSlot(const P6PatchState& patch,
         || out.type == P6EffectType::Room
         || out.type == P6EffectType::Plate
         || out.type == P6EffectType::Spring) {
-        // Current public documentation establishes the meanings (time/early
-        // reflections, or decay/tone for Spring) but not a physical-unit taper,
-        // so keep the hardware domain normalised and calibratable.
         out.primary = unit(p1Raw, 255.0);
         out.secondary = unit(p2Raw, 127.0);
         return out;
     }
 
-    // Unknown later-OS selectors are retained as Unknown and dry. Their raw
-    // values remain untouched in P6PatchState; no guessed selector encoding is
-    // allowed to enter the DSP/state contract.
     out.primary = unit(p1Raw, 255.0);
     out.secondary = unit(p2Raw, 127.0);
     return out;
@@ -133,27 +105,12 @@ double rawEffectFeedback(std::uint16_t raw)
     return unit(std::min<std::uint16_t>(raw, 127), 127.0) * kDelayFeedbackMax;
 }
 
-double syncedEffectDelaySeconds(std::uint8_t division, double bpm)
-{
-    const auto index = std::min<std::size_t>(division, kSyncBeats.size() - 1u);
-    const double safeBpm = std::clamp(bpm, 30.0, 250.0);
-    double seconds = kSyncBeats[index] * 60.0 / safeBpm;
-
-    // Sequential documents that synced delay values beyond the one-second
-    // maximum are repeatedly halved until they fit the delay range.
-    while (seconds > kDelayMaxSeconds)
-        seconds *= 0.5;
-    return seconds;
-}
-
 P6EffectsSettings mapEffectsFromPatch(const P6PatchState& patch)
 {
     P6EffectsSettings out;
     out.enabled = rawByNrpn(patch, 135, 0) != 0;
-    const double bpm = static_cast<double>(
-        std::clamp<std::uint16_t>(rawByNrpn(patch, 167, 120), 30, 250));
-    out.a = mapSlot(patch, false, bpm);
-    out.b = mapSlot(patch, true, bpm);
+    out.a = mapSlot(patch, false);
+    out.b = mapSlot(patch, true);
     return out;
 }
 
