@@ -1,9 +1,9 @@
-name: Bootstrap v0.15 source tree
+name: Bootstrap v0.15 runtime source tree
 
 on:
   push:
     paths:
-      - '.bootstrap/prophecy-v015-source.tar.gz'
+      - '.bootstrap/runtime-part-*'
       - '.github/workflows/bootstrap.yml'
   workflow_dispatch:
 
@@ -18,9 +18,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Expand validated source archive
+      - name: Rebuild and verify runtime archive
         run: |
-          tar -xzf .bootstrap/prophecy-v015-source.tar.gz -C .
+          cat .bootstrap/runtime-part-* > /tmp/runtime.b64
+          base64 -d /tmp/runtime.b64 > /tmp/runtime.tar.xz
+          echo "f50ac3492af516611a52516c396fbb5f84d9550132a3ea4b68d2f83ecc8ffa08  /tmp/runtime.tar.xz" | sha256sum -c -
+          xz -t /tmp/runtime.tar.xz
+          tar -tJf /tmp/runtime.tar.xz > /tmp/runtime-files.txt
+          echo "Runtime archive entries:"
+          wc -l /tmp/runtime-files.txt
+          tar -xJf /tmp/runtime.tar.xz -C .
+
+      - name: Remove bootstrap payload
+        run: |
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap.yml
 
@@ -33,5 +43,5 @@ jobs:
             echo "No source changes to commit"
             exit 0
           fi
-          git commit -m "Import validated P6 Core v0.15 source tree"
+          git commit -m "Import validated P6 Core v0.15 runtime source tree"
           git push
