@@ -21,6 +21,8 @@ add_library(p6core
     src/P6LFO.cpp
     src/P6Effects.cpp
     src/P6EffectMapper.cpp
+    src/P6ModulationEffects.cpp
+    src/P6ReverbEffects.cpp
     src/ParameterRegistry.cpp
     src/ProgramLayout.cpp
     src/ParameterMapper.cpp
