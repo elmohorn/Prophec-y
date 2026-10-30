@@ -2,6 +2,7 @@
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PerformanceScheduler.h"
 #include "p6/ParameterMapper.h"
+#include "p6/ProgramLayout.h"
 
 #include <array>
 #include <atomic>
