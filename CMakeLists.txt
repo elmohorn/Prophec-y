@@ -25,6 +25,7 @@ add_library(p6core
     src/P6Voice.cpp
     src/NrpnCodec.cpp
     src/P6Engine.cpp
+    src/P6EngineMidiMode.cpp
 )
 
 target_include_directories(p6core PUBLIC include)
@@ -40,9 +41,6 @@ endif()
 enable_testing()
 add_executable(p6core_tests tests/test_main.cpp)
 target_link_libraries(p6core_tests PRIVATE p6core)
-# The regression suite intentionally uses assert() extensively. Release builds
-# normally define NDEBUG, which would compile those checks out completely. Keep
-# assertions active for test executables on every platform/configuration.
 if(MSVC)
   target_compile_options(p6core_tests PRIVATE /UNDEBUG)
 else()
@@ -50,8 +48,6 @@ else()
 endif()
 add_test(NAME p6core_tests COMMAND p6core_tests)
 
-# The host-state codec is intentionally JUCE-free so lossless 1024-byte state
-# round-trips can be regression-tested even when the optional plugin SDK is absent.
 add_executable(p6_plugin_state_tests
     tests/plugin_state_test.cpp
     plugin/PluginStateCodec.cpp)
@@ -64,11 +60,6 @@ else()
 endif()
 add_test(NAME p6_plugin_state_tests COMMAND p6_plugin_state_tests)
 
-# v0.17 controller/lifetime tests intentionally use an always-on check helper
-# rather than assert(), so their semantics are identical in Debug and Release.
-# The mailbox race regression uses real producer threads; ask CMake for the
-# platform threading target rather than relying on incidental libc/toolchain
-# linkage on a particular CI image.
 find_package(Threads REQUIRED)
 add_executable(p6_control_contract_tests tests/control_contract_test.cpp)
 target_link_libraries(p6_control_contract_tests PRIVATE p6core Threads::Threads)
@@ -76,34 +67,25 @@ add_test(NAME p6_control_contract_tests COMMAND p6_control_contract_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
-
 add_executable(p6_inspect tools/inspect_sysex.cpp)
 target_link_libraries(p6_inspect PRIVATE p6core)
-
 add_executable(p6_sequence_dump tools/sequence_dump.cpp)
 target_link_libraries(p6_sequence_dump PRIVATE p6core)
-
 add_executable(p6_render_events tools/render_events.cpp)
 target_link_libraries(p6_render_events PRIVATE p6core)
-
 add_executable(p6_render_cal tools/render_calibration.cpp)
 target_link_libraries(p6_render_cal PRIVATE p6core)
-
 add_executable(p6_render_events_cal tools/render_events_calibration.cpp)
 target_link_libraries(p6_render_events_cal PRIVATE p6core)
-
 add_executable(p6_sync_probe tools/sync_probe.cpp)
 target_link_libraries(p6_sync_probe PRIVATE p6core)
-
 add_executable(p6_polymod_probe tools/polymod_probe.cpp)
 target_link_libraries(p6_polymod_probe PRIVATE p6core)
-
 add_executable(p6_sync_microscope tools/sync_microscope.cpp)
 target_link_libraries(p6_sync_microscope PRIVATE p6core)
-
 add_executable(p6_timing_probe tools/timing_probe.cpp)
 target_link_libraries(p6_timing_probe PRIVATE p6core)
-# Optional JUCE wrapper. The DSP/core remains independently buildable and testable.
+
 option(P6_BUILD_PLUGIN "Build the JUCE VST3/Standalone wrapper" OFF)
 option(P6_FETCH_JUCE "Fetch the pinned JUCE release if it is not otherwise available" ON)
 set(P6_JUCE_PATH "" CACHE PATH "Path to a JUCE source checkout (optional when JUCE is installed)")
