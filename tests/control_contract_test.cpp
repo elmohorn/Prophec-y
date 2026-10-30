@@ -95,8 +95,6 @@ void testVersionedMailboxNeverRegressesAcrossThreads()
     midi.join();
     host.join();
 
-    // A plain store to latest_ can fail this: a delayed lower-generation
-    // producer can overwrite a higher generation written by the other thread.
     P6_CHECK(mailbox.latestGeneration(0) == maximumGeneration.load());
 }
 
@@ -111,8 +109,6 @@ void testSustainSeparatesPhysicalKeysFromSoundingVoices()
 
     P6_CHECK(engine.sustainPedal());
     P6_CHECK(engine.sustainedVoiceCount() == 1);
-    // The note still sounds, but it is no longer physically held and therefore
-    // must not be available to the chord-memory capture gesture.
     P6_CHECK(!engine.captureChordMemoryFromHeld());
 
     engine.setSustainPedal(false);
@@ -182,8 +178,6 @@ void testMidiRouterPerformanceControllersStayOutOfPatch()
     P6_CHECK(std::abs(engine.midiVolume() - 1.0) < 1.0e-12);
     P6_CHECK(std::abs(engine.modWheel()) < 1.0e-12);
 
-    // CC7/CC64/CC121 are performance state and must not mutate saved program
-    // bytes merely because the controller was received.
     P6_CHECK(patch.rawPayload == payloadBefore);
 }
 
@@ -204,6 +198,61 @@ void testSustainThresholdIsExactly64()
     P6_CHECK(engine.sustainPedal());
 }
 
+void testAllNotesOffRespectsDamper()
+{
+    p6::P6PatchState patch;
+    const auto payloadBefore = patch.rawPayload;
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    p6::P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+    p6::P6MidiRouter router;
+
+    const std::array<std::uint8_t, 3> noteOn {0x90, 60, 100};
+    const std::array<std::uint8_t, 3> sustainOn {0xB0, 64, 127};
+    const std::array<std::uint8_t, 3> allNotesOff {0xB0, 123, 0};
+    const std::array<std::uint8_t, 3> sustainOff {0xB0, 64, 0};
+
+    router.process(noteOn, patch, scheduler);
+    router.process(sustainOn, patch, scheduler);
+    P6_CHECK(router.process(allNotesOff, patch, scheduler).consumed);
+    P6_CHECK(engine.sustainPedal());
+    P6_CHECK(engine.sustainedVoiceCount() == 1);
+    P6_CHECK(engine.activeVoiceCount() == 1);
+    P6_CHECK(!engine.captureChordMemoryFromHeld());
+
+    router.process(sustainOff, patch, scheduler);
+    P6_CHECK(engine.sustainedVoiceCount() == 0);
+    // Ordinary envelope release is allowed to remain active after pedal-up.
+    P6_CHECK(patch.rawPayload == payloadBefore);
+}
+
+void testAllSoundOffIsImmediateButDoesNotResetControllers()
+{
+    p6::P6PatchState patch;
+    const auto payloadBefore = patch.rawPayload;
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    p6::P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+    p6::P6MidiRouter router;
+
+    const std::array<std::uint8_t, 3> noteOn {0x90, 64, 100};
+    const std::array<std::uint8_t, 3> sustainOn {0xB0, 64, 127};
+    const std::array<std::uint8_t, 3> allSoundOff {0xB0, 120, 0};
+
+    router.process(noteOn, patch, scheduler);
+    router.process(sustainOn, patch, scheduler);
+    P6_CHECK(engine.activeVoiceCount() == 1);
+    P6_CHECK(router.process(allSoundOff, patch, scheduler).consumed);
+    P6_CHECK(engine.activeVoiceCount() == 0);
+    P6_CHECK(engine.sustainedVoiceCount() == 0);
+    // CC120 is not Reset All Controllers; Damper remains logically down until
+    // CC64/CC121 changes it.
+    P6_CHECK(engine.sustainPedal());
+    P6_CHECK(patch.rawPayload == payloadBefore);
+}
+
 } // namespace
 
 int main()
@@ -216,6 +265,8 @@ int main()
     testUnisonSustainReleasesAsOneStack();
     testMidiRouterPerformanceControllersStayOutOfPatch();
     testSustainThresholdIsExactly64();
+    testAllNotesOffRespectsDamper();
+    testAllSoundOffIsImmediateButDoesNotResetControllers();
     std::cout << "p6 v0.17 control-contract tests passed\n";
     return 0;
 }
