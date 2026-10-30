@@ -1,4 +1,5 @@
 #include "PluginStateCodec.h"
+#include "ParameterEventArbiter.h"
 #include "p6/NrpnCodec.h"
 #include "p6/ParameterRegistry.h"
 #include "p6/ProgramLayout.h"
@@ -70,6 +71,44 @@ int main()
     P6_CHECK(!p6plugin::decodeState(broken, b));
     P6_CHECK(!p6plugin::decodeState(std::span<const std::uint8_t>(bytes.data(), bytes.size() - 1), b));
 
-    std::cout << "p6 wrapper state/layout v0.16 tests passed\n";
+    // v0.17 causal ordering: a delayed MIDI mirror must never overwrite newer
+    // host automation. The reverse ordering must still allow the newer MIDI
+    // event through.
+    p6plugin::ParameterEventArbiter arbiter;
+    const auto midiOld = arbiter.queueMidiEdit(45, 70);
+    const auto hostNew = arbiter.noteHostEdit(45);
+    P6_CHECK(hostNew > midiOld);
+    P6_CHECK(!arbiter.takeCanonical(45).has_value());
+    P6_CHECK(!arbiter.takeHostMirror(45).has_value());
+
+    const auto hostOld = arbiter.noteHostEdit(45);
+    const auto midiNew = arbiter.queueMidiEdit(45, 101);
+    P6_CHECK(midiNew > hostOld);
+    const auto canonical = arbiter.takeCanonical(45);
+    const auto mirror = arbiter.takeHostMirror(45);
+    P6_CHECK(canonical.has_value());
+    P6_CHECK(mirror.has_value());
+    P6_CHECK(canonical->value == 101);
+    P6_CHECK(mirror->value == 101);
+    P6_CHECK(canonical->epoch == midiNew);
+    P6_CHECK(mirror->epoch == midiNew);
+
+    // Multiple MIDI edits collapse to the latest one without a queue or heap.
+    (void)arbiter.queueMidiEdit(46, 20);
+    const auto latest = arbiter.queueMidiEdit(46, 88);
+    const auto collapsed = arbiter.takeCanonical(46);
+    P6_CHECK(collapsed.has_value());
+    P6_CHECK(collapsed->epoch == latest);
+    P6_CHECK(collapsed->value == 88);
+
+    // Runtime Seq Play/Stop shares the same ordering machinery but remains
+    // outside the canonical 1024-byte program state.
+    const auto seqMidi = arbiter.queueMidiEdit(p6plugin::ParameterEventArbiter::kSequencePlayNrpn, 1);
+    P6_CHECK(seqMidi != 0);
+    const auto seqMirror = arbiter.takeHostMirror(p6plugin::ParameterEventArbiter::kSequencePlayNrpn);
+    P6_CHECK(seqMirror.has_value());
+    P6_CHECK(seqMirror->value == 1);
+
+    std::cout << "p6 wrapper state/layout/causality v0.17 tests passed\n";
     return 0;
 }
