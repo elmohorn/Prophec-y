@@ -31,10 +31,6 @@ public:
                      const MapperCalibration& calibration = {});
     void setPanSpread(double amount01);
     void setProgramVolume(double amount01);
-    // MIDI CC7 is performance state, not the program's Voice Volume. Sequential
-    // documents it as combined with Master Volume and Voice Volume, so it is a
-    // separate final gain and does not alter distortion drive or patch bytes.
-    void setMidiVolume(double amount01) { midiVolume_ = std::clamp(amount01, 0.0, 1.0); }
     void setDistortion(double amount01);
     void setSlop(double amount01, SlopMode mode);
     void setChannelPressure(double pressure01);
@@ -75,7 +71,6 @@ public:
     std::size_t activeVoiceCount() const noexcept;
     std::size_t sustainedVoiceCount() const noexcept;
     bool sustainPedal() const noexcept { return sustainPedal_; }
-    double midiVolume() const noexcept { return midiVolume_; }
     std::size_t unisonVoiceCount() const noexcept { return unisonVoiceCount_; }
     std::uint8_t keyMode() const noexcept { return keyMode_; }
     double pitchBendRangeSemitones() const noexcept { return pitchBendRangeSemitones_; }
@@ -128,7 +123,6 @@ private:
     VoiceDiagnostics diagnostics_{};
     double panSpread_{};
     double programVolume_{1.0};
-    double midiVolume_{1.0};
     double distortion_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
