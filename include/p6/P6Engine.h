@@ -81,6 +81,9 @@ public:
     bool sustainPedal() const noexcept { return sustainPedal_; }
     std::size_t sustainedVoiceCount() const noexcept;
     double effectiveLfoDepth() const noexcept;
+    // Diagnostic-only observation for LFO-sync regressions. It deliberately
+    // does not expose a writable phase or become part of host state.
+    double lfoPhaseForDiagnostics() const noexcept { return lfo_.phaseForDiagnostics(); }
     bool chordMode() const noexcept { return chordMode_; }
     bool unisonEnabled() const noexcept { return unison_; }
     std::size_t chordMemorySize() const noexcept { return chordLength_; }
@@ -132,7 +135,7 @@ private:
     double distortion_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
-    bool lfoClockSync_{}; // preserved/mapped; DAW/master-clock integration is next layer
+    bool lfoClockSync_{}; // phase-reset behavior is implemented; tempo-division law remains evidence-gated
     double channelPressure_{};
     double modWheel_{};
     double pitchBend_{};
