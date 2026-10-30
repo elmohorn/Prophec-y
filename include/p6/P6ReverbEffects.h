@@ -11,18 +11,16 @@ struct P6ReverbStereoSample {
     double right{};
 };
 
-// Small stereo FDN-style reverb family. v0.18 uses one preallocated network
-// with type-specific delay/decay/damping voicings so Hall/Room/Plate/Spring are
-// all audible and realtime safe. Constants remain calibration candidates.
 class P6ReverbEffects {
 public:
     enum class Type { Hall, Room, Plate, Spring };
 
     void prepare(double sampleRate);
     void reset() noexcept;
+    // Realtime-safe logical clear. Old samples remain allocated but are ignored
+    // until overwritten after the invalidation point.
+    void invalidateRealtimeState() noexcept;
 
-    // primary01: Hall/Room/Plate time, Spring decay
-    // secondary01: Hall/Room/Plate early-reflection amount, Spring tone
     [[nodiscard]] P6ReverbStereoSample process(double left, double right,
                                                 Type type,
                                                 double primary01,
@@ -34,6 +32,7 @@ private:
     struct Line {
         std::vector<double> buffer{};
         std::size_t write{};
+        std::size_t validSamples{};
         double dampingState{};
     };
 
@@ -45,6 +44,7 @@ private:
     std::array<Line, kLines> lines_{};
     std::vector<double> early_{};
     std::size_t earlyWrite_{};
+    std::size_t earlyValidSamples_{};
 };
 
 } // namespace p6
