@@ -14,13 +14,23 @@
 namespace {
 std::atomic<bool> gTrackAllocations {false};
 std::atomic<std::size_t> gAllocationCount {0};
-}
 
-void* operator new(std::size_t size)
+void recordAllocation() noexcept
 {
     if (gTrackAllocations.load(std::memory_order_relaxed))
         gAllocationCount.fetch_add(1, std::memory_order_relaxed);
-    if (void* p = std::malloc(size == 0 ? 1 : size))
+}
+
+void* allocateRaw(std::size_t size) noexcept
+{
+    return std::malloc(size == 0 ? 1 : size);
+}
+} // namespace
+
+void* operator new(std::size_t size)
+{
+    recordAllocation();
+    if (void* p = allocateRaw(size))
         return p;
     throw std::bad_alloc();
 }
@@ -30,10 +40,23 @@ void* operator new[](std::size_t size)
     return ::operator new(size);
 }
 
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept
+{
+    recordAllocation();
+    return allocateRaw(size);
+}
+
+void* operator new[](std::size_t size, const std::nothrow_t& tag) noexcept
+{
+    return ::operator new(size, tag);
+}
+
 void operator delete(void* p) noexcept { std::free(p); }
 void operator delete[](void* p) noexcept { std::free(p); }
 void operator delete(void* p, std::size_t) noexcept { std::free(p); }
 void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+void operator delete(void* p, const std::nothrow_t&) noexcept { std::free(p); }
+void operator delete[](void* p, const std::nothrow_t&) noexcept { std::free(p); }
 
 namespace {
 
