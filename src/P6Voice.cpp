@@ -44,11 +44,6 @@ void P6Voice::setParams(const VoiceParams& params)
 void P6Voice::noteOn(int midiNote, double velocity01,
                      bool retriggerEnvelope, bool resetEnvelopeFromZero)
 {
-    // Prophet-6 glide is per voice. Fixed-rate modes take the same time per
-    // octave; fixed-time modes take the same total time for any interval. The
-    // two "A" modes glide only while the previous envelope is still alive.
-    // In Unison's non-retrigger key modes a new winning key retunes the stack
-    // without restarting either envelope.
     const bool legato = active_ || !ampEnv_.isIdle();
     midiNote_ = midiNote;
     targetNote_ = static_cast<double>(midiNote);
@@ -82,6 +77,17 @@ void P6Voice::noteOff()
 {
     ampEnv_.noteOff();
     filterEnv_.noteOff();
+}
+
+void P6Voice::silence()
+{
+    // MIDI All Sound Off is a channel panic, not a synth lifecycle reset.
+    // Kill only the audible envelope state. Oscillator/slop/filter history,
+    // pitch/glide memory and decimator state continue running so the next note
+    // does not acquire an artificial phase reset that the analog VCOs lack.
+    ampEnv_.reset(0.0);
+    filterEnv_.reset(0.0);
+    active_ = false;
 }
 
 void P6Voice::reset()
@@ -132,9 +138,6 @@ double P6Voice::filterCutoffHz(const VoiceFilterParams& filter, bool highPass,
     const double lawSlope = highPass && params_.highPassFilterSemitonesPerRaw > 0.0
         ? params_.highPassFilterSemitonesPerRaw : params_.filterSemitonesPerRaw;
     double base = 0.0;
-    // HPF and LPF have independent calibration laws. A convex HPF curve is
-    // useful because the first part of the hardware control can remain near
-    // bypass while the top still reaches well into the audible band.
     if (highPass && params_.highPassFilterCurveExponent > 0.0 &&
         params_.highPassFilterTopHz > lawBaseHz) {
         const double control = std::clamp(filter.cutoffControl, 0.0, 164.0) / 164.0;
@@ -143,8 +146,7 @@ double P6Voice::filterCutoffHz(const VoiceFilterParams& filter, bool highPass,
     } else if (!highPass && params_.filterCurveExponent > 0.0 && params_.filterTopHz > lawBaseHz) {
         const double control = std::clamp(filter.cutoffControl, 0.0, 164.0) / 164.0;
         const double t = std::pow(control, params_.filterCurveExponent);
-        base = lawBaseHz *
-               std::pow(params_.filterTopHz / lawBaseHz, t);
+        base = lawBaseHz * std::pow(params_.filterTopHz / lawBaseHz, t);
     } else if (!highPass && params_.filterHighSemitonesPerRaw > 0.0) {
         const double control = std::clamp(filter.cutoffControl, 0.0, 164.0);
         const double knee = std::clamp(params_.filterKneeRaw, 0.0, 164.0);
@@ -152,8 +154,7 @@ double P6Voice::filterCutoffHz(const VoiceFilterParams& filter, bool highPass,
         const double highPart = std::max(0.0, control - knee) * params_.filterHighSemitonesPerRaw;
         base = lawBaseHz * std::pow(2.0, (lowPart + highPart) / 12.0);
     } else {
-        base = lawBaseHz *
-               std::pow(2.0, filter.cutoffControl * lawSlope / 12.0);
+        base = lawBaseHz * std::pow(2.0, filter.cutoffControl * lawSlope / 12.0);
     }
     const double hz = base * std::pow(2.0, keyOct + envOct + pmOct +
                                       (lfoSemitones + pressureSemitones) / 12.0);
@@ -184,9 +185,6 @@ void P6Voice::configureDecimator()
     }
 
     if (oversampleFactor_ == 2) {
-        // Preserve the v0.9 clean-room 31-tap response bit-for-bit so 2x
-        // remains a valid historical baseline while higher factors are purely
-        // diagnostic experiments.
         decimatorTaps_ = {
             -0.0045008481327892709, -3.9951677602018973e-06, 0.0070884249415108184,
              2.7819696099880195e-07, -0.012457607023340873, -7.5118250422239079e-06,
@@ -201,10 +199,6 @@ void P6Voice::configureDecimator()
             -0.0045008481327892709
         };
     } else {
-        // Diagnostic 4x/8x decimator: long Blackman-windowed sinc, with the
-        // cutoff kept just inside the host Nyquist. It intentionally favors
-        // rejection quality over realtime CPU because its job is to answer
-        // whether hard-sync/Poly-Mod residuals are oversampling-sensitive.
         const std::size_t taps = static_cast<std::size_t>(oversampleFactor_ * 32 + 1);
         const double fc = 0.45 / static_cast<double>(oversampleFactor_);
         const double pi = 3.14159265358979323846;
@@ -253,10 +247,6 @@ VoiceSample P6Voice::process(double lfoSignal, double pressure01)
 VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
 {
     VoiceSample out;
-
-    // The digitally controlled VCOs are still analog oscillators: their phase
-    // does not restart at note-on. We therefore advance the oscillator/slop
-    // state on every engine sample, even while the VCA envelope is idle.
     out.filterEnvelope = filterEnv_.process();
     out.ampEnvelope = ampEnv_.process();
 
@@ -274,9 +264,7 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     out.slop1Cents = slop1_.process() * params_.slopDepthCents;
     out.slop2Cents = slop2_.process() * params_.slopDepthCents;
 
-    const double osc2Reference = params_.osc2KeyTrack
-        ? baseHz_
-        : midiToHz(60.0 + pitchBendSemitones_);
+    const double osc2Reference = params_.osc2KeyTrack ? baseHz_ : midiToHz(60.0 + pitchBendSemitones_);
     const double pressure = std::clamp(pressure01, 0.0, 1.0) * params_.aftertouch.amount;
     const double at2Semi = params_.aftertouch.osc2Freq ? pressure * params_.aftertouch.pitchRangeSemitones : 0.0;
     const double lfo2Semi = params_.lfo.osc2Freq ? lfoSignal * params_.lfo.pitchRangeSemitones : 0.0;
@@ -284,7 +272,7 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
         (params_.osc2.semitones + lfo2Semi + at2Semi) / 12.0 +
         (params_.osc2.fineCents + out.slop2Cents) / 1200.0);
     if (params_.osc2LowFrequency)
-        f2 /= 64.0; // isolated calibration constant pending hardware capture
+        f2 /= 64.0;
     f2 = std::max(0.01, f2);
 
     osc2_.setFrequency(f2);
@@ -297,8 +285,6 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     const double b = osc2_.process();
     out.osc2 = b;
 
-    // Prophet Poly Mod sums its two bipolar sources per voice, then applies
-    // that combined audio-rate signal to the enabled destinations.
     const double rawPolySource = out.filterEnvelope * params_.polyMod.filterEnvAmount +
                                  b * params_.polyMod.osc2Amount;
     out.polyModSource = rawPolySource;
@@ -313,15 +299,12 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
         f1Base * std::pow(2.0, polySource * params_.polyMod.osc1FreqAmount));
 
     osc1_.setFrequency(f1);
-    osc1_.setShape(std::clamp(params_.osc1.shape +
-                              polySource * params_.polyMod.osc1ShapeAmount, 0.0, 1.0));
+    osc1_.setShape(std::clamp(params_.osc1.shape + polySource * params_.polyMod.osc1ShapeAmount, 0.0, 1.0));
     osc1_.setMeanNormalizationAmount(params_.osc1.meanNormalizationAmount);
     osc1_.setPulseWidth(std::clamp(params_.osc1.pulseWidth + lfoPw +
                                    polySource * params_.polyMod.osc1PulseWidthAmount, 0.04, 0.96));
     const double a = osc1_.process(syncAt);
 
-    // Triangle sub follows Osc1 pitch, including audio-rate pitch modulation
-    // and slow slop, then divides it by two.
     sub_.setFrequency(std::max(0.01, f1 * 0.5));
     sub_.setShape(0.0);
     sub_.setPulseWidth(0.5);
@@ -330,8 +313,7 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     const double noiseSample = noise();
     switch (diagnostics_.mix) {
     case VoiceDiagnosticMix::OscillatorsOnly:
-        out.preFilter = a * params_.osc1.level +
-                        b * params_.osc2.level * params_.osc2MixerPolarity;
+        out.preFilter = a * params_.osc1.level + b * params_.osc2.level * params_.osc2MixerPolarity;
         break;
     case VoiceDiagnosticMix::Osc1Only:
         out.preFilter = a;
@@ -343,8 +325,7 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     default:
         out.preFilter = a * params_.osc1.level +
                         b * params_.osc2.level * params_.osc2MixerPolarity +
-                        sub * params_.subLevel +
-                        noiseSample * params_.noiseLevel;
+                        sub * params_.subLevel + noiseSample * params_.noiseLevel;
         break;
     }
 
@@ -355,9 +336,6 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     const double hpHz = filterCutoffHz(params_.highPass, true, out.filterEnvelope, polySource, hpLfoSemi, hpAtSemi);
     const double lpHz = filterCutoffHz(params_.lowPass, false, out.filterEnvelope, polySource, lpLfoSemi, lpAtSemi);
 
-    // Hardware-style serial path: mixer -> resonant HPF -> resonant LPF -> VCA.
-    // Diagnostic filter bypass keeps oscillator/sync experiments from being
-    // confounded by an imperfect cutoff or resonance calibration.
     if (diagnostics_.bypassFilters) {
         out.highPass = out.preFilter;
         out.lowPass = out.preFilter;
