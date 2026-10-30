@@ -18,6 +18,10 @@ public:
     void setNoiseMode(bool enabled);
     double process();
 
+    // Diagnostic-only observation used by deterministic regression tests. It
+    // does not participate in host state or synthesis control.
+    [[nodiscard]] double phaseForDiagnostics() const noexcept { return phase_; }
+
 private:
     static double polyBlep(double t, double dt);
     double whiteNoise();
