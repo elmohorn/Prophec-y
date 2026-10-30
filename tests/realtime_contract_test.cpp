@@ -1,4 +1,5 @@
 #include "p6/P6Engine.h"
+#include "p6/P6Effects.h"
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PerformanceScheduler.h"
 #include "p6/ParameterMapper.h"
@@ -148,11 +149,57 @@ void testCoreRealtimePathDoesNotAllocateAfterPrepare()
     P6_CHECK(allocations == 0);
 }
 
+void testPreparedActiveEffectsDoNotAllocate()
+{
+    p6::P6Effects effects;
+    effects.prepare(48000.0);
+
+    const std::array<p6::P6EffectSlotSettings, 4> activeFamilies{{
+        {p6::P6EffectType::BbdDelay, 0.7, 0.18, 0.6},
+        {p6::P6EffectType::Phaser1, 0.8, 0.9, 0.7},
+        {p6::P6EffectType::Flanger1, 0.8, 0.4, 0.8},
+        {p6::P6EffectType::Hall, 0.6, 0.65, 0.5},
+    }};
+
+    p6::P6EffectsSettings settings;
+    settings.enabled = true;
+    settings.a = activeFamilies[0];
+    settings.b = {p6::P6EffectType::Plate, 0.35, 0.5, 0.4};
+    effects.setSettings(settings);
+
+    // Warm transcendental/libm and every prepared state machine outside the
+    // allocation fence. setSettings() itself is a fixed-size copy.
+    for (const auto family : activeFamilies) {
+        settings.a = family;
+        effects.setSettings(settings);
+        for (int i = 0; i < 512; ++i)
+            static_cast<void>(effects.process(0.1, -0.1));
+    }
+
+    std::size_t allocations = 0;
+    {
+        AllocationScope guard;
+        for (int block = 0; block < 128; ++block) {
+            settings.a = activeFamilies[static_cast<std::size_t>(block) % activeFamilies.size()];
+            effects.setSettings(settings);
+            for (int sample = 0; sample < 64; ++sample) {
+                const double x = (sample & 1) ? 0.15 : -0.12;
+                static_cast<void>(effects.process(x, -x));
+            }
+        }
+        effects.reset(); // clearing tails must also remain realtime-safe
+        allocations = guard.count();
+    }
+
+    P6_CHECK(allocations == 0);
+}
+
 } // namespace
 
 int main()
 {
     testCoreRealtimePathDoesNotAllocateAfterPrepare();
-    std::cout << "p6 v0.17 realtime allocation contract passed\n";
+    testPreparedActiveEffectsDoNotAllocate();
+    std::cout << "p6 v0.18 realtime allocation contract passed\n";
     return 0;
 }
