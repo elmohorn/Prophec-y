@@ -13,6 +13,7 @@ add_library(p6core
     src/P6Arpeggiator.cpp
     src/P6SequencerPlayer.cpp
     src/P6PerformanceScheduler.cpp
+    src/P6PerformanceMidiMode.cpp
     src/P6MidiRouter.cpp
     src/PolyBLEPOscillator.cpp
     src/ADSREnvelope.cpp
