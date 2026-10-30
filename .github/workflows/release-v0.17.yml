@@ -1,0 +1,73 @@
+name: release-v0.17
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release-v0.17.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: v0.17.0
+      RELEASE_TARGET: 238986bc47fda3b2cd9173bed1c48bc8d255e9a5
+      WINDOWS_ARTIFACT_ID: '13018127141'
+      LINUX_ARTIFACT_ID: '13018066732'
+    steps:
+      - name: Download validated v0.17 artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${WINDOWS_ARTIFACT_ID}/zip" > P6-Core-v0.17-Windows-VST3.zip
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${LINUX_ARTIFACT_ID}/zip" > P6-Core-v0.17-Linux-VST3.zip
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Prophec-y v0.17.0 — control / performance contract
+
+          v0.17 closes the non-FX control/performance and realtime ownership milestone.
+
+          ### Included
+          - Versioned lock-free host/MIDI last-writer-wins edit ordering.
+          - Sustain/Damper CC64 with physical-key and sustained-voice lifetime separated.
+          - MIDI Volume CC7 as runtime gain, independent of the saved Prophet program payload.
+          - CC120 All Sound Off, CC121 Reset All Controllers and CC123 All Notes Off semantics.
+          - Explicit realtime no-allocation regression coverage.
+          - Realtime-safe fixed-size arpeggiator ordering.
+          - Evidence-backed synced-LFO first-key phase reset.
+
+          ### Deliberately not guessed
+          - Exact Prophet-6 synced-LFO raw-frequency-to-rhythmic-division mapping.
+          - Foot Controller CC4 mapping.
+          - Chord-memory serialized storage.
+          - Sequence velocity bit 7 and remaining opaque sequence mode semantics.
+
+          ### Validation
+          The attached Windows and Linux VST3 artifacts are the validated outputs from workflow run 41139022711 at functional baseline eecab18fa9fffd70ef361a90acaee13a57cf5e4d. That gate passed Windows/Linux builds and tests, pluginval strictness 10 on both targets, and Linux ASan+UBSan. The release target commit integrates the same functional tree with v0.17 closeout documentation.
+
+          Next active milestone: **v0.18 — digital effects**.
+          EOF
+
+      - name: Create v0.17.0 GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; nothing to do."
+            exit 0
+          fi
+          gh release create "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${RELEASE_TARGET}" \
+            --title "Prophec-y v0.17.0" \
+            --notes-file release-notes.md \
+            P6-Core-v0.17-Windows-VST3.zip \
+            P6-Core-v0.17-Linux-VST3.zip
