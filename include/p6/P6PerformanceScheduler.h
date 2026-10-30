@@ -24,9 +24,6 @@ public:
     void noteOn(int midiNote, double velocity01 = 1.0);
     void noteOff(int midiNote);
     void allNotesOff();
-    // MIDI channel-mode messages are kept separate from the scheduler's older
-    // internal panic helper so sustain and immediate-silence semantics remain
-    // explicit and testable.
     void midiAllNotesOff();
     void midiAllSoundOff();
     void setModWheel(double amount01) { engine_.setModWheel(amount01); }
@@ -47,15 +44,27 @@ public:
     void setArpHold(bool enabled);
     void setArpBeatSync(bool enabled) noexcept { arpBeatSync_ = enabled; }
 
-    void setClockBpm(double bpm) { clock_.setBpm(bpm); }
+    void setClockBpm(double bpm)
+    {
+        clock_.setBpm(bpm);
+        engine_.setEffectsRuntimeBpm(clock_.bpm());
+    }
     void setClockDivision(ClockDivision division) { clock_.setDivision(division); }
     void setClockSyncMode(ClockSyncMode mode);
-    void alignToHostPpq(double ppq, double bpm, bool playing) { clock_.alignToHostPpq(ppq, bpm, playing); }
+    void alignToHostPpq(double ppq, double bpm, bool playing)
+    {
+        clock_.alignToHostPpq(ppq, bpm, playing);
+        engine_.setEffectsRuntimeBpm(clock_.bpm());
+    }
     void setMidiStartStopEnabled(bool enabled);
     void midiClockStart();
     void midiClockContinue();
     void midiClockStop();
-    void midiTimingClock() { clock_.midiTimingClock(); }
+    void midiTimingClock()
+    {
+        clock_.midiTimingClock();
+        engine_.setEffectsRuntimeBpm(clock_.bpm());
+    }
 
     void setSequencePlaying(bool playing);
     void setSequenceTransposeKey(int midiNote) { sequencer_.setTransposeKey(midiNote); }
@@ -76,8 +85,8 @@ public:
     [[nodiscard]] const P6SequencerPlayer& sequencer() const noexcept { return sequencer_; }
 
 private:
-    static constexpr std::uint32_t kArpOwner = 0x41525031u; // "ARP1"
-    static constexpr std::uint32_t kSeqOwner = 0x53455131u; // "SEQ1"
+    static constexpr std::uint32_t kArpOwner = 0x41525031u;
+    static constexpr std::uint32_t kSeqOwner = 0x53455131u;
 
     void updateClockRunning(bool restartOnStart = false);
     void releaseArpNote();
