@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(P6Core VERSION 0.16.0 LANGUAGES C CXX)
+project(P6Core VERSION 0.17.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,6 +25,7 @@ add_library(p6core
     src/P6Voice.cpp
     src/NrpnCodec.cpp
     src/P6Engine.cpp
+    src/P6Sustain.cpp
 )
 
 target_include_directories(p6core PUBLIC include)
@@ -63,6 +64,12 @@ else()
   target_compile_options(p6_plugin_state_tests PRIVATE -UNDEBUG)
 endif()
 add_test(NAME p6_plugin_state_tests COMMAND p6_plugin_state_tests)
+
+# Focused control/performance regressions introduced with v0.17. These use an
+# always-active check macro, so Release CI cannot compile the assertions away.
+add_executable(p6_v017_performance_tests tests/v017_performance_test.cpp)
+target_link_libraries(p6_v017_performance_tests PRIVATE p6core)
+add_test(NAME p6_v017_performance_tests COMMAND p6_v017_performance_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
