@@ -36,6 +36,12 @@ public:
     void setChannelPressure(double pressure01);
     void setModWheel(double amount01);
     void setPitchBend(double bipolar);
+    // CC64 is performance state, not program data. Physical key release is
+    // still recorded immediately while the envelope release may be deferred.
+    void setSustainPedal(bool down);
+    // CC7 is a separate performance multiplier. It never rewrites the saved
+    // Prophet Voice Volume/program byte.
+    void setMidiVolume(double amount01);
     void setKeyMode(std::uint8_t mode);
     void setChordMode(bool enabled);
     bool captureChordMemoryFromHeld();
@@ -66,6 +72,9 @@ public:
     double pitchBendRangeSemitones() const noexcept { return pitchBendRangeSemitones_; }
     double pitchBendSemitones() const noexcept { return pitchBend_ * pitchBendRangeSemitones_; }
     double modWheel() const noexcept { return modWheel_; }
+    double midiVolume() const noexcept { return midiVolume_; }
+    bool sustainPedal() const noexcept { return sustainPedal_; }
+    std::size_t sustainedVoiceCount() const noexcept;
     double effectiveLfoDepth() const noexcept;
     bool chordMode() const noexcept { return chordMode_; }
     bool unisonEnabled() const noexcept { return unison_; }
@@ -78,6 +87,7 @@ private:
         P6Voice voice;
         int note{-1};
         bool keyDown{};
+        bool sustainHeld{};
         std::uint64_t age{};
         std::uint32_t owner{};
     };
@@ -113,6 +123,7 @@ private:
     VoiceDiagnostics diagnostics_{};
     double panSpread_{};
     double programVolume_{1.0};
+    double midiVolume_{1.0};
     double distortion_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
@@ -123,6 +134,8 @@ private:
     double pitchBendRangeSemitones_{};
     double slopAmount_{};
     SlopMode slopMode_{SlopMode::Standard};
+    bool sustainPedal_{};
+    bool unisonSustainHeld_{};
     bool unison_{};
     std::size_t unisonVoiceCount_{kVoiceCount};
     double unisonDetuneCents_{};
