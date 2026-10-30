@@ -13,14 +13,12 @@ void P6PerformanceScheduler::prepare(double sampleRate)
 void P6PerformanceScheduler::loadPatch(const P6PatchState& patch,
                                        const MapperCalibration& calibration)
 {
-    // Patch loading remains a single-source operation: the audio engine and
-    // scheduler both map from the same canonical P6PatchState.
     engine_.loadPatch(patch, calibration);
     const auto mapped = mapPatchToDSP(patch, calibration);
 
     releaseArpNote();
     releaseSequenceNotes();
-    sequencePlaying_ = false; // PLAY/STOP is control NRPN 1088, not program state.
+    sequencePlaying_ = false;
 
     arpeggiator_.clear();
     arpeggiator_.setMode(static_cast<ArpMode>(mapped.arpMode));
@@ -125,9 +123,6 @@ void P6PerformanceScheduler::noteOn(int midiNote, double velocity01)
     arpeggiator_.noteOn(midiNote, velocity01);
 
     if (sequencePlaying_) {
-        // The manual explicitly allows playing live along with a sequence when
-        // voices remain available. Source ownership prevents a sequenced note-
-        // off from terminating an identically pitched live note.
         engine_.noteOnOwned(midiNote, velocity01, 0);
         return;
     }
@@ -151,9 +146,6 @@ void P6PerformanceScheduler::noteOn(int midiNote, double velocity01)
 void P6PerformanceScheduler::noteOff(int midiNote)
 {
     midiNote = std::clamp(midiNote, 0, 127);
-    // Physical ownership is removed from the arpeggiator immediately even when
-    // the damper is down. CC64 therefore sustains envelopes but never turns
-    // into Arp Hold.
     arpeggiator_.noteOff(midiNote);
 
     if (sequencePlaying_) {
@@ -193,8 +185,6 @@ void P6PerformanceScheduler::setArpeggiatorEnabled(bool enabled)
         return;
 
     if (enabled) {
-        // Keys that were sounding directly become controller/latch input once
-        // the arp is engaged; do not leave their direct voices underneath.
         stopDirectPhysicalKeys();
         releaseArpNote();
         arpeggiator_.resetStep();
@@ -205,9 +195,6 @@ void P6PerformanceScheduler::setArpeggiatorEnabled(bool enabled)
         const bool fireNow = !sequencePlaying_ && !arpBeatSync_ && !arpeggiator_.empty() && externalReady;
         if (fireNow)
             fireArpStep();
-        // Legacy (Beat Sync off) retriggers immediately, then waits a complete
-        // division before the next arp step. Do not schedule a duplicate edge
-        // on the first process sample after enabling.
         clock_.restart(!fireNow);
     } else {
         releaseArpNote();
@@ -268,10 +255,6 @@ void P6PerformanceScheduler::fireSequenceStep()
     if (!sequencePlaying_)
         return;
 
-    // No semantics are assigned to the program-dump-only velocity bit 7 in
-    // v0.13. Every decoded low-7-bit event therefore uses a conservative
-    // one-step gate. Once tie/retrigger metadata is proven, this is the single
-    // policy point that will change without touching P6Sequence compatibility.
     releaseSequenceNotes();
     const auto step = sequencer_.nextStep();
     for (std::size_t i = 0; i < step.count; ++i) {
@@ -312,7 +295,13 @@ StereoSample P6PerformanceScheduler::process()
         else if (arpEnabled_)
             fireArpStep();
     }
-    return engine_.process();
+
+    auto out = engine_.process();
+    // Keep CC7 outside the patch/DSP gain staging. In particular, changing
+    // MIDI Volume must not change how hard the program drives distortion.
+    out.left *= midiVolume_;
+    out.right *= midiVolume_;
+    return out;
 }
 
 } // namespace p6
