@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(P6Core VERSION 0.15.0 LANGUAGES C CXX)
+project(P6Core VERSION 0.16.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,6 +40,14 @@ endif()
 enable_testing()
 add_executable(p6core_tests tests/test_main.cpp)
 target_link_libraries(p6core_tests PRIVATE p6core)
+# The regression suite intentionally uses assert() extensively. Release builds
+# normally define NDEBUG, which would compile those checks out completely. Keep
+# assertions active for test executables on every platform/configuration.
+if(MSVC)
+  target_compile_options(p6core_tests PRIVATE /UNDEBUG)
+else()
+  target_compile_options(p6core_tests PRIVATE -UNDEBUG)
+endif()
 add_test(NAME p6core_tests COMMAND p6core_tests)
 
 # The host-state codec is intentionally JUCE-free so lossless 1024-byte state
@@ -49,6 +57,11 @@ add_executable(p6_plugin_state_tests
     plugin/PluginStateCodec.cpp)
 target_include_directories(p6_plugin_state_tests PRIVATE plugin)
 target_link_libraries(p6_plugin_state_tests PRIVATE p6core)
+if(MSVC)
+  target_compile_options(p6_plugin_state_tests PRIVATE /UNDEBUG)
+else()
+  target_compile_options(p6_plugin_state_tests PRIVATE -UNDEBUG)
+endif()
 add_test(NAME p6_plugin_state_tests COMMAND p6_plugin_state_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
