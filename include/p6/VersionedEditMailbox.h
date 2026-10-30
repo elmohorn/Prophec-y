@@ -20,6 +20,9 @@ namespace p6 {
 template <std::size_t N>
 class VersionedEditMailbox {
 public:
+    static_assert(std::atomic<std::uint64_t>::is_always_lock_free,
+                  "VersionedEditMailbox requires lock-free 64-bit atomics on the release target");
+
     struct Edit {
         std::uint64_t generation{};
         std::uint16_t value{};
@@ -32,7 +35,14 @@ public:
         if (index >= N)
             return 0;
         const auto generation = nextGeneration();
-        latest_[index].store(generation, std::memory_order_release);
+
+        // Generation allocation and publication happen on different threads.
+        // Never use a plain store here: a producer that obtained an older
+        // generation and was then descheduled must not overwrite a newer host
+        // generation when it resumes.
+        if (!advanceLatest(index, generation))
+            return generation;
+
         const auto packed = pack(generation, value);
         canonical_[index].store(packed, std::memory_order_release);
         mirror_[index].store(packed, std::memory_order_release);
@@ -46,7 +56,7 @@ public:
         if (index >= N)
             return 0;
         const auto generation = nextGeneration();
-        latest_[index].store(generation, std::memory_order_release);
+        static_cast<void>(advanceLatest(index, generation));
         return generation;
     }
 
@@ -65,15 +75,26 @@ public:
         return index < N && latest_[index].load(std::memory_order_acquire) == generation;
     }
 
+    [[nodiscard]] std::uint64_t latestGeneration(std::size_t index) const noexcept
+    {
+        return index < N ? latest_[index].load(std::memory_order_acquire) : 0;
+    }
+
     void clear() noexcept
     {
-        next_.store(0, std::memory_order_relaxed);
-        for (auto& value : latest_)
-            value.store(0, std::memory_order_relaxed);
+        // Clearing may race an audio-thread MIDI publisher during a host state
+        // load. Allocate a barrier generation and empty the queues first. Then
+        // advance every slot to at least that barrier. An older publisher that
+        // resumes afterwards is stale; a newer publisher survives. The global
+        // generation counter is intentionally never reset during the object's
+        // lifetime, avoiding ABA/reused-generation ambiguity.
+        const auto barrier = nextGeneration();
         for (auto& value : canonical_)
             value.store(0, std::memory_order_relaxed);
         for (auto& value : mirror_)
             value.store(0, std::memory_order_relaxed);
+        for (std::size_t i = 0; i < N; ++i)
+            static_cast<void>(advanceLatest(i, barrier));
     }
 
 private:
@@ -85,6 +106,22 @@ private:
         // Generation zero is reserved for "nothing published". At practical
         // MIDI/automation rates a 48-bit counter cannot wrap during a session.
         return next_.fetch_add(1, std::memory_order_acq_rel) + 1;
+    }
+
+    [[nodiscard]] bool advanceLatest(std::size_t index, std::uint64_t generation) noexcept
+    {
+        auto current = latest_[index].load(std::memory_order_acquire);
+        while (current < generation)
+        {
+            if (latest_[index].compare_exchange_weak(current, generation,
+                                                     std::memory_order_acq_rel,
+                                                     std::memory_order_acquire))
+                return true;
+            // On failure compare_exchange_weak refreshes current. If another
+            // producer has already published a higher generation, the loop
+            // exits without regressing the slot.
+        }
+        return false;
     }
 
     [[nodiscard]] static std::uint64_t pack(std::uint64_t generation, std::uint16_t value) noexcept
