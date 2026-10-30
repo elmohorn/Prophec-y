@@ -153,6 +153,67 @@ void testChorusCreatesStereoModulation()
     P6_CHECK(maxStereoDifference > 1.0e-4);
 }
 
+void testTypeChangeDoesNotResurrectOldTail()
+{
+    constexpr double sampleRate = 48000.0;
+    p6::P6Effects fx;
+    fx.prepare(sampleRate);
+
+    p6::P6EffectsSettings settings;
+    settings.enabled = true;
+    settings.a = {p6::P6EffectType::DigitalDelay, 1.0, 0.005, 0.85};
+    fx.setSettings(settings);
+
+    for (int i = 0; i < 1600; ++i)
+        static_cast<void>(fx.process(i == 0 ? 1.0 : 0.0, i == 0 ? 1.0 : 0.0));
+
+    settings.a = {p6::P6EffectType::Chorus, 1.0, 0.8, 0.5};
+    fx.setSettings(settings);
+    for (int i = 0; i < 128; ++i)
+        static_cast<void>(fx.process(0.0, 0.0));
+
+    settings.a = {p6::P6EffectType::DigitalDelay, 1.0, 0.005, 0.85};
+    fx.setSettings(settings);
+    for (int i = 0; i < 1600; ++i) {
+        const auto out = fx.process(0.0, 0.0);
+        P6_CHECK(out.left == 0.0);
+        P6_CHECK(out.right == 0.0);
+    }
+}
+
+void testRealtimeClearKillsOldTailButAcceptsNewAudioImmediately()
+{
+    constexpr double sampleRate = 48000.0;
+    constexpr double delaySeconds = 0.01;
+    constexpr int expected = static_cast<int>(sampleRate * delaySeconds);
+
+    p6::P6Effects fx;
+    fx.prepare(sampleRate);
+    p6::P6EffectsSettings settings;
+    settings.enabled = true;
+    settings.a = {p6::P6EffectType::DigitalDelay, 1.0, delaySeconds, 0.8};
+    fx.setSettings(settings);
+
+    for (int i = 0; i < 1400; ++i)
+        static_cast<void>(fx.process(i == 0 ? 1.0 : 0.0, i == 0 ? 1.0 : 0.0));
+
+    fx.clearRealtimeState();
+    for (int i = 0; i < expected; ++i) {
+        const auto out = fx.process(0.0, 0.0);
+        P6_CHECK(out.left == 0.0);
+        P6_CHECK(out.right == 0.0);
+    }
+
+    fx.clearRealtimeState();
+    double atExpected = 0.0;
+    for (int i = 0; i <= expected; ++i) {
+        const auto out = fx.process(i == 0 ? 1.0 : 0.0, i == 0 ? 1.0 : 0.0);
+        if (i == expected)
+            atExpected = out.left;
+    }
+    P6_CHECK(atExpected > 0.99);
+}
+
 void testHardwareMapperLaws()
 {
     P6_CHECK(std::abs(p6::rawEffectDelaySeconds(0) - 0.002) < 1.0e-12);
@@ -160,9 +221,6 @@ void testHardwareMapperLaws()
     P6_CHECK(std::abs(p6::rawEffectChorusRateHz(0) - 0.05) < 1.0e-12);
     P6_CHECK(std::abs(p6::rawEffectChorusRateHz(255) - 8.0) < 1.0e-12);
     P6_CHECK(std::abs(p6::rawEffectFeedback(127) - 0.92) < 1.0e-12);
-
-    // One beat at 120 BPM = 0.5 s. Four beats at 60 BPM would be 4 s,
-    // but Sequential documents repeated halving until the 1-second maximum.
     P6_CHECK(std::abs(p6::syncedEffectDelaySeconds(5, 120.0) - 0.5) < 1.0e-12);
     P6_CHECK(std::abs(p6::syncedEffectDelaySeconds(0, 60.0) - 1.0) < 1.0e-12);
 }
@@ -170,15 +228,15 @@ void testHardwareMapperLaws()
 void testPatchMappingPreservesLegacyDomainsAndUnknowns()
 {
     p6::P6PatchState patch;
-    setRaw(patch, 135, 1);   // global effects on
-    setRaw(patch, 167, 120); // BPM
+    setRaw(patch, 135, 1);
+    setRaw(patch, 167, 120);
 
-    setRaw(patch, 119, 2);   // FX A DDL
-    setRaw(patch, 120, 127); // full wet
-    setRaw(patch, 121, 255); // max free delay time
-    setRaw(patch, 122, 127); // max feedback
+    setRaw(patch, 119, 2);
+    setRaw(patch, 120, 127);
+    setRaw(patch, 121, 255);
+    setRaw(patch, 122, 127);
 
-    setRaw(patch, 127, 6);   // FX B Hall in verified legacy B domain
+    setRaw(patch, 127, 6);
     setRaw(patch, 128, 64);
     setRaw(patch, 129, 128);
     setRaw(patch, 130, 32);
@@ -192,10 +250,10 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     P6_CHECK(mapped.b.type == p6::P6EffectType::Hall);
 
     p6::P6PatchState phaser;
-    setRaw(phaser, 119, 4);   // FX A PH1
+    setRaw(phaser, 119, 4);
     setRaw(phaser, 120, 127);
-    setRaw(phaser, 121, 255); // max rate
-    setRaw(phaser, 122, 127); // max depth
+    setRaw(phaser, 121, 255);
+    setRaw(phaser, 122, 127);
     setRaw(phaser, 135, 1);
     const auto phaserMapped = p6::mapEffectsFromPatch(phaser);
     P6_CHECK(phaserMapped.a.type == p6::P6EffectType::Phaser1);
@@ -203,7 +261,7 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     P6_CHECK(phaserMapped.a.secondary == 1.0);
 
     p6::P6PatchState unknownA;
-    setRaw(unknownA, 119, 6); // outside verified legacy A domain
+    setRaw(unknownA, 119, 6);
     setRaw(unknownA, 120, 127);
     setRaw(unknownA, 135, 1);
     const auto unknownMapped = p6::mapEffectsFromPatch(unknownA);
@@ -305,26 +363,25 @@ void testLaterOsInternalCandidatesAreAudibleButNotRawMapped()
 p6::P6PatchState audibleDelayPatch()
 {
     p6::P6PatchState patch;
-    // A simple open-filter oscillator patch with immediate amp sustain.
-    setRaw(patch, 0, 24);    // Osc1 reference octave
-    setRaw(patch, 2, 127);   // Osc1 level
-    setRaw(patch, 3, 127);   // Osc1 saw-ish shape
-    setRaw(patch, 4, 127);   // square-centred pulse width
-    setRaw(patch, 45, 164);  // LPF open
-    setRaw(patch, 49, 0);    // HPF low/bypass-like
-    setRaw(patch, 62, 127);  // program volume
-    setRaw(patch, 66, 127);  // VCA envelope amount
-    setRaw(patch, 67, 0);    // attack
-    setRaw(patch, 68, 0);    // decay
-    setRaw(patch, 69, 127);  // sustain
-    setRaw(patch, 70, 0);    // release
+    setRaw(patch, 0, 24);
+    setRaw(patch, 2, 127);
+    setRaw(patch, 3, 127);
+    setRaw(patch, 4, 127);
+    setRaw(patch, 45, 164);
+    setRaw(patch, 49, 0);
+    setRaw(patch, 62, 127);
+    setRaw(patch, 66, 127);
+    setRaw(patch, 67, 0);
+    setRaw(patch, 68, 0);
+    setRaw(patch, 69, 127);
+    setRaw(patch, 70, 0);
 
-    setRaw(patch, 119, 2);   // FX A digital delay
-    setRaw(patch, 120, 127); // full wet
-    setRaw(patch, 121, 66);  // about 10 ms
-    setRaw(patch, 122, 0);   // no feedback required for this regression
-    setRaw(patch, 127, 0);   // FX B off
-    setRaw(patch, 135, 1);   // effects on
+    setRaw(patch, 119, 2);
+    setRaw(patch, 120, 127);
+    setRaw(patch, 121, 66);
+    setRaw(patch, 122, 0);
+    setRaw(patch, 127, 0);
+    setRaw(patch, 135, 1);
     return patch;
 }
 
@@ -367,6 +424,8 @@ int main()
     testSlotsAreSerialAThenB();
     testBbdSilenceStaysSilentAndFinite();
     testChorusCreatesStereoModulation();
+    testTypeChangeDoesNotResurrectOldTail();
+    testRealtimeClearKillsOldTailButAcceptsNewAudioImmediately();
     testHardwareMapperLaws();
     testPatchMappingPreservesLegacyDomainsAndUnknowns();
     testLegacyPhasersAreAudibleAndFinite();
