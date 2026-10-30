@@ -64,6 +64,11 @@ public:
     void noteOnOwned(int midiNote, double velocity01, std::uint32_t owner);
     void noteOffOwned(int midiNote, std::uint32_t owner);
     void allNotesOff();
+    // MIDI channel-mode semantics. All Notes Off behaves like ordinary live
+    // Note Off and therefore remains subject to Damper; All Sound Off is an
+    // immediate audible kill that leaves the controller state itself intact.
+    void midiAllNotesOff();
+    void midiAllSoundOff();
     StereoSample process();
 
     std::size_t activeVoiceCount() const noexcept;
