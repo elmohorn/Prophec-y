@@ -29,10 +29,11 @@ jobs:
           wc -l /tmp/runtime-files.txt
           tar -xJf /tmp/runtime.tar.xz -C .
 
-      - name: Remove bootstrap payload
+      - name: Keep workflow changes out of the bootstrap commit
         run: |
           rm -rf .bootstrap
-          rm -f .github/workflows/bootstrap.yml
+          rm -f .github/workflows/plugin-ci.yml
+          git checkout -- .github/workflows/bootstrap.yml
 
       - name: Commit imported project tree
         run: |
