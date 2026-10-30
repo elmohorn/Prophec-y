@@ -4,9 +4,11 @@
 #include "p6/VersionedEditMailbox.h"
 
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <thread>
 
 namespace {
 
@@ -17,6 +19,15 @@ namespace {
 }
 
 #define P6_CHECK(expr) do { if (!(expr)) fail(#expr, __LINE__); } while (false)
+
+void updateMax(std::atomic<std::uint64_t>& target, std::uint64_t value)
+{
+    auto current = target.load(std::memory_order_relaxed);
+    while (current < value
+           && !target.compare_exchange_weak(current, value,
+                                            std::memory_order_relaxed,
+                                            std::memory_order_relaxed)) {}
+}
 
 void testVersionedMailboxLastWriterWins()
 {
@@ -50,6 +61,43 @@ void testVersionedMailboxLastWriterWins()
     const auto independent = mailbox.takeCanonicalIfLatest(4);
     P6_CHECK(independent.has_value());
     P6_CHECK(independent->value == 44);
+}
+
+void testVersionedMailboxClearIsAGenerationBarrier()
+{
+    p6::VersionedEditMailbox<4> mailbox;
+    const auto before = mailbox.publishMidi(1, 11);
+    mailbox.clear();
+    P6_CHECK(!mailbox.takeCanonicalIfLatest(1));
+    P6_CHECK(!mailbox.takeMirrorIfLatest(1));
+    const auto after = mailbox.publishMidi(1, 22);
+    P6_CHECK(after > before);
+    P6_CHECK(mailbox.latestGeneration(1) == after);
+}
+
+void testVersionedMailboxNeverRegressesAcrossThreads()
+{
+    p6::VersionedEditMailbox<2> mailbox;
+    std::atomic<std::uint64_t> maximumGeneration {0};
+
+    constexpr int iterations = 20000;
+    std::thread midi([&]
+    {
+        for (int i = 0; i < iterations; ++i)
+            updateMax(maximumGeneration,
+                      mailbox.publishMidi(0, static_cast<std::uint16_t>(i & 0x7f)));
+    });
+    std::thread host([&]
+    {
+        for (int i = 0; i < iterations; ++i)
+            updateMax(maximumGeneration, mailbox.markHost(0));
+    });
+    midi.join();
+    host.join();
+
+    // A plain store to latest_ can fail this: a delayed lower-generation
+    // producer can overwrite a higher generation written by the other thread.
+    P6_CHECK(mailbox.latestGeneration(0) == maximumGeneration.load());
 }
 
 void testSustainSeparatesPhysicalKeysFromSoundingVoices()
@@ -161,6 +209,8 @@ void testSustainThresholdIsExactly64()
 int main()
 {
     testVersionedMailboxLastWriterWins();
+    testVersionedMailboxClearIsAGenerationBarrier();
+    testVersionedMailboxNeverRegressesAcrossThreads();
     testSustainSeparatesPhysicalKeysFromSoundingVoices();
     testSustainDoesNotExtendGeneratedNoteOwnership();
     testUnisonSustainReleasesAsOneStack();
