@@ -10,7 +10,7 @@ namespace {
 // and independent editor/librarian implementations.  The serialized byte order is
 // not always the same as the printed NRPN order (notably two aftertouch destination
 // bytes); raw SysEx bytes are always preserved even when metadata is uncertain.
-constexpr std::array<SerializedParameterInfo, 88> kLayout{{
+constexpr std::array<SerializedParameterInfo, 87> kLayout{{
     {"Osc1Freq",0,0,0,60,SerializedValueType::Enum},
     {"Osc1Sync",11,1,0,1,SerializedValueType::Boolean},
     {"Osc1Level",7,2,0,127,SerializedValueType::Unsigned},
