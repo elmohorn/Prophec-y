@@ -1,5 +1,6 @@
 #pragma once
 
+#include "p6/P6Effects.h"
 #include "p6/P6Voice.h"
 #include "p6/P6LFO.h"
 #include "p6/P6PatchState.h"
@@ -91,6 +92,10 @@ public:
     // Diagnostic-only observation for LFO-sync regressions. It deliberately
     // does not expose a writable phase or become part of host state.
     double lfoPhaseForDiagnostics() const noexcept { return lfo_.phaseForDiagnostics(); }
+    // Diagnostic-only FX view. Canonical state remains P6PatchState; this is
+    // only for regression tests proving that the verified raw FX controls
+    // reached the realtime DSP contract.
+    const P6EffectsSettings& effectsSettingsForDiagnostics() const noexcept { return effects_.settings(); }
     bool chordMode() const noexcept { return chordMode_; }
     bool unisonEnabled() const noexcept { return unison_; }
     std::size_t chordMemorySize() const noexcept { return chordLength_; }
@@ -140,6 +145,7 @@ private:
     double programVolume_{1.0};
     double midiVolume_{1.0};
     double distortion_{};
+    P6Effects effects_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
     bool lfoClockSync_{}; // first-key phase reset implemented; tempo-division law remains evidence-gated
