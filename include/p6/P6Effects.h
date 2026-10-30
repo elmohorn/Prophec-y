@@ -1,5 +1,8 @@
 #pragma once
 
+#include "p6/P6ModulationEffects.h"
+#include "p6/P6ReverbEffects.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -35,14 +38,12 @@ enum class P6EffectType : std::uint8_t {
 // DSP-domain settings. The effect mapper is responsible for converting
 // verified hardware raw values to these physical/normalised values.
 //
-// For BbdDelay / DigitalDelay:
-//   primary   = delay time in seconds
-//   secondary = feedback 0..1
-// For Chorus:
-//   primary   = modulation rate in Hz
-//   secondary = sweep depth 0..1
-// Other effect families are deliberately dry until their algorithms and
-// parameter laws are implemented in v0.18.
+// BbdDelay / DigitalDelay: primary=time seconds, secondary=feedback 0..1
+// Chorus / Phaser / Flanger: primary=rate Hz, secondary=depth 0..1
+// Hall / Room / Plate: primary=time 0..1, secondary=early reflections 0..1
+// Spring: primary=decay 0..1, secondary=tone 0..1
+// RingMod: primary=modulator frequency Hz; low-note tracking remains a separate
+// evidence-gated runtime concern until the later-OS selector encoding is known.
 struct P6EffectSlotSettings {
     P6EffectType type{P6EffectType::Off};
     double mix{};       // 0=dry, 1=wet
@@ -64,9 +65,8 @@ struct P6EffectsStereoSample {
 // JUCE-independent, allocation-free-after-prepare stereo FX chain.
 //
 // Signal order is always A -> B. prepare() owns every allocation; setSettings()
-// and process() never resize their storage. Unsupported or unknown types pass
-// through dry while the canonical P6PatchState continues to preserve the raw
-// selector value losslessly.
+// and process() never resize their storage. Unknown types pass through dry while
+// the canonical P6PatchState continues to preserve the raw selector losslessly.
 class P6Effects {
 public:
     void prepare(double sampleRate);
@@ -91,6 +91,8 @@ private:
         double wowFrom{};
         double wowTo{};
         std::uint32_t rng{0x5a5a1234u};
+        P6ModulationEffects modulation{};
+        P6ReverbEffects reverb{};
 
         void prepare(double sampleRate, std::uint32_t seed);
         void reset() noexcept;
