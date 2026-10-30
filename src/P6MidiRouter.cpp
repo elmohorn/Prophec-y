@@ -166,6 +166,14 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
             // Arp Hold; note ownership leaves the arp as soon as Note Off is
             // received while only the envelopes remain pedal-held.
             scheduler.setSustainPedal(d2 >= 64);
+        } else if (d1 == 121) {
+            // Prophet-6 Appendix C: Reset All Controllers clears MIDI
+            // controllers to zero (MIDI Volume is the documented exception,
+            // returning to maximum). CC7 is added as a separate runtime gain
+            // in a later v0.17 increment; reset the implemented controller
+            // state here without touching program bytes.
+            scheduler.setModWheel(0.0);
+            scheduler.setSustainPedal(false);
         } else if (d1 == 120 || d1 == 123) {
             scheduler.allNotesOff();
         }
@@ -173,7 +181,7 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
         // NRPN-selection/data-entry CCs are consumed even before a complete
         // update is emitted. Performance controllers are handled here rather
         // than being turned into duplicate program parameters.
-        out.consumed = d1 == 1 || d1 == 64 || d1 == 120 || d1 == 123
+        out.consumed = d1 == 1 || d1 == 64 || d1 == 120 || d1 == 121 || d1 == 123
                     || d1 == 99 || d1 == 98 || d1 == 6 || d1 == 38
                     || d1 == 100 || d1 == 101;
         return out;
