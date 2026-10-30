@@ -3,6 +3,7 @@
 #include "p6/P6Engine.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -144,6 +145,8 @@ void testChorusCreatesStereoModulation()
     for (int i = 0; i < 6000; ++i) {
         const double input = std::sin(6.28318530717958647692 * 440.0 * static_cast<double>(i) / sampleRate);
         const auto out = fx.process(input, input);
+        P6_CHECK(std::isfinite(out.left));
+        P6_CHECK(std::isfinite(out.right));
         if (i > 1500)
             maxStereoDifference = std::max(maxStereoDifference, std::abs(out.left - out.right));
     }
@@ -188,6 +191,17 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     P6_CHECK(std::abs(mapped.a.secondary - 0.92) < 1.0e-12);
     P6_CHECK(mapped.b.type == p6::P6EffectType::Hall);
 
+    p6::P6PatchState phaser;
+    setRaw(phaser, 119, 4);   // FX A PH1
+    setRaw(phaser, 120, 127);
+    setRaw(phaser, 121, 255); // max rate
+    setRaw(phaser, 122, 127); // max depth
+    setRaw(phaser, 135, 1);
+    const auto phaserMapped = p6::mapEffectsFromPatch(phaser);
+    P6_CHECK(phaserMapped.a.type == p6::P6EffectType::Phaser1);
+    P6_CHECK(std::abs(phaserMapped.a.primary - 8.0) < 1.0e-12);
+    P6_CHECK(phaserMapped.a.secondary == 1.0);
+
     p6::P6PatchState unknownA;
     setRaw(unknownA, 119, 6); // outside verified legacy A domain
     setRaw(unknownA, 120, 127);
@@ -201,6 +215,91 @@ void testPatchMappingPreservesLegacyDomainsAndUnknowns()
     const auto out = fx.process(0.25, -0.5);
     P6_CHECK(out.left == 0.25);
     P6_CHECK(out.right == -0.5);
+}
+
+void testLegacyPhasersAreAudibleAndFinite()
+{
+    constexpr double sampleRate = 48000.0;
+    for (const auto type : {p6::P6EffectType::Phaser1, p6::P6EffectType::Phaser2}) {
+        p6::P6Effects fx;
+        fx.prepare(sampleRate);
+        p6::P6EffectsSettings settings;
+        settings.enabled = true;
+        settings.a = {type, 1.0, 0.8, 0.75};
+        fx.setSettings(settings);
+
+        double difference = 0.0;
+        for (int i = 0; i < 12000; ++i) {
+            const double input = 0.35 * std::sin(6.28318530717958647692 * 330.0 * i / sampleRate);
+            const auto out = fx.process(input, input);
+            P6_CHECK(std::isfinite(out.left));
+            P6_CHECK(std::isfinite(out.right));
+            if (i > 500)
+                difference = std::max(difference, std::abs(out.left - input));
+        }
+        P6_CHECK(difference > 1.0e-4);
+    }
+}
+
+void testLegacyReverbsCreateFiniteTails()
+{
+    constexpr std::array<p6::P6EffectType, 4> types{
+        p6::P6EffectType::Hall,
+        p6::P6EffectType::Room,
+        p6::P6EffectType::Plate,
+        p6::P6EffectType::Spring,
+    };
+
+    for (const auto type : types) {
+        p6::P6Effects fx;
+        fx.prepare(48000.0);
+        p6::P6EffectsSettings settings;
+        settings.enabled = true;
+        settings.a = {type, 1.0, 0.65, 0.55};
+        fx.setSettings(settings);
+
+        double tailEnergy = 0.0;
+        for (int i = 0; i < 20000; ++i) {
+            const double input = i == 0 ? 1.0 : 0.0;
+            const auto out = fx.process(input, input);
+            P6_CHECK(std::isfinite(out.left));
+            P6_CHECK(std::isfinite(out.right));
+            if (i > 200)
+                tailEnergy += std::abs(out.left) + std::abs(out.right);
+        }
+        P6_CHECK(tailEnergy > 1.0e-5);
+    }
+}
+
+void testLaterOsInternalCandidatesAreAudibleButNotRawMapped()
+{
+    constexpr double sampleRate = 48000.0;
+    const std::array<p6::P6EffectSlotSettings, 4> candidates{{
+        {p6::P6EffectType::Phaser3, 1.0, 0.7, 0.7},
+        {p6::P6EffectType::RingMod, 1.0, 137.0, 0.0},
+        {p6::P6EffectType::Flanger1, 1.0, 0.35, 0.9},
+        {p6::P6EffectType::Flanger2, 1.0, 0.35, 0.9},
+    }};
+
+    for (const auto candidate : candidates) {
+        p6::P6Effects fx;
+        fx.prepare(sampleRate);
+        p6::P6EffectsSettings settings;
+        settings.enabled = true;
+        settings.a = candidate;
+        fx.setSettings(settings);
+
+        double difference = 0.0;
+        for (int i = 0; i < 12000; ++i) {
+            const double input = 0.3 * std::sin(6.28318530717958647692 * 220.0 * i / sampleRate);
+            const auto out = fx.process(input, input);
+            P6_CHECK(std::isfinite(out.left));
+            P6_CHECK(std::isfinite(out.right));
+            if (i > 1500)
+                difference = std::max(difference, std::abs(out.left - input));
+        }
+        P6_CHECK(difference > 1.0e-5);
+    }
 }
 
 p6::P6PatchState audibleDelayPatch()
@@ -270,6 +369,9 @@ int main()
     testChorusCreatesStereoModulation();
     testHardwareMapperLaws();
     testPatchMappingPreservesLegacyDomainsAndUnknowns();
+    testLegacyPhasersAreAudibleAndFinite();
+    testLegacyReverbsCreateFiniteTails();
+    testLaterOsInternalCandidatesAreAudibleButNotRawMapped();
     testEngineOwnsFxMappingAndAllSoundOffClearsTail();
     std::cout << "p6 v0.18 FX core tests passed\n";
     return 0;
