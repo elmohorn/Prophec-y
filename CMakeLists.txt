@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(P6Core VERSION 0.17.0 LANGUAGES C CXX)
+project(P6Core VERSION 0.18.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,6 +19,7 @@ add_library(p6core
     src/ADSREnvelope.cpp
     src/AnalogSlop.cpp
     src/P6LFO.cpp
+    src/P6Effects.cpp
     src/ParameterRegistry.cpp
     src/ProgramLayout.cpp
     src/ParameterMapper.cpp
@@ -72,6 +73,15 @@ add_test(NAME p6_control_contract_tests COMMAND p6_control_contract_tests)
 add_executable(p6_realtime_contract_tests tests/realtime_contract_test.cpp)
 target_link_libraries(p6_realtime_contract_tests PRIVATE p6core Threads::Threads)
 add_test(NAME p6_realtime_contract_tests COMMAND p6_realtime_contract_tests)
+
+add_executable(p6_v018_fx_tests tests/v018_fx_test.cpp)
+target_link_libraries(p6_v018_fx_tests PRIVATE p6core)
+if(MSVC)
+  target_compile_options(p6_v018_fx_tests PRIVATE /UNDEBUG)
+else()
+  target_compile_options(p6_v018_fx_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME p6_v018_fx_tests COMMAND p6_v018_fx_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
