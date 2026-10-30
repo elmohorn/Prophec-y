@@ -4,7 +4,6 @@
 
 namespace p6 {
 
-// Prophet-6 CLOCK/VALUE order from the operation manual / NRPN 163.
 enum class ClockDivision : std::uint8_t {
     Half = 0,
     Quarter = 1,
@@ -32,10 +31,6 @@ struct ClockDivisionInfo {
 [[nodiscard]] ClockDivisionInfo clockDivisionInfo(ClockDivision division) noexcept;
 [[nodiscard]] const char* clockDivisionName(ClockDivision division) noexcept;
 
-// One clock for every performance source. Internal timing, a DAW/host PPQ
-// anchor and MIDI Timing Clock all converge on the same sample-boundary event
-// consumed by the arpeggiator/sequencer. This prevents the plugin wrapper from
-// growing a second timing implementation later.
 class P6Clock {
 public:
     void prepare(double sampleRate);
@@ -45,22 +40,13 @@ public:
     void setRunning(bool running, bool restartOnStart = true);
     void restart(bool fireImmediately = true);
 
-    // Host/DAW path: call at the first sample represented by `ppq` (normally a
-    // process-block boundary). The next clock edge is derived from musical
-    // position rather than accumulated block lengths, avoiding long-term drift.
     void alignToHostPpq(double ppq, double bpm, bool playing);
 
-    // MIDI 1.0 System Real Time path. The wrapper should call midiTimingClock()
-    // at the exact sample offset where F8 arrives, before tick() for that sample.
-    // MIDI defines 24 timing clocks per quarter note. Start resets clock phase;
-    // Continue resumes it; Stop pauses it. Whether Start/Stop should be ignored
-    // for Prophet "In, No Start/Stop" is a wrapper/global policy, not a clock law.
     void midiStart() noexcept;
     void midiContinue() noexcept;
     void midiStop() noexcept;
     void midiTimingClock() noexcept;
 
-    // Call exactly once per output sample. Returns true on a step boundary.
     [[nodiscard]] bool tick();
 
     [[nodiscard]] double sampleRate() const noexcept { return sampleRate_; }
@@ -84,6 +70,8 @@ private:
     double samplesUntilNext_{};
     std::uint64_t stepIndex_{};
     std::uint64_t midiPulseIndex_{};
+    std::uint64_t midiSamplesSincePulse_{};
+    bool midiTempoIntervalSeen_{};
     bool midiBoundaryPending_{};
     bool midiClockSeen_{};
     bool hostAnchorSeen_{};
