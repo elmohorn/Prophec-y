@@ -5,10 +5,17 @@
 #include "p6/SysexCodec.h"
 
 #include <array>
-#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <unordered_set>
+
+#define P6_CHECK(expr) \
+    do { \
+        if (!(expr)) { \
+            std::cerr << "CHECK failed: " #expr << " at " << __FILE__ << ':' << __LINE__ << '\n'; \
+            return 1; \
+        } \
+    } while (false)
 
 int main()
 {
@@ -18,16 +25,16 @@ int main()
     // rejected. Every serialized entry must be real, uniquely addressable, and
     // backed by registry metadata.
     const auto layout = p6::serializedParameterLayout();
-    assert(layout.size() == 87);
+    P6_CHECK(layout.size() == 87);
     std::unordered_set<std::uint16_t> seenNrpns;
     std::unordered_set<std::size_t> seenOffsets;
     for (const auto& entry : layout)
     {
-        assert(!entry.name.empty());
-        assert(entry.maximum > entry.minimum);
-        assert(seenNrpns.insert(entry.nrpn).second);
-        assert(seenOffsets.insert(entry.sysexOffset).second);
-        assert(p6::findProgramParameter(entry.nrpn) != nullptr);
+        P6_CHECK(!entry.name.empty());
+        P6_CHECK(entry.maximum > entry.minimum);
+        P6_CHECK(seenNrpns.insert(entry.nrpn).second);
+        P6_CHECK(seenOffsets.insert(entry.sysexOffset).second);
+        P6_CHECK(p6::findProgramParameter(entry.nrpn) != nullptr);
     }
 
     p6plugin::WrapperState a;
@@ -47,21 +54,21 @@ int main()
     a.extras = { 3, 2, 1, 1, 0, 1, 1, 1 };
 
     const auto bytes = p6plugin::encodeState(a);
-    assert(bytes.size() == p6plugin::kEncodedStateBytes);
+    P6_CHECK(bytes.size() == p6plugin::kEncodedStateBytes);
 
     p6plugin::WrapperState b;
-    assert(p6plugin::decodeState(bytes, b));
-    assert(b.patch.bank == a.patch.bank);
-    assert(b.patch.program == a.patch.program);
-    assert(b.patch.rawPayload == a.patch.rawPayload);
-    assert(b.patch.name == "State Roundtrip");
-    assert(b.sequenceControls == a.sequenceControls);
-    assert(b.extras == a.extras);
+    P6_CHECK(p6plugin::decodeState(bytes, b));
+    P6_CHECK(b.patch.bank == a.patch.bank);
+    P6_CHECK(b.patch.program == a.patch.program);
+    P6_CHECK(b.patch.rawPayload == a.patch.rawPayload);
+    P6_CHECK(b.patch.name == "State Roundtrip");
+    P6_CHECK(b.sequenceControls == a.sequenceControls);
+    P6_CHECK(b.extras == a.extras);
 
     auto broken = bytes;
     broken[0] = 'X';
-    assert(!p6plugin::decodeState(broken, b));
-    assert(!p6plugin::decodeState(std::span<const std::uint8_t>(bytes.data(), bytes.size() - 1), b));
+    P6_CHECK(!p6plugin::decodeState(broken, b));
+    P6_CHECK(!p6plugin::decodeState(std::span<const std::uint8_t>(bytes.data(), bytes.size() - 1), b));
 
     std::cout << "p6 wrapper state/layout v0.16 tests passed\n";
     return 0;
