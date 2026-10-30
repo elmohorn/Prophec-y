@@ -47,7 +47,6 @@ struct P6EffectsStereoSample {
     double right{};
 };
 
-// Prophet delay-sync divisions from the published panel/manual behavior.
 [[nodiscard]] double syncedEffectDelaySeconds(std::uint8_t division,
                                               double bpm) noexcept;
 
@@ -57,8 +56,6 @@ public:
     void reset() noexcept;
     void clearRealtimeState() noexcept;
     void setSettings(const P6EffectsSettings& settings) noexcept;
-    // The scheduler/clock is the sole tempo authority. This setter only updates
-    // the physical tempo used by synced FX; it does not create a second clock.
     void setRuntimeBpm(double bpm) noexcept;
 
     [[nodiscard]] const P6EffectsSettings& settings() const noexcept { return settings_; }
@@ -85,6 +82,16 @@ private:
         P6ModulationEffects modulation{};
         P6ReverbEffects reverb{};
 
+        // Five-millisecond one-pole smoothing is deliberately an implementation
+        // safety policy rather than a claim about Sequential firmware. The
+        // first value after prepare/type-reset snaps exactly to its target;
+        // subsequent automation on the same topology is smoothed.
+        double smoothingCoefficient_{1.0};
+        bool smoothingInitialised_{};
+        double smoothedMix_{};
+        double smoothedPrimary_{};
+        double smoothedSecondary_{};
+
         void prepare(double sampleRate, std::uint32_t seed);
         void reset() noexcept;
         void invalidateRealtimeState() noexcept;
@@ -94,6 +101,9 @@ private:
                                                      double runtimeBpm) noexcept;
 
     private:
+        void updateSmoothedSettings(double targetMix,
+                                    double targetPrimary,
+                                    double targetSecondary) noexcept;
         [[nodiscard]] double randomBipolar() noexcept;
         [[nodiscard]] double wander(double sampleRate) noexcept;
         [[nodiscard]] static double tapLinear(const std::vector<double>& buffer,
