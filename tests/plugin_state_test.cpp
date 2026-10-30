@@ -92,6 +92,19 @@ int main()
     P6_CHECK(mirror->value == 101);
     P6_CHECK(canonical->epoch == midiNew);
     P6_CHECK(mirror->epoch == midiNew);
+    P6_CHECK(arbiter.isCurrent(*canonical));
+
+    // A timer can dequeue a MIDI event and then wait for patchLock_. If the
+    // audio/host side observes a newer automation value before that lock is
+    // acquired, the consumer must be able to reject the already-dequeued event.
+    const auto dequeuedEpoch = arbiter.queueMidiEdit(47, 55);
+    const auto dequeued = arbiter.takeCanonical(47);
+    P6_CHECK(dequeued.has_value());
+    P6_CHECK(dequeued->epoch == dequeuedEpoch);
+    P6_CHECK(arbiter.isCurrent(*dequeued));
+    const auto laterHost = arbiter.noteHostEdit(47);
+    P6_CHECK(laterHost > dequeuedEpoch);
+    P6_CHECK(!arbiter.isCurrent(*dequeued));
 
     // Multiple MIDI edits collapse to the latest one without a queue or heap.
     (void)arbiter.queueMidiEdit(46, 20);
