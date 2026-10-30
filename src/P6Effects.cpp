@@ -1,6 +1,7 @@
 #include "p6/P6Effects.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace p6 {
@@ -15,6 +16,11 @@ constexpr double kBbdWowHz = 0.6;
 constexpr double kChorusCentreSeconds = 0.0072;
 constexpr double kChorusSweepSeconds = 0.0048;
 constexpr double kChorusMaxSeconds = 0.02;
+
+constexpr std::array<double, 11> kSyncBeats{
+    4.0, 3.0, 2.0, 2.0 / 3.0, 1.5, 1.0,
+    0.75, 0.5, 1.0 / 3.0, 0.375, 0.25,
+};
 
 [[nodiscard]] double tanhApprox(double x) noexcept
 {
@@ -43,6 +49,16 @@ P6EffectsStereoSample mixWet(double left, double right,
 }
 
 } // namespace
+
+double syncedEffectDelaySeconds(std::uint8_t division, double bpm) noexcept
+{
+    const auto index = std::min<std::size_t>(division, kSyncBeats.size() - 1u);
+    const double safeBpm = std::clamp(bpm, 30.0, 250.0);
+    double seconds = kSyncBeats[index] * 60.0 / safeBpm;
+    while (seconds > kDelayMaxSeconds)
+        seconds *= 0.5;
+    return seconds;
+}
 
 void P6Effects::Slot::prepare(double sampleRate, std::uint32_t seed)
 {
@@ -160,7 +176,8 @@ double P6Effects::Slot::tapCubic(const std::vector<double>& buffer,
 
 P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
                                                const P6EffectSlotSettings& settings,
-                                               double sampleRate) noexcept
+                                               double sampleRate,
+                                               double runtimeBpm) noexcept
 {
     const double mix = std::clamp(settings.mix, 0.0, 1.0);
     if (settings.type == P6EffectType::Off || mix <= 0.0)
@@ -173,7 +190,10 @@ P6EffectsStereoSample P6Effects::Slot::process(double left, double right,
             return {left, right};
 
         const double mono = 0.5 * (left + right);
-        double samplesBack = std::clamp(settings.primary, 0.0, kDelayMaxSeconds) * sampleRate;
+        const double delaySeconds = settings.tempoSync
+            ? syncedEffectDelaySeconds(settings.syncDivision, runtimeBpm)
+            : settings.primary;
+        double samplesBack = std::clamp(delaySeconds, 0.0, kDelayMaxSeconds) * sampleRate;
         double delayed = 0.0;
         if (settings.type == P6EffectType::BbdDelay) {
             samplesBack *= 1.0 + wander(sampleRate) * kBbdWow;
@@ -289,9 +309,6 @@ void P6Effects::clearRealtimeState() noexcept
 
 void P6Effects::setSettings(const P6EffectsSettings& settings) noexcept
 {
-    // A type change is a topology change, not ordinary parameter automation.
-    // Invalidate the slot in O(1) so a delay/reverb tail from an old algorithm
-    // cannot be frozen and then reappear if that algorithm is selected later.
     if (settings_.a.type != settings.a.type)
         slotA_.invalidateRealtimeState();
     if (settings_.b.type != settings.b.type)
@@ -300,6 +317,13 @@ void P6Effects::setSettings(const P6EffectsSettings& settings) noexcept
     settings_ = settings;
     settings_.a.mix = std::clamp(settings_.a.mix, 0.0, 1.0);
     settings_.b.mix = std::clamp(settings_.b.mix, 0.0, 1.0);
+    settings_.a.syncDivision = std::min<std::uint8_t>(settings_.a.syncDivision, 10u);
+    settings_.b.syncDivision = std::min<std::uint8_t>(settings_.b.syncDivision, 10u);
+}
+
+void P6Effects::setRuntimeBpm(double bpm) noexcept
+{
+    runtimeBpm_ = std::clamp(bpm, 30.0, 250.0);
 }
 
 P6EffectsStereoSample P6Effects::process(double left, double right) noexcept
@@ -307,8 +331,8 @@ P6EffectsStereoSample P6Effects::process(double left, double right) noexcept
     if (!settings_.enabled)
         return {left, right};
 
-    const auto afterA = slotA_.process(left, right, settings_.a, sampleRate_);
-    return slotB_.process(afterA.left, afterA.right, settings_.b, sampleRate_);
+    const auto afterA = slotA_.process(left, right, settings_.a, sampleRate_, runtimeBpm_);
+    return slotB_.process(afterA.left, afterA.right, settings_.b, sampleRate_, runtimeBpm_);
 }
 
 } // namespace p6
