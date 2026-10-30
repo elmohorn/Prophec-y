@@ -5,6 +5,7 @@ This milestone is intentionally about correctness and host portability rather th
 ## Fixed before CI
 
 - Release test executables explicitly undefine `NDEBUG`, so the existing `assert()` regression checks remain active instead of compiling away.
+- The independent host-state/layout test now also uses explicit `P6_CHECK` checks, so its pass/fail behavior no longer depends on the build's assertion configuration at all.
 - Chord-memory capture now tracks physically held live keys in normal polyphonic mode; generated arp/sequencer notes do not enter the capture set.
 - The plug-in uses an explicit valid bundle identifier: `com.elmohorn.p6core`.
 - The CI matrix is reduced to the two target platforms requested for distribution: Windows and Linux.
@@ -31,7 +32,13 @@ The validated branch run (`41105413609`) completed successfully on both requeste
 - Windows Release VST3: build PASS, CTest 2/2 PASS, pluginval strictness 10 PASS.
 - Linux Debug ASan+UBSan: PASS.
 
-The resulting VST3 artifacts are retained by GitHub Actions. v0.16 was then promoted to `main`; the promotion commit exists to trigger the same CI gate on the canonical branch.
+The resulting VST3 artifacts are retained by GitHub Actions. The v0.16 closeout branch adds only test-hardening/documentation on top of that validated code and must pass the same three-job gate before final promotion to `main`.
+
+## Scope boundary after v0.16
+
+v0.16 closes the **platform/host stability gate**, not feature parity with the hardware. The master feature state and future order of work now live in `docs/PROPHET6_PARITY_MATRIX.md`.
+
+Known incomplete musical/runtime items such as LFO clock sync, sustain pedal, the host-automation-vs-pending-MIDI mirror ordering proof, realtime SysEx handoff, digital FX, opaque sequencer semantics, chord-memory serialization, acoustic calibration and the custom UI are explicitly assigned to later milestones rather than being patched into v0.16.
 
 ## Gate for subsequent releases
 
