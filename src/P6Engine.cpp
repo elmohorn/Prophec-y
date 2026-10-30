@@ -16,6 +16,7 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
         voices_[i].voice.setParams(paramsForVoice(i));
         voices_[i].note = -1;
         voices_[i].keyDown = false;
+        voices_[i].sustainHeld = false;
         voices_[i].age = 0;
         voices_[i].owner = 0;
     }
@@ -28,6 +29,9 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
     channelPressure_ = 0.0;
     modWheel_ = 0.0;
     pitchBend_ = 0.0;
+    midiVolume_ = 1.0;
+    sustainPedal_ = false;
+    unisonSustainHeld_ = false;
     constexpr double tau = 6.28318530717958647692;
     dcBlockA_ = std::exp(-tau * 12.0 / sampleRate_);
 }
@@ -107,6 +111,11 @@ void P6Engine::setProgramVolume(double amount01)
     programVolume_ = std::clamp(amount01, 0.0, 1.0);
 }
 
+void P6Engine::setMidiVolume(double amount01)
+{
+    midiVolume_ = std::clamp(amount01, 0.0, 1.0);
+}
+
 void P6Engine::setDistortion(double amount01)
 {
     distortion_ = std::clamp(amount01, 0.0, 1.0);
@@ -136,6 +145,31 @@ void P6Engine::setPitchBend(double bipolar)
     const double semitones = pitchBendSemitones();
     for (auto& slot : voices_)
         slot.voice.setPitchBendSemitones(semitones);
+}
+
+void P6Engine::setSustainPedal(bool down)
+{
+    if (sustainPedal_ == down)
+        return;
+
+    sustainPedal_ = down;
+    if (down)
+        return;
+
+    if (unison_) {
+        if (unisonSustainHeld_ && heldCount_ == 0)
+            releaseUnison();
+        unisonSustainHeld_ = false;
+        return;
+    }
+
+    for (auto& slot : voices_) {
+        if (!slot.sustainHeld)
+            continue;
+        slot.sustainHeld = false;
+        if (!slot.keyDown)
+            slot.voice.noteOff();
+    }
 }
 
 double P6Engine::effectiveLfoDepth() const noexcept
@@ -205,6 +239,8 @@ void P6Engine::setUnison(bool enabled, double detuneCents, std::size_t voiceCoun
     unison_ = enabled;
     unisonDetuneCents_ = std::clamp(detuneCents, 0.0, 50.0);
     unisonVoiceCount_ = std::clamp<std::size_t>(voiceCount, 1, kVoiceCount);
+    if (!unison_)
+        unisonSustainHeld_ = false;
     for (std::size_t i = 0; i < voices_.size(); ++i)
         voices_[i].voice.setParams(paramsForVoice(i));
 }
@@ -272,12 +308,14 @@ const P6Engine::HeldKey* P6Engine::winningHeldKey() const noexcept
 void P6Engine::releaseUnison()
 {
     for (auto& s : voices_) {
+        s.sustainHeld = false;
         if (s.voice.active()) {
             s.keyDown = false;
             s.owner = 0;
             s.voice.noteOff();
         }
     }
+    unisonSustainHeld_ = false;
 }
 
 void P6Engine::retargetUnison(bool retrigger)
@@ -288,6 +326,7 @@ void P6Engine::retargetUnison(bool retrigger)
         return;
     }
 
+    unisonSustainHeld_ = false;
     std::array<int, kVoiceCount> notes{};
     std::size_t noteCount = 1;
     notes[0] = winner->note;
@@ -306,11 +345,13 @@ void P6Engine::retargetUnison(bool retrigger)
         s.voice.setPitchBendSemitones(pitchBendSemitones());
         s.note = notes[i % noteCount];
         s.keyDown = true;
+        s.sustainHeld = false;
         s.age = clock_;
         s.voice.noteOn(s.note, winner->velocity, retrigger, retrigger);
     }
     for (std::size_t i = stack; i < voices_.size(); ++i) {
         auto& s = voices_[i];
+        s.sustainHeld = false;
         if (s.voice.active()) {
             s.keyDown = false;
             s.owner = 0;
@@ -379,6 +420,9 @@ void P6Engine::noteOnOwned(int midiNote, double velocity01, std::uint32_t owner)
         // The hardware's Unison path is one keyboard stack rather than six
         // independently owned note slots. Arp/sequence callers ensure only the
         // intended generated note is active before retargeting this path.
+        unisonSustainHeld_ = false;
+        for (auto& slot : voices_)
+            slot.sustainHeld = false;
         rememberHeld(midiNote, velocity01);
         ++clock_;
         retargetUnison(keyMode_ >= 3);
@@ -398,6 +442,7 @@ void P6Engine::noteOnOwned(int midiNote, double velocity01, std::uint32_t owner)
     slot.voice.setPitchBendSemitones(pitchBendSemitones());
     slot.note = midiNote;
     slot.keyDown = true;
+    slot.sustainHeld = false;
     slot.age = clock_;
     slot.owner = owner;
     slot.voice.noteOn(midiNote, velocity01);
@@ -407,7 +452,19 @@ void P6Engine::noteOffOwned(int midiNote, std::uint32_t owner)
 {
     if (unison_) {
         forgetHeld(midiNote);
-        retargetUnison(false);
+        if (heldCount_ > 0) {
+            retargetUnison(false);
+        } else if (owner == 0 && sustainPedal_) {
+            unisonSustainHeld_ = true;
+            for (auto& slot : voices_) {
+                if (slot.voice.active()) {
+                    slot.keyDown = false;
+                    slot.sustainHeld = true;
+                }
+            }
+        } else {
+            releaseUnison();
+        }
         return;
     }
 
@@ -417,7 +474,12 @@ void P6Engine::noteOffOwned(int midiNote, std::uint32_t owner)
     for (auto& slot : voices_) {
         if (slot.keyDown && slot.note == midiNote && slot.owner == owner) {
             slot.keyDown = false;
-            slot.voice.noteOff();
+            if (owner == 0 && sustainPedal_) {
+                slot.sustainHeld = true;
+            } else {
+                slot.sustainHeld = false;
+                slot.voice.noteOff();
+            }
         }
     }
 }
@@ -425,7 +487,9 @@ void P6Engine::noteOffOwned(int midiNote, std::uint32_t owner)
 void P6Engine::allNotesOff()
 {
     heldCount_ = 0;
+    unisonSustainHeld_ = false;
     for (auto& s : voices_) {
+        s.sustainHeld = false;
         if (s.voice.active()) {
             s.keyDown = false;
             s.owner = 0;
@@ -480,8 +544,9 @@ StereoSample P6Engine::process()
         out.right += sample * std::sin(angle);
     }
 
-    out.left = applyCandidateDistortion(out.left * programVolume_, distDcL_);
-    out.right = applyCandidateDistortion(out.right * programVolume_, distDcR_);
+    const double performanceGain = programVolume_ * midiVolume_;
+    out.left = applyCandidateDistortion(out.left * performanceGain, distDcL_);
+    out.right = applyCandidateDistortion(out.right * performanceGain, distDcR_);
     return out;
 }
 
@@ -490,6 +555,15 @@ std::size_t P6Engine::activeVoiceCount() const noexcept
     std::size_t n = 0;
     for (const auto& s : voices_)
         if (s.voice.active())
+            ++n;
+    return n;
+}
+
+std::size_t P6Engine::sustainedVoiceCount() const noexcept
+{
+    std::size_t n = 0;
+    for (const auto& s : voices_)
+        if (s.sustainHeld)
             ++n;
     return n;
 }
