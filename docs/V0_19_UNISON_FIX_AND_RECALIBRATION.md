@@ -3,6 +3,8 @@
 Date: 31 October 2026. Fixed engine: `23910ba4f4136fd8ae419f6b2da9eccbae89902b`.
 Status: **functional defect fixed; sound matching remains ACTIVE**.
 
+Follow-up: [new official references and frozen holdout protocol](V0_19_HOLDOUT_AND_MEDIA_INTEGRITY.md). The complete baseline CI subsequently passed on Linux and Windows. The 12-octave profile remains an audition candidate.
+
 ## The important result is a functional fix
 
 The Solid Bass reference continues sounding through its middle note. Our old current-profile render was exactly silent during 1–2 s. That is not a subtle cutoff, envelope-law or codec discrepancy.
