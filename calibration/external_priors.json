@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "external_priors_are_truth": false,
+    "promotion_requires_real_prophet_audio": true,
+    "default_candidate_base": "current",
+    "notes": "Profiles are renderer arguments, not engine defaults. GPL/AGPL sources are reference-only."
+  },
+  "sources": {
+    "phosphor_p6": {
+      "repository": "joshjetson/phosphor",
+      "commit": "33b1073fa1b56315d0ca877b0210efec40f68f4d",
+      "license": "MIT",
+      "evidence_class": "P6-PERMISSIVE",
+      "instrument": "Prophet-6",
+      "copy_policy": "permissive-with-attribution"
+    },
+    "patina": {
+      "repository": "ShmKnd/Patina",
+      "license": "MIT",
+      "evidence_class": "DOMAIN-PERMISSIVE",
+      "instrument": "generic audio DSP",
+      "copy_policy": "permissive-with-attribution"
+    },
+    "melodee_p5": {
+      "repository": "keremimo/melodee",
+      "license": "GPL-3.0",
+      "evidence_class": "COPYLEFT-REFERENCE",
+      "instrument": "Prophet-5 Rev4-oriented engine",
+      "copy_policy": "reference-only"
+    }
+  },
+  "profiles": {
+    "current": {
+      "description": "Unqualified Prophec-y mapper",
+      "renderer_args": []
+    },
+    "reference_a_v07": {
+      "description": "Historical Reference-A v0.7 filter/envelope candidate",
+      "renderer_args": ["--reference-a-v07"]
+    },
+    "reference_a_v08": {
+      "description": "Historical Reference-A v0.8 candidate",
+      "renderer_args": ["--reference-a-v08"]
+    },
+    "reference_a_v09": {
+      "description": "Historical Reference-A v0.9 candidate including Phosphor-cross-checked Poly Mod spans",
+      "renderer_args": ["--reference-a-v09"]
+    },
+    "phosphor_pw_v019": {
+      "description": "Phosphor Prophet-6 PW prior only: distribute raw 0..255 over 4..96 percent duty instead of clamping after a nominal 0..100 percent mapping",
+      "source": "phosphor_p6",
+      "renderer_args": ["--pw-exponent", "1.0", "--pw-inset", "0.04"],
+      "parameters": {
+        "pulseWidthCurveExponent": 1.0,
+        "pulseWidthEndInset": 0.04
+      },
+      "promotion_status": "candidate-only"
+    },
+    "reference_a_v09_plus_phosphor_pw": {
+      "description": "Reference-A v0.9 candidate plus the independent Phosphor raw-to-PW prior",
+      "source": "phosphor_p6",
+      "renderer_args": ["--reference-a-v09", "--pw-exponent", "1.0", "--pw-inset", "0.04"],
+      "promotion_status": "candidate-only"
+    },
+    "phosphor_poly_mod_v019": {
+      "description": "Explicit Phosphor Poly Mod span prior; equivalent to the span portion already carried by Reference-A v0.9",
+      "source": "phosphor_p6",
+      "renderer_args": ["--pm-pitch-octaves", "4.0", "--pm-shape-range", "1.0", "--pm-pw-range", "0.5", "--pm-filter-octaves", "7.0"],
+      "parameters": {
+        "polyModOscPitchRangeOctaves": 4.0,
+        "polyModShapeRange": 1.0,
+        "polyModPulseWidthRange": 0.5,
+        "polyModFilterRangeOctaves": 7.0
+      },
+      "promotion_status": "candidate-only"
+    }
+  },
+  "observations": [
+    {
+      "parameter": "mixer_level",
+      "source": "phosphor_p6",
+      "prior": "linear raw/127",
+      "prophecy_current": "linear raw/127",
+      "difference": false
+    },
+    {
+      "parameter": "lp_cutoff_control_coordinate",
+      "source": "phosphor_p6",
+      "prior": "raw 0..164 used directly as semitone-like cutoff-note coordinate",
+      "prophecy_current": "legacy family is one semitone/raw; Reference-A v0.7 deliberately diverges",
+      "difference": "Reference-A candidate differs and has stronger acoustic support"
+    },
+    {
+      "parameter": "resonance_raw_law",
+      "source": "phosphor_p6",
+      "prior": "linear raw/255 before filter model",
+      "prophecy_current": "linear raw/255 with optional calibration scale",
+      "difference": false
+    },
+    {
+      "parameter": "pulse_width_minimum",
+      "source": "phosphor_p6",
+      "prior": 0.04,
+      "prophecy_current": 0.04,
+      "difference": false
+    },
+    {
+      "parameter": "pulse_width_raw_mapping",
+      "source": "phosphor_p6",
+      "prior": "linear raw 0..255 -> duty 0.04..0.96",
+      "prophecy_current": "linear raw 0..255 -> nominal 0..1 then oscillator clamp 0.04..0.96",
+      "difference": true,
+      "test_profile": "phosphor_pw_v019"
+    },
+    {
+      "parameter": "pulse_mean_normalization",
+      "source": "phosphor_p6",
+      "prior": "remove mean; scale by 1/(1+abs(mean))",
+      "prophecy_current": "same family at pulseMeanNormalization=1",
+      "difference": false,
+      "hardware_confidence": "low"
+    },
+    {
+      "parameter": "poly_mod_spans",
+      "source": "phosphor_p6",
+      "prior": "pitch 4 oct, shape 1.0, PW 0.5, filters 7 oct",
+      "prophecy_current": "same in Reference-A v0.9; legacy default is smaller for shape/PW/filter",
+      "difference": "candidate-vs-default"
+    }
+  ]
+}
