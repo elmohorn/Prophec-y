@@ -1,0 +1,79 @@
+name: release-v0.18
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release-v0.18.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: v0.18.0
+      RELEASE_TARGET: 17a48a3982ad91d1b063d35fd8da3f73fe9358db
+      WINDOWS_ARTIFACT_ID: '13027400460'
+      LINUX_ARTIFACT_ID: '13027235663'
+    steps:
+      - name: Download validated v0.18 artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${WINDOWS_ARTIFACT_ID}/zip" > P6-Core-v0.18-Windows-VST3.zip
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${LINUX_ARTIFACT_ID}/zip" > P6-Core-v0.18-Linux-VST3.zip
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Prophec-y v0.18.0 — Digital Effects
+
+          v0.18 closes the digital-effects milestone with one realtime-safe global serial Effect A -> Effect B path.
+
+          ### Included
+          - Audible DSP for every effect in the verified legacy Effect A and Effect B selector domains.
+          - Internal candidate DSP for PH3, Ring Mod, FL1 and FL2 without inventing later-OS serialized selector values.
+          - Common internal / host / MIDI-clock tempo authority for synced FX.
+          - True global bypass, deterministic minimum parameter smoothing, effect-type state invalidation and bounded-time CC120 effect clearing.
+          - Permanent deterministic DSP fingerprints and a repeatable performance benchmark.
+          - Safe optimisations protected by fingerprints: reverb coefficient caching, exact zero-history FIR skipping, base-pitch conversion caching and Pan Spread gain caching.
+          - Dedicated nonzero-Pan fingerprint preserved bit-for-bit: d0332e325eb4376a.
+
+          ### Deliberately not guessed
+          - Later-OS raw selector/control encoding for PH3, Ring Mod, FL1 and FL2.
+          - Ring Mod low-note tracking storage/control identity.
+          - Exact evolution of internal effect tails while global FX bypass is engaged.
+          - Final acoustic matching of the provisional effect constants/topologies.
+
+          ### Validation
+          Release candidate 1e551d77cc3775c7a362118253916574a2c4271e passed workflow run 41160270085: Windows and Linux Release VST3 builds, all five CTest suites, deterministic fingerprints, pluginval strictness 10 on both platforms and Linux ASan+UBSan. The release target merge commit 17a48a3982ad91d1b063d35fd8da3f73fe9358db has the identical validated tree.
+
+          Validated artifact SHA-256:
+          - Windows: be21f5f821efcd58e616e9f4d1833d6ba3443936c93ecd0794f5f96039a6b628
+          - Linux: d78732b2d698c55f1af0799f904747fa32272477d31dc02319563f932aa61157
+
+          The proposed reactive/character FX visual concepts are intentionally deferred to the v0.20+ UI backlog so their visual language, accessibility and rendering budget can be designed separately from the realtime DSP contract.
+
+          Next active milestone: **v0.19 — Sound matching and optimisation**.
+          EOF
+
+      - name: Create v0.18.0 GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; nothing to do."
+            exit 0
+          fi
+          gh release create "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${RELEASE_TARGET}" \
+            --title "Prophec-y v0.18.0" \
+            --notes-file release-notes.md \
+            P6-Core-v0.18-Windows-VST3.zip \
+            P6-Core-v0.18-Linux-VST3.zip
