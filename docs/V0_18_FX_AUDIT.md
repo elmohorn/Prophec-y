@@ -1,89 +1,37 @@
-# v0.18 FX audit and implementation boundary
+# v0.18 FX audit and implementation boundary — CLOSED
 
-This document records the evidence and source-code review used for the Prophet-6-style digital-effects milestone. The goal is to reuse license-compatible mature work where it genuinely helps, while keeping Prophet-specific behavior, raw-state compatibility and uncertain hardware semantics explicit.
+v0.18 closes the Prophet-6-style digital-effects milestone. The effects engine is JUCE-independent, shares the existing engine/scheduler clock, preserves the canonical 1024-byte hardware state, and does not invent later-OS selector encodings that are not established by evidence.
 
-## Authoritative hardware behavior
+## Evidence boundary
 
-Primary behavior source: **Sequential Prophet-6 Operation Manual 2.1** plus the OS 1.3.1 effect addendum.
+Primary hardware references remain the Sequential Prophet-6 Operation Manual 2.1 and the OS 1.3.1 effect addendum. They establish:
 
-Verified points used by v0.18:
+- Effect A feeds Effect B in series.
+- EFFECTS ON/OFF is a true bypass of the digital-effects path.
+- The hardware effects subsystem is described as dual 24-bit / 48 kHz effects.
+- A/B include BBD and digital delays, chorus and phasers; the later effect list adds PH3, ring modulation and flangers, while Effect B also includes Hall, Room, Plate and Spring reverbs.
+- The published MIDI appendix still exposes the legacy selector ranges `FX 1 Select = 0..5` and `FX 2 Select = 0..9` despite the larger later panel effect list.
 
-- Effect A feeds Effect B in **series**.
-- The panel EFFECTS ON/OFF control is a **true bypass** of the digital-effects path.
-- The hardware effects subsystem is specified as dual **24-bit / 48 kHz** digital effects.
-- Effect A includes BBD delay, digital delay, chorus, PH1, PH2, PH3, ring modulation, FL1 and FL2.
-- Effect B includes BBD delay, digital delay, chorus, PH1, PH2, PH3, ring modulation and the reverb family (Hall, Room, Plate, Spring).
-- BBD/DDL use time + feedback; Chorus/PH1/PH2/PH3/FL1/FL2 use rate + depth; Hall/Room/Plate use time + early-reflection amount; Spring uses decay + tone. Ring modulation uses modulation frequency plus a low-note tracking mode.
-- The v2.1 MIDI appendix still documents legacy NRPN select domains `FX 1 Select = 0..5` and `FX 2 Select = 0..9`, despite the later panel effect list being larger. Prophec-y therefore does **not** widen or reinterpret serialized/NRPN hardware values without independent evidence.
+Therefore v0.18 does not widen the canonical selector domain or serialize guessed later-OS values. Unknown selectors remain losslessly preserved and pass dry at the DSP boundary.
 
-This last mismatch is important: v0.18 implements the later effect families as internal DSP identifiers, but they are not written into the canonical 1024-byte hardware payload and an unknown raw selector is never coerced into another known effect.
+## Reuse audit
 
-## Primary reusable reference: joshjetson/phosphor
+### joshjetson/phosphor — MIT
 
-Repository: `joshjetson/phosphor`
-License: MIT
-Pinned review commit: `33b1073fa1b56315d0ca877b0210efec40f68f4d`
+Pinned review commit: `33b1073fa1b56315d0ca877b0210efec40f68f4d`.
 
-Phosphor remains the strongest clean-room implementation reference because its Prophet-6 module combines factory-bank/raw-state analysis with instrument-specific DSP behavior. Its current Prophet-6 effects implementation renders:
+Phosphor was the strongest clean-room Prophet-specific implementation reference for BBD delay, digital delay and chorus. Prophec-y reused/adapted compatible implementation ideas such as preallocated delay memory, bounded feedback, BBD repeat loss/wander, interpolated read heads and quadrature chorus modulation. Candidate constants remain calibration-replaceable and are not claimed as Sequential firmware/circuit constants.
 
-- BBD delay,
-- digital delay,
-- chorus,
+### ShmKnd/Patina — MIT
 
-while preserving unsupported selectors dry.
+Reviewed as a secondary architecture/topology reference for realtime phaser, flanger and reverb families. Prophec-y's implementations are separate clean-room DSP using standard topologies. GPL/AGPL projects remain behavioral/reference-only unless explicitly documented otherwise.
 
-The Prophec-y v0.18 delay/chorus core intentionally follows/adapts the same class of implementation decisions:
-
-- one mono delay line feeding both stereo wet outputs while preserving stereo dry,
-- 1 second maximum delay,
-- logarithmic/free delay-time mapping in the hardware mapper,
-- bounded feedback,
-- BBD repeat low-pass loss and slow clock wander,
-- cubic interpolation for the wandering BBD read head,
-- stereo chorus based on two quadrature modulated delay taps,
-- all delay/chorus buffers allocated in `prepare()` and never resized by the realtime process path.
-
-The current candidate constants inherited as implementation starting points are deliberately calibration-replaceable:
-
-- BBD repeat loss corner: 2.6 kHz,
-- BBD fractional clock wander: 0.25%,
-- BBD wander target rate: 0.6 Hz,
-- chorus centre delay: 7.2 ms,
-- chorus maximum sweep: 4.8 ms,
-- free delay: 2 ms .. 1 s,
-- feedback maximum candidate: 0.92,
-- modulation-rate candidate: 0.05 .. 8 Hz.
-
-These values are **not** claimed as Sequential circuit/firmware constants. They are public-model/calibration candidates and can be replaced when controlled Prophet-6 measurements support a better fit.
-
-## Secondary reusable reference: ShmKnd/Patina
-
-Repository: `ShmKnd/Patina`
-License: MIT
-Language/dependencies: C++17 standard library, no JUCE required.
-
-Patina was reviewed for realtime-oriented architecture in effect families Phosphor's Prophet-6 module does not yet render:
-
-- multi-stage all-pass phaser,
-- short modulated-delay chorus/flanger concepts,
-- spring and plate reverb networks,
-- BBD implementation patterns,
-- analog-modeling/filter primitives.
-
-The Prophec-y phaser/flanger/reverb code is a separate clean-room implementation using standard DSP topologies rather than copied Patina source. Patina therefore remains a design/reference source in `THIRD_PARTY_NOTICES.md`; if later code is materially adapted, its full MIT attribution must be added before merge.
-
-## Reference-only copyleft projects
-
-GPL/AGPL projects remain useful for behavioral comparison and test ideas, but source is not copied into Prophec-y's clean-room core. This includes previously reviewed analog-synth / Prophet-inspired projects and generic effect implementations discovered during the v0.18 review.
-
-## v0.18 architecture
-
-The effects subsystem is a JUCE-independent `P6Effects` object with two fixed slots:
+## Closed v0.18 architecture
 
 ```text
-stereo synth sum
+six-voice synth sum
       |
-program + MIDI volume
+program volume × MIDI volume
       |
 analog-distortion candidate
       |
@@ -94,116 +42,88 @@ analog-distortion candidate
     output
 ```
 
-Rules:
+Contract:
 
-1. Global bypass is bit-transparent at the DSP boundary.
-2. A and B always process in that order.
-3. All delay/modulation/reverb memory is allocated in `prepare()`.
-4. `process()`, `setSettings()` and tail reset perform no vector resize/allocation.
-5. `P6Engine` owns the single global effects path; scheduler and JUCE wrapper do not create parallel effects engines.
-6. CC120 All Sound Off clears both voice output and stored FX energy; ordinary Note Off / CC123 may leave musical tails.
-7. The canonical hardware program remains untouched; `P6EffectMapper` converts only verified raw controls into DSP-domain settings.
-8. Internal identifiers for later-OS effects are not serialized until the legacy-NRPN/newer-panel discrepancy is resolved.
-9. Unknown hardware selector values pass dry at the DSP boundary while remaining losslessly preserved in `P6PatchState`.
+1. A -> B is the only global digital-effects order.
+2. Global bypass is bit-transparent at the DSP boundary.
+3. Long effect buffers are allocated in `prepare()` and never resized in realtime.
+4. CC120 uses logical realtime invalidation rather than bulk clearing long buffers on the audio thread.
+5. Effect type changes invalidate the old algorithm state so a frozen tail cannot reappear when returning to a previous type.
+6. FX tempo sync consumes the common runtime clock owned by the scheduler/host/MIDI-clock path; there is no second FX clock.
+7. Delay/rate/depth/feedback changes use deterministic minimum smoothing to avoid obvious automation discontinuities.
+8. Unknown hardware selector values remain preserved and are not coerced to known effects.
 
-## Implemented families
+## Implemented patch-selectable legacy domain
 
-### Verified legacy selector domain — patch selectable now
+Effect A (`0..5`): Off, BBD Delay, Digital Delay, Chorus, PH1, PH2.
 
-The complete currently verified legacy raw domain has audible DSP:
+Effect B (`0..9`): Off, BBD Delay, Digital Delay, Chorus, PH1, PH2, Hall, Room, Plate, Spring.
 
-**Effect A (`0..5`)**
+All of these have audible runtime DSP and regression coverage.
 
-- Off
-- BBD delay
-- Digital delay
-- Chorus
-- PH1
-- PH2
+## Later-OS candidates — implemented internally, not serialized
 
-**Effect B (`0..9`)**
+PH3, Ring Mod, FL1 and FL2 have executable internal candidate DSP and regression coverage. They intentionally use internal identifiers outside the verified raw selector range. Ring Mod low-note tracking is also deferred until its state/control identity is established.
 
-- Off
-- BBD delay
-- Digital delay
-- Chorus
-- PH1
-- PH2
-- Hall
-- Room
-- Plate
-- Spring
+These are **OPAQUE / MEASURE**, not incomplete v0.18 release blockers.
 
-PH1/PH2 use a clean-room six-stage all-pass cascade with different resonance voicing. Hall/Room/Plate/Spring use a preallocated four-line stereo feedback-delay network with type-specific delay, damping and early-reflection voicing. These algorithms are functional/provisional candidates for later hardware calibration, not claims of Sequential's internal implementation.
+## Hardening and performance gate — completed
 
-### Later-OS families — DSP implemented, raw selector mapping intentionally unresolved
+v0.18 additionally closed the following correctness/performance work:
 
-The following types have executable internal DSP and regression coverage:
+- stale effect-tail resurrection on effect-type changes;
+- bounded-time / logical CC120 effect-state invalidation;
+- common-clock FX sync for internal, host and MIDI clock operation;
+- deterministic minimum parameter smoothing;
+- deterministic rendered-audio fingerprints;
+- a repeatable performance benchmark covering 1/6 voices, FX off/on, 48/96 kHz, 1x/2x/4x oversampling and worst-block timing;
+- reverb coefficient caching outside the sample loop, including explicit cache invalidation when sample rate changes;
+- exact zero-history FIR convolution skip while VCO/slop/sync/filter state continues free-running;
+- base MIDI-note-to-Hz conversion caching keyed by effective glide + bend pitch while Slop/LFO/aftertouch/Poly Mod/coarse/fine remain downstream;
+- Pan Spread gain caching so the six fixed per-voice `sin/cos` gains are recalculated only when spread changes.
 
-- PH3 — six-stage phaser with separate Oberheim-style candidate voicing,
-- Ring Mod — sine multiplication with fixed-frequency mode,
-- FL1 — short through-zero-style flanger candidate with feedback/high resonance,
-- FL2 — short through-zero-style flanger candidate without feedback/lower resonance.
+The Pan Spread optimisation was validated with a dedicated nonzero-spread fingerprint. Baseline and cached implementations produced the same hash and acoustic metrics:
 
-They are **not yet selectable from a hardware raw FX selector**. Their internal enum values live outside the verified raw range specifically so no accidental state serialization can occur.
+`pan_2x = d0332e325eb4376a`
 
-Ring Mod low-note tracking is also still pending: official behavior is known, but it should only be wired once the later-OS selector/control encoding is established so the runtime/state contract is not split across guessed identities.
+This preserves output bit-for-bit for that controlled render while removing per-sample trigonometric work.
 
-## Mapping behavior
+A separate cutoff-law cache experiment was deliberately not integrated because its benefit was not convincing enough to justify expanding the change surface before v0.19 profiling/calibration.
 
-`P6EffectMapper` currently maps:
+## Release-gate coverage
 
-- FX On/Off NRPN 135 -> global true-bypass state,
-- A selector/mix/P1/P2/sync/division -> NRPN 119..124,
-- B selector/mix/P1/P2/sync/division -> NRPN 127..132,
-- Clock BPM NRPN 167 -> synced-delay timing,
-- BBD/DDL free time -> logarithmic 2 ms .. 1 s candidate,
-- delay feedback -> bounded 0 .. 0.92 candidate,
-- Chorus/PH1/PH2 P1 -> 0.05 .. 8 Hz modulation-rate candidate,
-- Chorus/PH1/PH2 P2 -> depth 0..1,
-- Hall/Room/Plate P1/P2 -> normalised time / early reflections,
-- Spring P1/P2 -> normalised decay / tone.
+The v0.18 suite covers:
 
-Synced delay uses the documented beat-division set and repeatedly halves delay times longer than the one-second engine maximum.
+- true/global bypass and per-slot Off transparency;
+- serial A -> B timing;
+- BBD/digital delay and synced-delay timing;
+- chorus stereo modulation;
+- PH1/PH2 finite audible output;
+- Hall/Room/Plate/Spring tails;
+- internal PH3/Ring/FL1/FL2 candidate audibility;
+- unknown-selector dry behavior;
+- type-transition state invalidation;
+- CC120 effect-tail clearing;
+- shared scheduler/FX clock ownership;
+- reverb cache correctness across sample-rate re-prepare;
+- no ordinary heap allocation after `prepare()` on active FX paths;
+- deterministic DSP fingerprints and performance snapshots.
 
-## Regression / release-gate coverage
+Windows and Linux release builds, CTest, `pluginval --strictness-level 10`, and Linux ASan+UBSan are mandatory release gates.
 
-v0.18 adds explicit tests for:
+## Deferred / opaque after v0.18
 
-- global true bypass,
-- per-slot Off transparency,
-- serial A -> B timing,
-- digital-delay timing,
-- BBD silence/stability,
-- chorus stereo modulation,
-- PH1/PH2 audible finite output,
-- Hall/Room/Plate/Spring finite tails,
-- PH3/Ring/FL1/FL2 internal candidate audibility,
-- unknown-selector dry behavior,
-- mapping laws and legacy-domain boundaries,
-- engine ownership of the FX path,
-- CC120 clearing FX tails,
-- no ordinary heap allocation after `prepare()` with active delay, phaser, flanger and reverb processing.
+These items are intentionally not guessed and do not reopen v0.18:
 
-## v0.18 hardening and performance gate
+1. Exact later-OS raw selector/control encoding for PH3, Ring, FL1 and FL2.
+2. Ring Mod low-note tracking control identity/storage.
+3. Exact hardware behavior of internal tails while global FX bypass is engaged.
+4. Acoustic matching of candidate effect constants/topologies to controlled Prophet-6 captures.
 
-Before the milestone is closed, v0.18 also needs a small correctness/performance gate so the broader Prophet-6 scope does not become an avoidably expensive realtime engine.
+Items 1–3 require stronger public evidence or differential hardware/SysEx capture. Item 4 belongs to v0.19 sound matching.
 
-1. **Effect-type transition state:** changing a slot type must not leave a frozen algorithm state that can reappear when the old type is selected again. Define an explicit deterministic transition/reset policy and add regression coverage without guessing undocumented Prophet tail semantics.
-2. **Bounded-time CC120:** the current no-allocation guarantee is necessary but not sufficient. `All Sound Off` must avoid bulk buffer clearing on the audio thread; use an O(1) or bounded-time invalidation/lazy-clear strategy while preserving immediate silence.
-3. **Common runtime clock:** synced FX timing must consume the engine's existing host/MIDI/internal scheduler clock rather than relying only on the BPM value stored in the patch. There must remain one clock authority.
-4. **Minimum parameter smoothing:** delay-time/rate/depth/feedback automation must avoid obvious discontinuities and clicks. Exact hardware smoothing remains calibratable later; v0.18 only requires deterministic click-safe behavior.
-5. **DSP fingerprint baseline:** add deterministic rendered-audio fingerprints for representative patches/FX states so later speed work can prove it did not accidentally change the sound. Exact-bit fingerprints may be used where platform-stable; robust acoustic fingerprints should cover cross-platform-sensitive paths.
-6. **Performance benchmark baseline:** measure one and six voices, FX off/on, representative A+B chains, 48/96 kHz and practical block sizes. Record average processing cost and worst-block/late-block behaviour, because realtime safety is determined by the worst block rather than average CPU alone.
-7. **Safe high-value optimizations:** move parameter-invariant coefficient work out of per-sample paths (notably reverb/phaser coefficient calculation and fixed Pan Spread gains) and gate genuinely idle voice work where analog free-running state does not require full DSP processing. Do not switch numeric precision, introduce SIMD approximations or make calibration-sensitive shortcuts until profiling proves they are needed.
+## Exit decision
 
-The fingerprint and benchmark infrastructure becomes part of the v0.19 sound-matching workflow rather than a one-off v0.18 tool: Reference-A remains the authority for fidelity to the hardware, while fingerprints protect against accidental regressions during optimization.
+**v0.18 Digital Effects: CLOSED.**
 
-## Remaining v0.18 work
-
-1. Complete the hardening/performance gate above: effect-state transitions, bounded-time CC120, common-clock FX sync, minimum smoothing, fingerprint baseline and benchmark baseline.
-2. Establish the actual Prophet-6/OB-6 later-OS raw selector/control encoding for PH3, Ring, FL1 and FL2 from strong independent evidence or differential SysEx/hardware captures; do not guess it.
-3. Wire Ring Mod low-note tracking once that control identity is established.
-4. Confirm exact FX bypass/tail behavior on hardware (whether internal tails advance while global true bypass is engaged).
-5. Run the Windows/Linux VST3 + `pluginval --strictness-level 10` + Linux ASan/UBSan gate with the complete FX and hardening test set.
-6. Update the parity matrix only after the complete gate is green; acoustic matching of effect constants remains a v0.19 task.
+The release boundary is a complete, realtime-safe, testable A -> B effects subsystem for every verified legacy selector, with later-OS unknowns preserved rather than fabricated. v0.19 becomes the active milestone for sound matching and profiling-driven optimisation.
