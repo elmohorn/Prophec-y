@@ -1198,6 +1198,43 @@ static void testUnisonKeyModesAndRetrigger()
     assert(retrigEnergy < plainEnergy * 0.15);
 }
 
+static void testUnisonNewPhraseReattacksReleaseTail()
+{
+    for (std::uint8_t mode = 0; mode < 6; ++mode) {
+        for (const int gapSamples : {0, 960}) {
+            P6Engine e;
+            e.prepare(48000.0);
+            auto p = performanceTestVoiceParams();
+            p.ampAttack = 0.001;
+            p.ampSustain = 1.0;
+            p.ampRelease = 0.08;
+            e.setVoiceParams(p);
+            VoiceDiagnostics d;
+            d.mix = VoiceDiagnosticMix::Osc1Only;
+            d.bypassFilters = true;
+            e.setVoiceDiagnostics(d);
+            e.setUnison(true, 0.0, 1);
+            e.setKeyMode(mode);
+            e.noteOn(60, 1.0);
+            for (int i = 0; i < 9600; ++i) e.process();
+            e.noteOff(60);
+            for (int i = 0; i < gapSamples; ++i) e.process();
+            e.noteOn(62, 1.0);
+            // A first key after all physical keys were released starts a new
+            // phrase, even while the old voice's release remains audible.
+            for (int i = 0; i < 9600; ++i) e.process();
+            double energy = 0.0;
+            for (int i = 0; i < 1024; ++i) {
+                const auto x = e.process();
+                energy += x.left*x.left + x.right*x.right;
+            }
+            assert(e.activeVoiceCount() == 1);
+            assert(e.soundingNotes()[0] == 62);
+            assert(energy > 0.01);
+        }
+    }
+}
+
 static void testChordMemoryRuntime()
 {
     P6Engine engine;
@@ -1736,6 +1773,7 @@ int main()
     testSixVoiceAllocator();
     testPitchBendAndModWheelPerformance();
     testUnisonKeyModesAndRetrigger();
+    testUnisonNewPhraseReattacksReleaseTail();
     testChordMemoryRuntime();
     testLivePatchUpdatePreservesRuntimeChordMemory();
     testMappedPerformanceModes();

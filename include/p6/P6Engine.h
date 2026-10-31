@@ -103,7 +103,7 @@ private:
     void rememberHeld(int midiNote, double velocity01);
     void forgetHeld(int midiNote);
     const HeldKey* winningHeldKey() const noexcept;
-    void retargetUnison(bool retrigger);
+    void retargetUnison(bool retrigger, bool resetEnvelopeFromZero = true);
     void releaseUnison();
     VoiceParams paramsForVoice(std::size_t index) const;
     static double panPosition(std::size_t index, double spread);

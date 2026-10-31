@@ -323,7 +323,7 @@ void P6Engine::releaseUnison()
     unisonSustainHeld_ = false;
 }
 
-void P6Engine::retargetUnison(bool retrigger)
+void P6Engine::retargetUnison(bool retrigger, bool resetEnvelopeFromZero)
 {
     const auto* winner = winningHeldKey();
     if (!winner) {
@@ -352,7 +352,7 @@ void P6Engine::retargetUnison(bool retrigger)
         s.keyDown = true;
         s.sustainHeld = false;
         s.age = clock_;
-        s.voice.noteOn(s.note, winner->velocity, retrigger, retrigger);
+        s.voice.noteOn(s.note, winner->velocity, retrigger, retrigger && resetEnvelopeFromZero);
     }
     for (std::size_t i = stack; i < voices_.size(); ++i) {
         auto& s = voices_[i];
@@ -428,9 +428,14 @@ void P6Engine::noteOnOwned(int midiNote, double velocity01, std::uint32_t owner)
         unisonSustainHeld_ = false;
         for (auto& slot : voices_)
             slot.sustainHeld = false;
+        const bool firstHeldKey = heldCount_ == 0;
         rememberHeld(midiNote, velocity01);
         ++clock_;
-        retargetUnison(keyMode_ >= 3);
+        // A release tail is still an active voice, but it is not a held-key
+        // legato phrase. Re-attack the first new key from the current level;
+        // only explicit retrigger key modes demand a reset from zero.
+        const bool retriggerMode = keyMode_ >= 3;
+        retargetUnison(retriggerMode || firstHeldKey, retriggerMode);
         return;
     }
 
