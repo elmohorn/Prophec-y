@@ -146,7 +146,7 @@ public:
     void prepare(double sampleRate, std::uint32_t seed = 1, int oversampleFactor = 2);
     void setParams(const VoiceParams& params);
     void setDiagnostics(const VoiceDiagnostics& diagnostics) { diagnostics_ = diagnostics; }
-    void setPitchBendSemitones(double semitones) { pitchBendSemitones_ = semitones; }
+    void setPitchBendSemitones(double semitones);
     void noteOn(int midiNote, double velocity01 = 1.0,
                 bool retriggerEnvelope = true, bool resetEnvelopeFromZero = false);
     void noteOff();
@@ -190,6 +190,9 @@ private:
     CandidateLowPass4Pole lowPass_{};
     CandidateHighPass2Pole highPass_{};
     double baseHz_{440.0};
+    double cachedBasePitchNote_{69.0};
+    bool basePitchCacheValid_{};
+    double fixedOsc2ReferenceHz_{261.6255653005986};
     double glideNote_{69.0};
     double targetNote_{69.0};
     double glideStep_{0.0};
@@ -205,6 +208,7 @@ private:
     std::vector<double> decimatorTaps_{};
     std::vector<double> decimatorHistory_{};
     std::size_t decimatorWrite_{};
+    std::size_t decimatorNonZeroSamples_{};
 };
 
 } // namespace p6

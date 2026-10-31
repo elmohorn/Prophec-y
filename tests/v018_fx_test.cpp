@@ -2,6 +2,7 @@
 #include "p6/P6Effects.h"
 #include "p6/P6Engine.h"
 #include "p6/P6PerformanceScheduler.h"
+#include "p6/P6ReverbEffects.h"
 
 #include <algorithm>
 #include <array>
@@ -397,6 +398,30 @@ void testLegacyReverbsCreateFiniteTails()
     }
 }
 
+void testReverbCacheInvalidatesAcrossSampleRateReprepare()
+{
+    constexpr auto type = p6::P6ReverbEffects::Type::Hall;
+    constexpr double primary = 0.65;
+    constexpr double secondary = 0.55;
+
+    p6::P6ReverbEffects reused;
+    reused.prepare(48000.0);
+    // Populate the cache at the first sample rate.
+    static_cast<void>(reused.process(1.0, 1.0, type, primary, secondary));
+    reused.prepare(96000.0);
+
+    p6::P6ReverbEffects fresh;
+    fresh.prepare(96000.0);
+
+    for (int i = 0; i < 7000; ++i) {
+        const double input = i == 0 ? 1.0 : 0.0;
+        const auto a = reused.process(input, input, type, primary, secondary);
+        const auto b = fresh.process(input, input, type, primary, secondary);
+        P6_CHECK(std::abs(a.left - b.left) < 1.0e-12);
+        P6_CHECK(std::abs(a.right - b.right) < 1.0e-12);
+    }
+}
+
 void testLaterOsInternalCandidatesAreAudibleButNotRawMapped()
 {
     constexpr double sampleRate = 48000.0;
@@ -500,6 +525,7 @@ int main()
     testSchedulerOwnsFxTempoAcrossInternalHostAndMidiClock();
     testLegacyPhasersAreAudibleAndFinite();
     testLegacyReverbsCreateFiniteTails();
+    testReverbCacheInvalidatesAcrossSampleRateReprepare();
     testLaterOsInternalCandidatesAreAudibleButNotRawMapped();
     testEngineOwnsFxMappingAndAllSoundOffClearsTail();
     std::cout << "p6 v0.18 FX core tests passed\n";

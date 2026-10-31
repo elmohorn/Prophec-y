@@ -25,6 +25,8 @@ void P6Voice::prepare(double sampleRate, std::uint32_t seed, int oversampleFacto
     filterEnv_.prepare(sampleRate_);
     lowPass_.prepare(sampleRate_);
     highPass_.prepare(sampleRate_);
+    fixedOsc2ReferenceHz_ = midiToHz(60.0 + pitchBendSemitones_);
+    basePitchCacheValid_ = false;
     configureDecimator();
     setParams(params_);
     reset();
@@ -39,6 +41,15 @@ void P6Voice::setParams(const VoiceParams& params)
     filterEnv_.setSustain(params_.filterSustain);
     osc1_.setSyncResetPhase(params_.syncResetPhase);
     osc1_.setHardSyncCorrectionMode(params_.syncCorrectionMode);
+}
+
+void P6Voice::setPitchBendSemitones(double semitones)
+{
+    if (pitchBendSemitones_ == semitones)
+        return;
+    pitchBendSemitones_ = semitones;
+    basePitchCacheValid_ = false;
+    fixedOsc2ReferenceHz_ = midiToHz(60.0 + pitchBendSemitones_);
 }
 
 void P6Voice::noteOn(int midiNote, double velocity01,
@@ -57,7 +68,9 @@ void P6Voice::noteOn(int midiNote, double velocity01,
     glideStep_ = params_.glideMode >= 2
         ? std::abs(targetNote_ - glideNote_) / (seconds * sampleRate_)
         : 12.0 / (seconds * sampleRate_);
-    baseHz_ = midiToHz(glideNote_ + pitchBendSemitones_);
+    cachedBasePitchNote_ = glideNote_ + pitchBendSemitones_;
+    baseHz_ = midiToHz(cachedBasePitchNote_);
+    basePitchCacheValid_ = true;
     velocity_ = std::clamp(velocity01, 0.0, 1.0);
 
     if (!legato || retriggerEnvelope) {
@@ -105,8 +118,11 @@ void P6Voice::reset()
     pitched_ = false;
     glideNote_ = targetNote_ = static_cast<double>(midiNote_);
     glideStep_ = 0.0;
+    basePitchCacheValid_ = false;
+    fixedOsc2ReferenceHz_ = midiToHz(60.0 + pitchBendSemitones_);
     std::fill(decimatorHistory_.begin(), decimatorHistory_.end(), 0.0);
     decimatorWrite_ = 0;
+    decimatorNonZeroSamples_ = 0;
 }
 
 double P6Voice::midiToHz(double note)
@@ -181,6 +197,7 @@ void P6Voice::configureDecimator()
         decimatorTaps_ = {1.0};
         decimatorHistory_ = {0.0};
         decimatorWrite_ = 0;
+        decimatorNonZeroSamples_ = 0;
         return;
     }
 
@@ -221,6 +238,7 @@ void P6Voice::configureDecimator()
 
     decimatorHistory_.assign(decimatorTaps_.size(), 0.0);
     decimatorWrite_ = 0;
+    decimatorNonZeroSamples_ = 0;
 }
 
 VoiceSample P6Voice::process(double lfoSignal, double pressure01)
@@ -231,8 +249,24 @@ VoiceSample P6Voice::process(double lfoSignal, double pressure01)
     VoiceSample last{};
     for (int os = 0; os < oversampleFactor_; ++os) {
         last = processInternal(lfoSignal, pressure01);
+
+        const double outgoing = decimatorHistory_[decimatorWrite_];
+        if (outgoing != 0.0)
+            --decimatorNonZeroSamples_;
+
         decimatorHistory_[decimatorWrite_] = last.dry;
+        if (last.dry != 0.0)
+            ++decimatorNonZeroSamples_;
+
         decimatorWrite_ = (decimatorWrite_ + 1) % decimatorHistory_.size();
+    }
+
+    // This is an exact shortcut: convolution of an all-zero FIR history is
+    // exactly zero. The full oversampled voice path above still runs, so VCO,
+    // slop, sync and filter history remain free-running exactly as before.
+    if (decimatorNonZeroSamples_ == 0) {
+        last.dry = 0.0;
+        return last;
     }
 
     double y = 0.0;
@@ -259,12 +293,18 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     } else if (pitched_) {
         glideNote_ = targetNote_;
     }
-    baseHz_ = midiToHz(glideNote_ + pitchBendSemitones_);
+
+    const double effectiveBasePitch = glideNote_ + pitchBendSemitones_;
+    if (!basePitchCacheValid_ || effectiveBasePitch != cachedBasePitchNote_) {
+        cachedBasePitchNote_ = effectiveBasePitch;
+        baseHz_ = midiToHz(effectiveBasePitch);
+        basePitchCacheValid_ = true;
+    }
 
     out.slop1Cents = slop1_.process() * params_.slopDepthCents;
     out.slop2Cents = slop2_.process() * params_.slopDepthCents;
 
-    const double osc2Reference = params_.osc2KeyTrack ? baseHz_ : midiToHz(60.0 + pitchBendSemitones_);
+    const double osc2Reference = params_.osc2KeyTrack ? baseHz_ : fixedOsc2ReferenceHz_;
     const double pressure = std::clamp(pressure01, 0.0, 1.0) * params_.aftertouch.amount;
     const double at2Semi = params_.aftertouch.osc2Freq ? pressure * params_.aftertouch.pitchRangeSemitones : 0.0;
     const double lfo2Semi = params_.lfo.osc2Freq ? lfoSignal * params_.lfo.pitchRangeSemitones : 0.0;
