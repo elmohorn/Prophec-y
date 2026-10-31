@@ -1,0 +1,527 @@
+{
+  "name": "DeepSyncLead",
+  "parameters": [
+    {
+      "name": "Osc1Freq",
+      "offset": 0,
+      "nrpn": 0,
+      "value": 16
+    },
+    {
+      "name": "Osc1Sync",
+      "offset": 11,
+      "nrpn": 1,
+      "value": 1
+    },
+    {
+      "name": "Osc1Level",
+      "offset": 7,
+      "nrpn": 2,
+      "value": 127
+    },
+    {
+      "name": "Osc1Shape",
+      "offset": 3,
+      "nrpn": 3,
+      "value": 254
+    },
+    {
+      "name": "Osc1PW",
+      "offset": 5,
+      "nrpn": 4,
+      "value": 127
+    },
+    {
+      "name": "Osc2Freq",
+      "offset": 1,
+      "nrpn": 5,
+      "value": 12
+    },
+    {
+      "name": "Osc2FreqFine",
+      "offset": 2,
+      "nrpn": 6,
+      "value": 138
+    },
+    {
+      "name": "Osc2Level",
+      "offset": 8,
+      "nrpn": 7,
+      "value": 127
+    },
+    {
+      "name": "Osc2Shape",
+      "offset": 4,
+      "nrpn": 8,
+      "value": 254
+    },
+    {
+      "name": "Osc2PW",
+      "offset": 6,
+      "nrpn": 9,
+      "value": 126
+    },
+    {
+      "name": "Osc2LoFreq",
+      "offset": 13,
+      "nrpn": 10,
+      "value": 0
+    },
+    {
+      "name": "Osc2Kbd",
+      "offset": 12,
+      "nrpn": 11,
+      "value": 1
+    },
+    {
+      "name": "SubOctLevel",
+      "offset": 9,
+      "nrpn": 27,
+      "value": 48
+    },
+    {
+      "name": "GlideMode",
+      "offset": 15,
+      "nrpn": 28,
+      "value": 0
+    },
+    {
+      "name": "GlideOn",
+      "offset": 16,
+      "nrpn": 29,
+      "value": 1
+    },
+    {
+      "name": "GlideRate",
+      "offset": 14,
+      "nrpn": 30,
+      "value": 40
+    },
+    {
+      "name": "PitchBendRange",
+      "offset": 17,
+      "nrpn": 31,
+      "value": 2
+    },
+    {
+      "name": "NoiseLevel",
+      "offset": 10,
+      "nrpn": 32,
+      "value": 0
+    },
+    {
+      "name": "SlopAmt",
+      "offset": 18,
+      "nrpn": 33,
+      "value": 50
+    },
+    {
+      "name": "FiltFreq",
+      "offset": 19,
+      "nrpn": 45,
+      "value": 77
+    },
+    {
+      "name": "FiltRes",
+      "offset": 20,
+      "nrpn": 46,
+      "value": 63
+    },
+    {
+      "name": "FiltKbdTrack",
+      "offset": 21,
+      "nrpn": 47,
+      "value": 1
+    },
+    {
+      "name": "FiltVel",
+      "offset": 22,
+      "nrpn": 48,
+      "value": 1
+    },
+    {
+      "name": "FiltFreqHP",
+      "offset": 23,
+      "nrpn": 49,
+      "value": 0
+    },
+    {
+      "name": "FiltResHP",
+      "offset": 24,
+      "nrpn": 50,
+      "value": 0
+    },
+    {
+      "name": "FiltKbdTrackHP",
+      "offset": 25,
+      "nrpn": 51,
+      "value": 1
+    },
+    {
+      "name": "FiltVelHP",
+      "offset": 26,
+      "nrpn": 52,
+      "value": 0
+    },
+    {
+      "name": "ProgVolume",
+      "offset": 27,
+      "nrpn": 62,
+      "value": 89
+    },
+    {
+      "name": "PanSpread",
+      "offset": 28,
+      "nrpn": 63,
+      "value": 127
+    },
+    {
+      "name": "Distortion",
+      "offset": 58,
+      "nrpn": 64,
+      "value": 0
+    },
+    {
+      "name": "AmpEnvAmt",
+      "offset": 31,
+      "nrpn": 66,
+      "value": 127
+    },
+    {
+      "name": "AmpEnvAttack",
+      "offset": 36,
+      "nrpn": 67,
+      "value": 0
+    },
+    {
+      "name": "AmpEnvDecay",
+      "offset": 38,
+      "nrpn": 68,
+      "value": 0
+    },
+    {
+      "name": "AmpEnvSustain",
+      "offset": 40,
+      "nrpn": 69,
+      "value": 127
+    },
+    {
+      "name": "AmpEnvRelease",
+      "offset": 42,
+      "nrpn": 70,
+      "value": 77
+    },
+    {
+      "name": "AmpVel",
+      "offset": 43,
+      "nrpn": 71,
+      "value": 0
+    },
+    {
+      "name": "FiltEnvAmt",
+      "offset": 29,
+      "nrpn": 77,
+      "value": 235
+    },
+    {
+      "name": "FiltEnvAttack",
+      "offset": 35,
+      "nrpn": 78,
+      "value": 0
+    },
+    {
+      "name": "FiltEnvDecay",
+      "offset": 37,
+      "nrpn": 79,
+      "value": 88
+    },
+    {
+      "name": "FiltEnvSustain",
+      "offset": 39,
+      "nrpn": 80,
+      "value": 0
+    },
+    {
+      "name": "FiltEnvRelease",
+      "offset": 41,
+      "nrpn": 81,
+      "value": 59
+    },
+    {
+      "name": "FiltEnvAmtHP",
+      "offset": 30,
+      "nrpn": 82,
+      "value": 127
+    },
+    {
+      "name": "LFOFreq",
+      "offset": 59,
+      "nrpn": 88,
+      "value": 183
+    },
+    {
+      "name": "LFOInitAmt",
+      "offset": 63,
+      "nrpn": 89,
+      "value": 0
+    },
+    {
+      "name": "LFOShape",
+      "offset": 62,
+      "nrpn": 90,
+      "value": 4
+    },
+    {
+      "name": "LFOSync",
+      "offset": 61,
+      "nrpn": 91,
+      "value": 0
+    },
+    {
+      "name": "LFODestOsc1",
+      "offset": 64,
+      "nrpn": 93,
+      "value": 1
+    },
+    {
+      "name": "LFODestOsc2",
+      "offset": 65,
+      "nrpn": 94,
+      "value": 0
+    },
+    {
+      "name": "LFODestPW",
+      "offset": 66,
+      "nrpn": 95,
+      "value": 0
+    },
+    {
+      "name": "LFODestAmp",
+      "offset": 69,
+      "nrpn": 96,
+      "value": 0
+    },
+    {
+      "name": "LFODestFiltLP",
+      "offset": 67,
+      "nrpn": 97,
+      "value": 0
+    },
+    {
+      "name": "LFODestFiltHP",
+      "offset": 68,
+      "nrpn": 98,
+      "value": 0
+    },
+    {
+      "name": "AftertouchAmt",
+      "offset": 70,
+      "nrpn": 109,
+      "value": 252
+    },
+    {
+      "name": "AftertouchOsc1",
+      "offset": 71,
+      "nrpn": 110,
+      "value": 0
+    },
+    {
+      "name": "AftertouchOsc2",
+      "offset": 72,
+      "nrpn": 111,
+      "value": 0
+    },
+    {
+      "name": "AftertouchFiltLP",
+      "offset": 73,
+      "nrpn": 112,
+      "value": 0
+    },
+    {
+      "name": "AftertouchAmp",
+      "offset": 74,
+      "nrpn": 114,
+      "value": 0
+    },
+    {
+      "name": "AftertouchFiltHP",
+      "offset": 75,
+      "nrpn": 113,
+      "value": 0
+    },
+    {
+      "name": "AftertouchLFOAmt",
+      "offset": 76,
+      "nrpn": 115,
+      "value": 1
+    },
+    {
+      "name": "EffectAType",
+      "offset": 44,
+      "nrpn": 119,
+      "value": 2
+    },
+    {
+      "name": "EffectAMix",
+      "offset": 48,
+      "nrpn": 120,
+      "value": 18
+    },
+    {
+      "name": "EffectAParam1",
+      "offset": 50,
+      "nrpn": 121,
+      "value": 114
+    },
+    {
+      "name": "EffectAParam2",
+      "offset": 52,
+      "nrpn": 122,
+      "value": 31
+    },
+    {
+      "name": "EffectASync",
+      "offset": 54,
+      "nrpn": 123,
+      "value": 0
+    },
+    {
+      "name": "EffectASyncRate",
+      "offset": 56,
+      "nrpn": 124,
+      "value": 6
+    },
+    {
+      "name": "EffectBType",
+      "offset": 45,
+      "nrpn": 127,
+      "value": 3
+    },
+    {
+      "name": "EffectBMix",
+      "offset": 49,
+      "nrpn": 128,
+      "value": 22
+    },
+    {
+      "name": "EffectBParam1",
+      "offset": 51,
+      "nrpn": 129,
+      "value": 12
+    },
+    {
+      "name": "EffectBParam2",
+      "offset": 53,
+      "nrpn": 130,
+      "value": 127
+    },
+    {
+      "name": "EffectBSync",
+      "offset": 55,
+      "nrpn": 131,
+      "value": 0
+    },
+    {
+      "name": "EffectBSyncRate",
+      "offset": 57,
+      "nrpn": 132,
+      "value": 6
+    },
+    {
+      "name": "EffectsOn",
+      "offset": 46,
+      "nrpn": 135,
+      "value": 0
+    },
+    {
+      "name": "PModFiltEnvAmt",
+      "offset": 77,
+      "nrpn": 143,
+      "value": 251
+    },
+    {
+      "name": "PModOsc2Amt",
+      "offset": 78,
+      "nrpn": 144,
+      "value": 127
+    },
+    {
+      "name": "PModOsc1",
+      "offset": 79,
+      "nrpn": 145,
+      "value": 1
+    },
+    {
+      "name": "PModShape1",
+      "offset": 80,
+      "nrpn": 146,
+      "value": 1
+    },
+    {
+      "name": "PModPW1",
+      "offset": 81,
+      "nrpn": 147,
+      "value": 0
+    },
+    {
+      "name": "PModFiltLP",
+      "offset": 82,
+      "nrpn": 148,
+      "value": 0
+    },
+    {
+      "name": "PModFiltHP",
+      "offset": 83,
+      "nrpn": 149,
+      "value": 0
+    },
+    {
+      "name": "UnisonOn",
+      "offset": 84,
+      "nrpn": 156,
+      "value": 1
+    },
+    {
+      "name": "UnisonMode",
+      "offset": 85,
+      "nrpn": 157,
+      "value": 5
+    },
+    {
+      "name": "KeyPriority",
+      "offset": 86,
+      "nrpn": 158,
+      "value": 0
+    },
+    {
+      "name": "ArpOn",
+      "offset": 91,
+      "nrpn": 160,
+      "value": 0
+    },
+    {
+      "name": "ArpMode",
+      "offset": 89,
+      "nrpn": 161,
+      "value": 2
+    },
+    {
+      "name": "ArpRange",
+      "offset": 90,
+      "nrpn": 162,
+      "value": 0
+    },
+    {
+      "name": "ClockTimeSig",
+      "offset": 92,
+      "nrpn": 163,
+      "value": 3
+    },
+    {
+      "name": "ClockBPM",
+      "offset": 87,
+      "nrpn": 167,
+      "value": 167
+    }
+  ]
+}

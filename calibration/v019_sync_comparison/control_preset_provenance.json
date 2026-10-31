@@ -1,0 +1,9 @@
+{
+  "component_renders": 48,
+  "preset_renders": 18,
+  "additional_prior_pitch_check_renders": 1,
+  "sysex_sha256": "0a2bb9c9a29178e4b7306656a704091431b81de53ba66dcea0de0ca6b3fac90a",
+  "factory_bank_sha256": "b46ee1b907b77fdfa17a358e9541722b5a1e021b0a5512d53b0fe9d50c620f19",
+  "factory_zip_url": "https://sequential.com/wp-content/uploads/2015/07/P6-Factory-Programs-ReadMe.zip",
+  "production_changes": false
+}
