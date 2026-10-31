@@ -1,5 +1,6 @@
 #pragma once
 
+#include "p6/P6Effects.h"
 #include "p6/P6Voice.h"
 #include "p6/P6LFO.h"
 #include "p6/P6PatchState.h"
@@ -25,8 +26,6 @@ public:
     void setVoiceDiagnostics(const VoiceDiagnostics& diagnostics);
     void loadPatch(const P6PatchState& patch,
                    const MapperCalibration& calibration = {});
-    // Live parameter refresh for plug-in automation/editor changes. Unlike
-    // loadPatch(), this preserves runtime chord memory and held-note state.
     void updatePatch(const P6PatchState& patch,
                      const MapperCalibration& calibration = {});
     void setPanSpread(double amount01);
@@ -36,44 +35,26 @@ public:
     void setChannelPressure(double pressure01);
     void setModWheel(double amount01);
     void setPitchBend(double bipolar);
-    // CC64 is performance state, not program data. Physical key release is
-    // still recorded immediately while the envelope release may be deferred.
     void setSustainPedal(bool down);
-    // CC7 is a separate performance multiplier. It never rewrites the saved
-    // Prophet Voice Volume/program byte.
     void setMidiVolume(double amount01);
+    // Scheduler/clock owns tempo. The engine only forwards that physical BPM
+    // into the global effects path for synced delays.
+    void setEffectsRuntimeBpm(double bpm) noexcept { effects_.setRuntimeBpm(bpm); }
     void setKeyMode(std::uint8_t mode);
     void setChordMode(bool enabled);
     bool captureChordMemoryFromHeld();
     void clearChordMemory();
 
-    // Prophet-6 LFO Sync resets the LFO cycle on the first physical key of a
-    // newly started chord. The scheduler owns the physical-key boundary, so it
-    // calls this hook only for that event. Generated arp/sequence notes never
-    // call it. The exact synced Frequency-knob division law remains evidence-
-    // gated and is deliberately not guessed here.
     void resetSyncedLfoPhase() noexcept { if (lfoClockSync_) lfo_.reset(); }
 
-    // detuneCents is a non-hardware development extension for A/B tests.
-    // Hardware-compatible patch loading passes zero: Prophet-6 unison spread
-    // is produced by free-running phases and Slop/Vintage rather than a hidden
-    // fixed detune parameter.
     void setUnison(bool enabled, double detuneCents = 0.0,
                    std::size_t voiceCount = kVoiceCount);
 
     void noteOn(int midiNote, double velocity01 = 1.0);
     void noteOff(int midiNote);
-    // Source-tagged note ownership is used by the sequencer so live notes and
-    // generated notes of the same pitch cannot terminate each other. Owner 0
-    // is the ordinary keyboard/MIDI path. In Unison, generated notes fall back
-    // to the hardware-style single keyboard stack because the six voices are
-    // already one shared stack.
     void noteOnOwned(int midiNote, double velocity01, std::uint32_t owner);
     void noteOffOwned(int midiNote, std::uint32_t owner);
     void allNotesOff();
-    // MIDI channel-mode semantics. All Notes Off behaves like ordinary live
-    // Note Off and therefore remains subject to Damper; All Sound Off is an
-    // immediate audible kill that leaves the controller state itself intact.
     void midiAllNotesOff();
     void midiAllSoundOff();
     StereoSample process();
@@ -88,9 +69,9 @@ public:
     bool sustainPedal() const noexcept { return sustainPedal_; }
     std::size_t sustainedVoiceCount() const noexcept;
     double effectiveLfoDepth() const noexcept;
-    // Diagnostic-only observation for LFO-sync regressions. It deliberately
-    // does not expose a writable phase or become part of host state.
     double lfoPhaseForDiagnostics() const noexcept { return lfo_.phaseForDiagnostics(); }
+    const P6EffectsSettings& effectsSettingsForDiagnostics() const noexcept { return effects_.settings(); }
+    double effectsRuntimeBpmForDiagnostics() const noexcept { return effects_.runtimeBpm(); }
     bool chordMode() const noexcept { return chordMode_; }
     bool unisonEnabled() const noexcept { return unison_; }
     std::size_t chordMemorySize() const noexcept { return chordLength_; }
@@ -126,6 +107,7 @@ private:
     void releaseUnison();
     VoiceParams paramsForVoice(std::size_t index) const;
     static double panPosition(std::size_t index, double spread);
+    void updatePanGains() noexcept;
     double applyCandidateDistortion(double x, DcBlockState& state) const;
     void applyPatch(const P6PatchState& patch,
                     const MapperCalibration& calibration,
@@ -137,12 +119,15 @@ private:
     int oversampleFactor_{2};
     VoiceDiagnostics diagnostics_{};
     double panSpread_{};
+    std::array<double, kVoiceCount> panGainLeft_{};
+    std::array<double, kVoiceCount> panGainRight_{};
     double programVolume_{1.0};
     double midiVolume_{1.0};
     double distortion_{};
+    P6Effects effects_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
-    bool lfoClockSync_{}; // first-key phase reset implemented; tempo-division law remains evidence-gated
+    bool lfoClockSync_{};
     double channelPressure_{};
     double modWheel_{};
     double pitchBend_{};
@@ -154,7 +139,7 @@ private:
     bool unison_{};
     std::size_t unisonVoiceCount_{kVoiceCount};
     double unisonDetuneCents_{};
-    std::uint8_t keyMode_{}; // 0 low, 1 high, 2 last, 3..5 retrigger variants
+    std::uint8_t keyMode_{};
     bool chordMode_{};
     std::array<int, kVoiceCount> chord_{};
     std::size_t chordLength_{};

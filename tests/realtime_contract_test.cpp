@@ -1,4 +1,5 @@
 #include "p6/P6Engine.h"
+#include "p6/P6Effects.h"
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PerformanceScheduler.h"
 #include "p6/ParameterMapper.h"
@@ -108,11 +109,9 @@ void testCoreRealtimePathDoesNotAllocateAfterPrepare()
     const std::array<std::uint8_t, 3> sustainOff {0xB0, 64, 0};
     const std::array<std::uint8_t, 3> pitchBend {0xE0, 0, 80};
     const std::array<std::uint8_t, 3> nrpnMsb {0xB0, 99, 0};
-    const std::array<std::uint8_t, 3> nrpnLsb {0xB0, 98, 45}; // LPF cutoff
+    const std::array<std::uint8_t, 3> nrpnLsb {0xB0, 98, 45};
     const std::array<std::uint8_t, 3> dataMsb {0xB0, 6, 80};
 
-    // Warm every path before the allocation fence. Preparation, vector reserve,
-    // codec setup and any one-time library work are explicitly non-realtime.
     router.process(noteOn, patch, scheduler);
     for (int i = 0; i < 64; ++i)
         static_cast<void>(scheduler.process());
@@ -132,8 +131,6 @@ void testCoreRealtimePathDoesNotAllocateAfterPrepare()
             router.process(sustainOn, patch, scheduler);
             router.process(noteOff, patch, scheduler);
 
-            // Exercise a hardware-style live patch edit while voices and the
-            // scheduler are running. rawParameters already has fixed capacity.
             router.process(nrpnMsb, patch, scheduler);
             router.process(nrpnLsb, patch, scheduler);
             router.process(dataMsb, patch, scheduler);
@@ -148,11 +145,55 @@ void testCoreRealtimePathDoesNotAllocateAfterPrepare()
     P6_CHECK(allocations == 0);
 }
 
+void testPreparedActiveEffectsDoNotAllocate()
+{
+    p6::P6Effects effects;
+    effects.prepare(48000.0);
+
+    const std::array<p6::P6EffectSlotSettings, 4> activeFamilies{{
+        {p6::P6EffectType::BbdDelay, 0.7, 0.18, 0.6},
+        {p6::P6EffectType::Phaser1, 0.8, 0.9, 0.7},
+        {p6::P6EffectType::Flanger1, 0.8, 0.4, 0.8},
+        {p6::P6EffectType::Hall, 0.6, 0.65, 0.5},
+    }};
+
+    p6::P6EffectsSettings settings;
+    settings.enabled = true;
+    settings.a = activeFamilies[0];
+    settings.b = {p6::P6EffectType::Plate, 0.35, 0.5, 0.4};
+    effects.setSettings(settings);
+
+    for (const auto family : activeFamilies) {
+        settings.a = family;
+        effects.setSettings(settings);
+        for (int i = 0; i < 512; ++i)
+            static_cast<void>(effects.process(0.1, -0.1));
+    }
+
+    std::size_t allocations = 0;
+    {
+        AllocationScope guard;
+        for (int block = 0; block < 128; ++block) {
+            settings.a = activeFamilies[static_cast<std::size_t>(block) % activeFamilies.size()];
+            effects.setSettings(settings);
+            for (int sample = 0; sample < 64; ++sample) {
+                const double x = (sample & 1) ? 0.15 : -0.12;
+                static_cast<void>(effects.process(x, -x));
+            }
+        }
+        effects.clearRealtimeState();
+        allocations = guard.count();
+    }
+
+    P6_CHECK(allocations == 0);
+}
+
 } // namespace
 
 int main()
 {
     testCoreRealtimePathDoesNotAllocateAfterPrepare();
-    std::cout << "p6 v0.17 realtime allocation contract passed\n";
+    testPreparedActiveEffectsDoNotAllocate();
+    std::cout << "p6 v0.18 realtime allocation contract passed\n";
     return 0;
 }

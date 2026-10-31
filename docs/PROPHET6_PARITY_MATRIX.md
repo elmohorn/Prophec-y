@@ -1,32 +1,35 @@
 # Prophet-6 parity matrix and master development plan
 
-This file is the **master scope document** for Prophec-y. It exists to prevent local fixes, UI work, or interesting experiments from displacing the actual goal: a stable Windows/Linux VST3 whose musical behavior and sound approach the Sequential Prophet-6 as closely as clean-room evidence allows.
+This is the **master scope document** for Prophec-y. The project goal is a stable Windows/Linux VST3 whose musical behavior and sound approach the Sequential Prophet-6 as closely as clean-room evidence allows, while preserving the hardware program/state contract and refusing to invent unknown firmware semantics.
 
 ## Status legend
 
 - **VALIDATED** — implemented and covered by tests / CI / deterministic regression where applicable.
 - **FUNCTIONAL / PROVISIONAL** — behavior exists and is usable, but calibration or exact hardware law remains provisional.
-- **CONNECTED / INCOMPLETE** — state/parameter is present, but the complete musical/DSP behavior is not yet implemented.
+- **CONNECTED / INCOMPLETE** — state/parameter exists, but complete behavior is not implemented.
 - **MISSING** — not implemented in the runtime path.
-- **OPAQUE / MEASURE** — hardware semantics or storage are not sufficiently established; preserve state and do not guess.
+- **OPAQUE / MEASURE** — hardware semantics/storage are not sufficiently established; preserve state and do not guess.
+- **DEFERRED / UI** — deliberate product/UI backlog; not a DSP or release blocker for the active milestone.
 
 ## Project rules
 
-1. The 1024-byte Prophet-6 program payload remains the canonical hardware-compatible state. Unknown bytes are preserved.
-2. Do not invent undocumented SysEx offsets or firmware semantics to make a UI control appear complete.
-3. Do not change a hardware-domain mapping to fit a single preset. Calibration belongs in replaceable DSP/calibration layers.
-4. Reuse mature, license-compatible work before implementing generic infrastructure from scratch.
-5. Windows and Linux are the release targets. A milestone is not release-ready unless both VST3 builds pass tests and `pluginval --strictness-level 10`; Linux sanitizers must also remain green.
-6. Custom UI work must not redefine synth behavior. The engine/parameter contract comes first.
-7. New ideas that do not close a row in this matrix go to backlog instead of interrupting the active milestone.
+1. The 1024-byte Prophet-6 program payload remains canonical and lossless. Unknown bytes are preserved.
+2. Do not invent undocumented SysEx offsets, NRPN meanings or firmware behavior to make a feature appear complete.
+3. Hardware-domain state and calibration/DSP layers stay separate.
+4. Reuse mature license-compatible work before rebuilding generic infrastructure.
+5. Windows/Linux VST3, `pluginval --strictness-level 10`, core tests and Linux sanitizers are release gates.
+6. UI work must not redefine synth behavior or place realtime work on the audio thread.
+7. New ideas that do not close the active milestone go to backlog.
 
-## Snapshot after v0.17
+## Snapshot after v0.18
 
-The project is **not a finished Prophet-6 emulation yet**. It is a mature synthesis/compatibility core with a validated Windows/Linux VST3 wrapper and a now-closed control/performance contract. The strongest areas are state compatibility, six-voice engine architecture, hard-sync/Poly-Mod infrastructure, performance scheduling, NRPN/SysEx handling, host integration, controller semantics and realtime ownership.
+v0.18 closes the digital-effects milestone. Prophec-y now has one global realtime-safe serial FX A -> B path, audible DSP for every effect in the verified legacy selector domains, common-clock tempo sync, deterministic smoothing, bounded realtime state invalidation, DSP fingerprints and a repeatable performance benchmark.
 
-v0.17 validated sustain/Damper CC64, MIDI Volume CC7, CC120/121/123 channel-mode behavior, causal host-vs-MIDI edit ordering, realtime no-allocation regression coverage, and the evidence-backed first-key synced-LFO phase reset. Exact Prophet-6 synced-LFO rhythmic divisions, Foot Controller CC4, several sequence/chord-memory storage semantics and final acoustic calibration remain intentionally unguessed.
+The project remains deliberately conservative where the Prophet-6 documentation is contradictory or incomplete. Later-OS PH3/Ring/FL1/FL2 DSP exists internally, but their raw selector/control encoding is still **OPAQUE / MEASURE** and is not serialized by guesswork.
 
-The current JUCE generic editor is diagnostic only. A control being visible there means the host parameter exists; it does **not** imply that the corresponding hardware behavior is complete.
+v0.18 also introduced safe measured optimisations: reverb coefficient caching, exact zero-history FIR skipping, base-pitch conversion caching and Pan Spread gain caching. The dedicated maximum-spread render remained bit-identical before/after Pan caching (`d0332e325eb4376a`).
+
+The active milestone is now **v0.19: Sound matching and optimisation**.
 
 ---
 
@@ -34,179 +37,165 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| 1024-byte canonical program payload | VALIDATED | `P6PatchState` preserves full raw payload | Keep immutable contract | Done / regression gate |
+| 1024-byte canonical program payload | VALIDATED | Full raw payload preserved | Keep immutable contract | Ongoing gate |
 | Program vs Edit Buffer SysEx | VALIDATED | Correct `0x02` / `0x03` handling | Maintain tests | Done |
-| Sequential 7-bit pack/unpack | VALIDATED | Codec + concatenated-bank scanning | Fuzz malformed streams further | Ongoing |
-| Known serialized parameter mapping | VALIDATED | 87 verified entries after v0.16 cardinality fix | Extend only with evidence | Ongoing |
+| Sequential 7-bit pack/unpack | VALIDATED | Codec + bank scanning | Fuzz malformed streams further | Ongoing |
+| Known serialized parameter mapping | VALIDATED | Verified entries only | Extend only with evidence | Ongoing |
 | Unknown serialized bytes | VALIDATED | Preserved losslessly | Never reinterpret without evidence | Ongoing |
-| Program name NRPN 236..255 | VALIDATED | Updates payload and visible name | UI text editing later | v0.20 |
-| Sequence note/velocity NRPN 256..1023 | VALIDATED | Updates stored sequence bytes in place | Preserve unknown metadata | Done |
-| Sequence controls NRPN 168..171 | FUNCTIONAL / PROVISIONAL | Kept as NRPN state; no guessed SysEx offsets | Identify storage offsets only from evidence | v0.19+ |
-| Sequence velocity bit 7 | OPAQUE / MEASURE | Preserved untouched | Determine tie/retrigger/other semantics from hardware or strong public evidence | v0.19 |
-| Chord-memory program storage | OPAQUE / MEASURE | Runtime chord exists; program load clears it | Differential real-hardware SysEx captures to locate storage | v0.19 |
-| Host state codec | VALIDATED | Versioned JUCE-independent codec, 1024-byte round-trip | Keep backward compatibility when format evolves | Ongoing |
+| Program name NRPN 236..255 | VALIDATED | Payload/name updates | UI editing later | v0.20 |
+| Sequence note/velocity NRPN 256..1023 | VALIDATED | Stored bytes updated in place | Preserve opaque metadata | Done |
+| Sequence controls NRPN 168..171 | FUNCTIONAL / PROVISIONAL | State retained; no guessed SysEx offsets | Identify offsets only from evidence | v0.19+ |
+| Sequence velocity bit 7 | OPAQUE / MEASURE | Preserved | Determine tie/retrigger semantics | v0.19+ |
+| Chord-memory program storage | OPAQUE / MEASURE | Runtime chord works; program load clears runtime capture | Differential hardware SysEx captures | v0.19+ |
+| Host state codec | VALIDATED | Versioned, JUCE-independent, 1024-byte round trip | Keep backward compatibility | Ongoing |
 
 ## B. Voice engine and analog signal path
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Six-voice polyphony | VALIDATED | Six independent `P6Voice` slots | DAW stress/voice-steal soak | v0.21 |
-| Voice allocation / steal | FUNCTIONAL / PROVISIONAL | Free voice, released voice, then oldest voice | Compare subtle hardware stealing behavior if evidence appears | v0.19 |
-| Oscillator 1/2 pitch | FUNCTIONAL / PROVISIONAL | Hardware raw domains mapped; free-running VCOs | Final pitch/slop calibration | v0.19 |
-| Continuous Tri -> Saw -> Pulse morph | FUNCTIONAL / PROVISIONAL | Anti-aliased trapezoid-family oscillator | Hardware spectral calibration across shape sweep | v0.19 |
-| Pulse width / PWM | FUNCTIONAL / PROVISIONAL | Continuous duty control, modulation support | Endpoint law and normalization calibration | v0.19 |
-| Osc2 fine tune | FUNCTIONAL / PROVISIONAL | +/-50-cent physical interpretation | Verify exact control law | v0.19 |
-| Osc2 low-frequency mode | FUNCTIONAL / PROVISIONAL | Implemented | Hardware range calibration | v0.19 |
-| Osc2 keyboard tracking off | VALIDATED | Fixed reference pitch while bend remains active | Behavioral A/B if hardware available | v0.19 |
-| Osc1 sub oscillator | FUNCTIONAL / PROVISIONAL | Follows modulated Osc1 frequency | Gain/waveform calibration | v0.19 |
-| Noise source | FUNCTIONAL / PROVISIONAL | White noise path | Level/color calibration | v0.19 |
-| Mixer levels | FUNCTIONAL / PROVISIONAL | Independent oscillator/sub/noise levels | Gain taper / drive interaction calibration | v0.19 |
-| Hard sync Osc2 -> Osc1 | FUNCTIONAL / PROVISIONAL | Sub-sample sync + anti-alias correction diagnostics | **Known spectral mismatch** on Sync Stack; likely analog reset/recovery behavior | v0.19 |
-| HPF | FUNCTIONAL / PROVISIONAL | Resonant TPT 2-pole candidate | Cutoff/resonance/key-track/env calibration | v0.19 |
-| LPF | FUNCTIONAL / PROVISIONAL | Resonant 4-pole SSM2040-lineage candidate | Cutoff law, resonance, saturation, self-oscillation calibration | v0.19 |
-| Filter ordering | FUNCTIONAL / PROVISIONAL | Mixer -> HPF -> LPF -> VCA | Confirm edge interactions with hardware captures | v0.19 |
-| Amp ADSR | FUNCTIONAL / PROVISIONAL | Exponential envelope, separate calibration hooks | Exact attack/decay/release law | v0.19 |
-| Filter ADSR | FUNCTIONAL / PROVISIONAL | Independent envelope/taper hooks | Exact timing and depth law | v0.19 |
-| Velocity -> amp/filter | FUNCTIONAL / PROVISIONAL | Mapped and routed | Hardware depth calibration | v0.19 |
-| VCA / program volume | FUNCTIONAL / PROVISIONAL | Working output gain path | Final gain staging calibration | v0.19 |
-| Pan Spread | FUNCTIONAL / PROVISIONAL | Per-voice stereo positions | Exact hardware spread law | v0.19 |
-| Analog distortion | FUNCTIONAL / PROVISIONAL | Post-sum asymmetric candidate + DC blocker | Transfer-curve / gain staging calibration | v0.19 |
-| Standard Slop | FUNCTIONAL / PROVISIONAL | Independent slow pitch drift | Amount/rate distribution calibration | v0.19 |
-| Vintage behavior | FUNCTIONAL / PROVISIONAL | Per-voice pitch/filter/envelope/gain variation candidate | Hardware/global behavior calibration | v0.19 |
+| Six-voice polyphony | VALIDATED | Six independent `P6Voice` slots | DAW stress/steal soak | v0.21 |
+| Voice allocation / steal | FUNCTIONAL / PROVISIONAL | Free, released, then oldest | Hardware edge behavior | v0.19 |
+| Oscillator pitch / coarse / fine | FUNCTIONAL / PROVISIONAL | Free-running VCOs and mapped raw domains | Final calibration | v0.19 |
+| Tri -> Saw -> Pulse morph | FUNCTIONAL / PROVISIONAL | Anti-aliased trapezoid-family oscillator | Hardware spectral sweep | v0.19 |
+| Pulse width / PWM | FUNCTIONAL / PROVISIONAL | Continuous duty + modulation | Endpoint/law calibration | v0.19 |
+| Osc2 LF / key-track-off | FUNCTIONAL / PROVISIONAL | Implemented; fixed reference when key track off | Range/A-B calibration | v0.19 |
+| Sub oscillator | FUNCTIONAL / PROVISIONAL | Follows modulated Osc1 | Gain/waveform calibration | v0.19 |
+| Noise / mixer levels | FUNCTIONAL / PROVISIONAL | Working paths | Level/color/taper calibration | v0.19 |
+| Hard sync Osc2 -> Osc1 | FUNCTIONAL / PROVISIONAL | Sub-sample sync + anti-alias correction | Known residual spectral mismatch | v0.19 |
+| HPF | FUNCTIONAL / PROVISIONAL | Resonant TPT 2-pole candidate | Cutoff/resonance calibration | v0.19 |
+| LPF | FUNCTIONAL / PROVISIONAL | Resonant 4-pole SSM2040-lineage candidate | Law/resonance/saturation calibration | v0.19 |
+| Filter ordering | FUNCTIONAL / PROVISIONAL | Mixer -> HPF -> LPF -> VCA | Edge A/B | v0.19 |
+| Amp / Filter ADSR | FUNCTIONAL / PROVISIONAL | Independent exponential/taper hooks | Exact timing/depth laws | v0.19 |
+| Velocity -> amp/filter | FUNCTIONAL / PROVISIONAL | Routed | Depth calibration | v0.19 |
+| VCA / program volume | FUNCTIONAL / PROVISIONAL | Working gain path | Final gain staging | v0.19 |
+| Pan Spread | FUNCTIONAL / PROVISIONAL | Six fixed per-voice positions; gains cached outside sample loop | Exact hardware spread law | v0.19 |
+| Analog distortion | FUNCTIONAL / PROVISIONAL | Post-sum asymmetric candidate + DC blocker | Transfer/gain calibration | v0.19 |
+| Standard Slop / Vintage | FUNCTIONAL / PROVISIONAL | Drift and per-voice variation candidates | Distribution/global calibration | v0.19 |
 
 ## C. Modulation
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Global LFO waveforms | FUNCTIONAL / PROVISIONAL | Triangle, saw, reverse saw, square, random/noise behavior | Rate/waveform calibration | v0.19 |
-| LFO rate | FUNCTIONAL / PROVISIONAL | Raw-to-Hz mapping | Final hardware law | v0.19 |
+| Global LFO waveforms/rate | FUNCTIONAL / PROVISIONAL | Triangle, saw, reverse saw, square, random/noise; audio-rate capable | Final waveform/rate calibration | v0.19 |
 | LFO Initial Amount | VALIDATED behavior / provisional depth | Routed | Depth calibration | v0.19 |
-| Mod Wheel -> LFO depth | VALIDATED behavior | `initial + wheel*(1-initial)` model | Hardware A/B only | v0.19 |
-| LFO destinations | FUNCTIONAL / PROVISIONAL | Osc1/2 pitch, PW, amp, LPF, HPF routing | Destination depth calibration | v0.19 |
-| **LFO Sync** | CONNECTED / INCOMPLETE | Sync state retained; first physical key of a new chord resets synced LFO phase and is regression-tested | Establish exact Prophet-6 raw-frequency-to-rhythmic-division law before clock-rate mapping | v0.19 / hardware evidence |
-| Channel pressure amount/destinations | FUNCTIONAL / PROVISIONAL | Pressure routing including LFO amount | Final depth calibration | v0.19 |
-| Poly Mod filter-envelope source | FUNCTIONAL / PROVISIONAL | Audio-rate-capable source/dest path | Range calibration | v0.19 |
-| Poly Mod Osc2 source | FUNCTIONAL / PROVISIONAL | Audio-rate modulation | Range and analog bandwidth calibration | v0.19 |
-| Poly Mod -> Osc1 pitch | FUNCTIONAL / PROVISIONAL | 4-octave candidate span | Hardware sweep | v0.19 |
-| Poly Mod -> Osc1 shape/PW | FUNCTIONAL / PROVISIONAL | Full morph / duty candidates | Hardware sweep | v0.19 |
-| Poly Mod -> LPF/HPF | FUNCTIONAL / PROVISIONAL | 7-octave candidate span | Hardware sweep | v0.19 |
+| Mod Wheel -> LFO depth | VALIDATED behavior | Remaining-range model | Hardware A/B | v0.19 |
+| LFO destinations | FUNCTIONAL / PROVISIONAL | Osc pitch/PW/VCA/filters | Depth calibration | v0.19 |
+| LFO Sync | CONNECTED / INCOMPLETE | Evidence-backed first-key phase reset | Exact raw-frequency -> rhythmic division law | OPAQUE / v0.19+ |
+| Channel pressure | FUNCTIONAL / PROVISIONAL | Destinations including LFO amount | Depth calibration | v0.19 |
+| Poly Mod sources/destinations | FUNCTIONAL / PROVISIONAL | Filter Env + Osc2; Osc1 pitch/shape/PW + LPF/HPF | Range/bandwidth calibration | v0.19 |
 
 ## D. Performance behavior
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Pitch bend | VALIDATED behavior | Bipolar bend, program range capped physically to 12 semitones while raw state is preserved | Verify range edge cases | v0.19 |
-| Unison voice count | VALIDATED behavior | 1..6 stack, CHD selects six | Final hardware behavior A/B | v0.19 |
-| Key modes Low/High/Last | VALIDATED behavior | Implemented | Hardware A/B | v0.19 |
-| Retrigger variants | VALIDATED behavior | Low/High/Last retrigger from zero | Hardware A/B | v0.19 |
-| Chord memory runtime | VALIDATED behavior | Capture up to six intervals; high/low anchoring | Program persistence unknown | v0.19 |
-| Sustain pedal CC64 | VALIDATED | Physical Note Off clears held-key state immediately; Damper defers live-voice release; pedal-up releases only non-held live voices | Hardware A/B edge cases | Done / regression gate |
-| Foot Controller CC4 | OPAQUE / MEASURE | Not routed; deliberately deferred rather than guessed | Establish Prophet-6 mapping/placement from strong evidence | v0.19+ |
-| MIDI Volume CC7 | VALIDATED | Runtime performance gain, independent of saved program Voice Volume | Hardware A/B gain law if needed | Done / regression gate |
-| Reset All Controllers CC121 | VALIDATED | Resets Mod Wheel, Sustain and MIDI Volume for modeled CC state | Extend only as new controller classes become validated | Done |
-| All Sound Off CC120 | VALIDATED | Immediate voice silence without redefining controller state | Maintain regression | Done |
-| All Notes Off CC123 | VALIDATED | Releases physical-note ownership while respecting Damper semantics | Maintain regression | Done |
-| Full panel MIDI CC map | MISSING / PARTIAL | NRPN path is mature; selected evidence-backed performance CCs implemented | Extend only from documented/evidence-backed mappings | Ongoing |
+| Pitch bend | VALIDATED behavior | Bipolar, program range | Edge A/B | v0.19 |
+| Unison / key modes / retrigger | VALIDATED behavior | 1..6 voices, Low/High/Last variants | Hardware A/B | v0.19 |
+| Chord memory runtime | VALIDATED behavior | Up to six intervals | Persistence remains opaque | v0.19+ |
+| Sustain CC64 | VALIDATED | Physical-key and sustained-voice lifetime separated | Edge A/B | Regression gate |
+| Foot Controller CC4 | OPAQUE / MEASURE | Not guessed | Establish mapping from evidence | v0.19+ |
+| MIDI Volume CC7 | VALIDATED | Runtime gain independent of saved Voice Volume | Gain law if needed | Regression gate |
+| CC120 / CC121 / CC123 | VALIDATED | Distinct channel-mode/controller semantics | Maintain regression | Done |
+| Full panel MIDI CC map | MISSING / PARTIAL | Mature NRPN + evidence-backed CCs | Extend only with evidence | Ongoing |
 
 ## E. Clock, arpeggiator and sequencer
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Internal clock | VALIDATED | Sample-domain scheduler | Long-duration drift soak | v0.21 |
-| Host/DAW PPQ clock | VALIDATED | Host PPQ anchor, no second wrapper clock | Multi-host reposition/loop tests | v0.21 |
-| MIDI Clock 24 PPQN | VALIDATED | Start/Continue/Stop + no-start/stop policy support | External hardware soak | v0.21 |
-| 10 clock divisions | VALIDATED | All documented divisions represented | Keep regression tests | Done |
-| Swing divisions | OPAQUE / MEASURE | Correct average division; straight fallback | Measure actual long:short ratio | v0.19 |
-| Arp Up / Down / Up-Down | VALIDATED behavior | Sample-accurate scheduler | Hardware A/B endpoints | v0.19 |
-| Arp Random | FUNCTIONAL / PROVISIONAL | Random mode works | Exact Prophet RNG/order not claimed | v0.19 |
-| Arp Assign | FUNCTIONAL / PROVISIONAL | Dedicated 32-press scratchpad; repeated pitches preserved | Hardware sequence limits/edge behavior | v0.19 |
-| Arp Range 1..3 octaves | VALIDATED behavior | Implemented | Hardware A/B | v0.19 |
-| Arp Hold / relatch | VALIDATED behavior | Implemented | Host/UI exposure later | v0.20 |
-| Arp Beat Sync | VALIDATED behavior | Immediate vs next-grid behavior | Hardware A/B | v0.19 |
-| Arpeggiator realtime ordering | VALIDATED | Fixed-size deterministic insertion sorting; no heap allocation on realtime path | Keep allocation regression green | Done / regression gate |
-| Stored sequencer decode 6x64 | VALIDATED | 384 cells decoded losslessly | Preserve unknown flag | Done |
-| Sequencer playback | FUNCTIONAL / PROVISIONAL | Six tracks, length, velocity low-7-bit, transposition | Tie/retrigger and mode semantics incomplete | v0.19 |
-| Sequencer transpose | VALIDATED behavior | Middle-C reference | Hardware A/B | v0.19 |
-| Sequencer Mode NRPN 170 | OPAQUE / MEASURE | State preserved | Determine exact behavior | v0.19 |
-| Sequencer Play Mode NRPN 171 | OPAQUE / MEASURE | State preserved | Determine exact behavior | v0.19 |
-| Seq Play/Stop NRPN 1088 | VALIDATED | Runtime-only, not serialized into program | Keep state/host regression | Done |
-| Generated MIDI output from arp/seq | MISSING | Internal generated notes only | Optional MIDI output parity after core behavior is stable | v0.18+ |
+| Internal / host PPQ / MIDI Clock | VALIDATED | One sample-domain scheduler; 24 PPQN and transport | Long real-host/hardware soak | v0.21 |
+| 10 clock divisions | VALIDATED | All represented | Maintain tests | Done |
+| Swing ratio | OPAQUE / MEASURE | Correct average division, straight fallback | Measure long:short ratio | v0.19+ |
+| Arp modes/range/HOLD/Beat Sync | VALIDATED or FUNCTIONAL / PROVISIONAL | Up/Down/Up+Down/Random/Assign; 1..3 octaves | RNG/edge A-B where unknown | v0.19 |
+| Arp realtime ordering | VALIDATED | Fixed-array deterministic ordering | Keep allocation gate | Done |
+| Stored sequencer 6x64 | VALIDATED decode | 384 cells preserved | Unknown flags remain opaque | Done |
+| Sequencer playback/transposition | FUNCTIONAL / PROVISIONAL | Six tracks, velocity low 7 bits, middle-C transpose | Tie/mode/play-mode semantics | v0.19+ |
+| Seq Mode / Play Mode | OPAQUE / MEASURE | State preserved | Hardware evidence | v0.19+ |
+| Seq Play/Stop NRPN 1088 | VALIDATED | Runtime-only | Maintain tests | Done |
+| Generated MIDI output | MISSING / OPTIONAL | Internal generated notes only | Optional after core parity | Backlog |
 
-## F. Effects
+## F. Effects — v0.18 CLOSED
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| FX A/B program state | VALIDATED state | Types, mix, params, sync/rate domains mapped and preserved | Runtime DSP absent | v0.18 |
-| FX global on/off | VALIDATED state / MISSING DSP | Parameter exists | Wire true effect bypass once DSP exists | v0.18 |
-| Delay / BBD-style effects | MISSING | No digital FX processing in engine | Reuse/adapt license-compatible mature patterns before writing from zero | **v0.18** |
-| Chorus | MISSING | No runtime DSP | Same | v0.18 |
-| Phaser | MISSING | No runtime DSP | Implement/calibrate | v0.18 |
-| Flanger | MISSING | No runtime DSP | Implement/calibrate | v0.18 |
-| Ring modulation | MISSING | No runtime DSP | Implement/calibrate | v0.18 |
-| Reverbs | MISSING | No runtime DSP | Implement/calibrate | v0.18 |
-| FX serial ordering A -> B | MISSING runtime | State exists only | Build one shared realtime-safe FX chain | v0.18 |
-| FX tempo sync | MISSING runtime | Sync controls mapped | Use common scheduler/clock; do not invent another clock | v0.18 |
+| FX A/B program state | VALIDATED | Verified raw domains preserved/mapped | Later-OS selectors only with evidence | Ongoing |
+| FX global on/off | VALIDATED | Bit-transparent true bypass at DSP boundary | Exact bypass-tail evolution on hardware | OPAQUE / MEASURE |
+| Serial A -> B architecture | VALIDATED | One global realtime-safe chain in `P6Engine` | Maintain tests | Done |
+| BBD delay | FUNCTIONAL / PROVISIONAL | Audible DSP; bounded feedback, repeat loss/wander | Acoustic hardware calibration | v0.19 |
+| Digital delay | FUNCTIONAL / PROVISIONAL | Audible DSP | Acoustic/time-law calibration | v0.19 |
+| Chorus | FUNCTIONAL / PROVISIONAL | Stereo modulated-delay candidate | Acoustic calibration | v0.19 |
+| PH1 / PH2 | FUNCTIONAL / PROVISIONAL | Audible all-pass candidates | Acoustic calibration | v0.19 |
+| Hall / Room / Plate / Spring | FUNCTIONAL / PROVISIONAL | Audible preallocated stereo FDN candidates | Acoustic calibration | v0.19 |
+| PH3 / Ring / FL1 / FL2 internal DSP | FUNCTIONAL / PROVISIONAL | Executable internal candidates + tests | Raw selector/control encoding unknown | OPAQUE / MEASURE |
+| Ring low-note tracking | OPAQUE / MEASURE | Not wired to guessed state | Establish control identity | Hardware evidence |
+| FX tempo sync | VALIDATED | Uses existing internal/host/MIDI common clock | Exact hardware timing A/B | v0.19 |
+| FX parameter smoothing | VALIDATED contract | Deterministic click-safe interpolation | Hardware smoothing law optional | v0.19 |
+| FX state transitions | VALIDATED | Old algorithm state invalidated on type change | Hardware-tail nuance only | Done |
+| CC120 effect clear | VALIDATED | O(1)/bounded logical invalidation; immediate silence | Maintain realtime regression | Done |
 
 ## G. MIDI and realtime host integration
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Note On/Off sample offsets | VALIDATED | JUCE MIDI consumed at sample positions | DAW soak | v0.21 |
-| Mod Wheel / pitch bend / channel pressure | VALIDATED | Unified `P6MidiRouter` | Keep regression | Done |
-| Complete NRPN stream | VALIDATED | CC99/98 + CC6/38 | Fuzz malformed/reordered streams | Ongoing |
-| Data Increment/Decrement CC96/97 | VALIDATED | Implemented | Edge-domain tests | Ongoing |
-| RPN reset 127/127 | VALIDATED | Correct pair semantics | Keep regression | Done |
-| Host automation -> raw patch | VALIDATED | Individual NRPN updates, no whole-patch overwrite | More real-host conflict soak | v0.21 |
-| MIDI NRPN -> audio patch | VALIDATED | Sample-accurate application | More real-host conflict soak | v0.21 |
-| **Host automation vs pending MIDI mirror ordering** | VALIDATED | `VersionedEditMailbox` supplies monotonic generations and last-writer-wins canonical/UI acceptance | Keep cross-thread regression green | Done / regression gate |
-| SysEx received inside audio callback | CONNECTED / INCOMPLETE | Recognised but deliberately not decoded realtime | Fixed RT->message-thread handoff if/when realtime SysEx support is required | v0.18+ |
-| Realtime allocation proof | VALIDATED | Explicit realtime allocation contract test; arpeggiator allocation source removed | Extend gate as new realtime subsystems are added | Done / regression gate |
-| Realtime lock behavior | FUNCTIONAL / PROVISIONAL | `tryEnter()` avoids blocking audio thread | Stress preset/state edits while processing | v0.21 |
+| Sample-offset MIDI | VALIDATED | JUCE MIDI applied at sample positions | DAW soak | v0.21 |
+| Mod Wheel / bend / pressure | VALIDATED | Unified router | Maintain regression | Done |
+| NRPN + Data Inc/Dec | VALIDATED | Complete modeled stream | Fuzz more malformed ordering | Ongoing |
+| Host automation <-> raw patch | VALIDATED | Per-NRPN edits | Real-host conflict soak | v0.21 |
+| Host-vs-MIDI causal ordering | VALIDATED | Versioned monotonic last-writer-wins mailbox | Maintain cross-thread test | Done |
+| Realtime allocation proof | VALIDATED | Explicit contract tests + fixed-array arp ordering | Extend with new subsystems | Ongoing |
+| SysEx inside audio callback | CONNECTED / INCOMPLETE | Recognized but not decoded realtime | RT->message handoff only if required | Backlog |
+| Realtime locks | FUNCTIONAL / PROVISIONAL | Nonblocking/try-enter strategy | Stress state edits in hosts | v0.21 |
 
 ## H. VST3 wrapper and platform support
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| JUCE isolation from core | VALIDATED | JUCE optional; core remains C++20-only | Maintain boundary | Ongoing |
-| Windows VST3 build | VALIDATED | GitHub Actions build PASS in v0.17 gate | Real DAW matrix | v0.21 |
-| Linux VST3 build | VALIDATED | GitHub Actions build PASS in v0.17 gate | Real DAW matrix | v0.21 |
-| `pluginval` strictness 10 Windows | VALIDATED | PASS in v0.17 gate | Keep release gate | Ongoing |
-| `pluginval` strictness 10 Linux | VALIDATED | PASS in v0.17 gate | Keep release gate | Ongoing |
-| Linux ASan+UBSan | VALIDATED | PASS in v0.17 gate | Keep release gate | Ongoing |
-| State restoration through VST3 | VALIDATED | pluginval + independent codec tests | DAW project restore matrix | v0.21 |
-| Host tempo/PPQ | VALIDATED basic path | JUCE playhead -> common clock | Multi-host loops/reposition tests | v0.21 |
-| Oversampling quality setting | VALIDATED host behavior | Applied only from `prepareToPlay()` to avoid RT reallocations | Better UX/restart semantics later | v0.20 |
-| Standalone | SECONDARY | Build option retained | Not a Windows/Linux VST3 release blocker | Backlog |
+| JUCE isolation from core | VALIDATED | Optional wrapper; C++20 core independent | Maintain boundary | Ongoing |
+| Windows VST3 | VALIDATED | Release CI + pluginval 10 | DAW matrix | v0.21 |
+| Linux VST3 | VALIDATED | Release CI + pluginval 10 | DAW matrix | v0.21 |
+| Linux ASan+UBSan | VALIDATED | Release gate | Keep green | Ongoing |
+| VST3 state restoration | VALIDATED | pluginval + codec tests | Real project matrix | v0.21 |
+| Host tempo/PPQ | VALIDATED basic path | Common clock | Multi-host loop/reposition tests | v0.21 |
+| Oversampling setting | VALIDATED host behavior | Applied only during prepare | UX/restart semantics | v0.20 |
+| Standalone | SECONDARY | Optional build | Not a VST3 release blocker | Backlog |
 
-## I. UI, preset workflow and user-facing instrument
+## I. UI, preset workflow and visual identity
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Diagnostic parameter UI | VALIDATED | JUCE `GenericAudioProcessorEditor` | Retain as debug option | Ongoing |
-| Custom Prophet-style editor | MISSING | None | Build only after parameter/behavior contract stabilises | **v0.20** |
-| Panel controls connected to real DSP | PARTIAL by definition | Generic editor exposes host parameters | Matrix rows above decide whether each control is truly functional | v0.18-v0.20 |
-| Preset browser | MISSING | Host state and SysEx APIs exist underneath | Browser, bank/program navigation, favorites/search later | v0.20 |
-| SysEx import/export UI | MISSING | Non-realtime APIs exist | File picker + validation + error UX | v0.20 |
-| Init / compare / A-B workflow | MISSING | Core can load/update states | Design after state contract is frozen | v0.20 |
-| Sequencer visual editor | MISSING | Sequence data/runtime exist | UI only after semantics are clearer | v0.20 |
-| Calibration/diagnostic UI | MISSING / OPTIONAL | CLI diagnostics are mature | Keep developer-only unless genuinely useful | Backlog |
+| Diagnostic parameter UI | VALIDATED | JUCE Generic editor | Keep debug fallback | Ongoing |
+| Custom editor | MISSING | None | Design after sound/parameter contract settles | v0.20 |
+| Preset browser / SysEx UI / Init-Compare-A-B | MISSING | Core APIs exist underneath | User-facing workflow design | v0.20 |
+| Sequencer visual editor | MISSING | Runtime/data exist | Build after semantics stabilize | v0.20 |
+| **Reactive character FX visuals** | **DEFERRED / UI** | Concept backlog only; no DSP coupling yet | Refine visual language and UI architecture before implementation | **v0.20+ / UI exploration** |
 
-## J. Acoustic validation and performance optimisation
+### Reactive character FX visual backlog
+
+The following ideas are intentionally parked until the custom UI language is better defined:
+
+- tube saturation with a visible glowing valve/heat response;
+- plasma-style effect/pedal with visible electrical discharges;
+- spring reverb with animated vibrating springs;
+- tape echo with rotating reels/tape motion;
+- optical tremolo with a pulsing lamp/photo-cell metaphor;
+- ring modulation with a miniature oscilloscope/carrier visual;
+- ferrofluidic distortion with magnetic-liquid deformation;
+- shimmer reverb with refracting/dispersing light particles in a translucent surface.
+
+Architecture rule for this future work: visuals must consume low-cost telemetry copied from DSP/state, render on the UI thread at a bounded frame rate, support reduced-motion/visual-off modes, and never alter the audio contract or add expensive analysis solely to drive decoration.
+
+## J. Acoustic validation, regression and performance optimisation
 
 | Feature | Status | Current implementation | Remaining work / proof | Target |
 |---|---|---|---|---|
-| Deterministic DSP regression | VALIDATED | Controlled hard-sync probe remains byte-identical across wrapper/control work | Keep immutable golden probes | Ongoing |
-| Reference-A comparison harness | FUNCTIONAL / PROVISIONAL | Spectral/envelope/stereo metrics and patch-aware inference | Source is compressed web audio, not calibration truth | v0.19 |
-| Real hardware dry capture corpus | MISSING | Capture protocol defined | Obtain controlled oscillator/filter/env/sync sweeps | **v0.19 P0** |
-| Hard-sync residual analysis | FUNCTIONAL / PROVISIONAL | v0.11 microscope excludes several simple causes | Model finite analog reset/discharge/recovery only with evidence | v0.19 |
-| Filter calibration | FUNCTIONAL / PROVISIONAL | Several replaceable laws/candidates | Hardware sweep fit | v0.19 |
-| Envelope calibration | FUNCTIONAL / PROVISIONAL | Separate amp/filter exponents and maxima | Hardware timing captures | v0.19 |
-| Glide calibration | FUNCTIONAL / PROVISIONAL | Four modes implemented | Exact rate/time law | v0.19 |
-| 1x/2x/4x/8x oversampling | VALIDATED infrastructure | 2x default; higher modes diagnostic | Decide adaptive 4x only if quality/CPU data justify it | v0.19 |
-| CPU profiling | FUNCTIONAL | Oscillator path identified as main hotspot | Optimise only after v0.18 feature set stabilises | v0.19 |
-| Oscillator fast paths | MISSING optimisation | Current general path always used | Cache static shape/PW geometry; preserve hard-sync/Poly-Mod fidelity | v0.19 |
-| Silent-voice cheap advance | MISSING optimisation | Full voice path currently used | Advance free-running state without unnecessary audio work | v0.19 |
-| Pan coefficient caching | MISSING optimisation | Candidate micro-optimisation | Do only after profiling confirms value | v0.19 |
+| DSP fingerprints | VALIDATED | Dry, sync/poly, FX, 1x and nonzero-Pan deterministic snapshots | Expand around calibration changes | Ongoing |
+| Reference-A harness | FUNCTIONAL / PROVISIONAL | Spectral/envelope/stereo comparison suite | Compressed web source is not calibration truth | v0.19 |
+| Controlled real-hardware corpus | MISSING | Capture protocol defined | Obtain dry oscillator/filter/env/sync/FX sweeps | **v0.19 P0** |
+| Performance benchmark | VALIDATED infrastructure | 1/6 voices, FX off/on, 48/96 kHz, oversampling, avg/worst block | Add stable local-machine baselines | v0.19 |
+| Reverb coefficient cache | VALIDATED optimisation | Parameter-invariant math outside sample loop; sample-rate invalidation tested | Maintain fingerprint | Done |
+| Zero-history FIR skip | VALIDATED optimisation | Exact zero convolution shortcut; free-running state retained | Maintain fingerprint | Done |
+| Base pitch conversion cache | VALIDATED optimisation | Reuses Hz conversion only when effective base pitch unchanged | Maintain modulation regression | Done |
+| Pan gain cache | VALIDATED optimisation | Six `sin/cos` gains recomputed only on spread changes | Exact hardware spread law remains calibration work | Done |
+| Cutoff cache experiment | NOT INTEGRATED | Experimented separately | Reconsider only after profiling/calibration | v0.19 |
+| Further CPU optimisation | ACTIVE SOON | Voice DSP remains main cost center | Profiling-driven only; preserve Reference-A + fingerprints | v0.19 |
 
 ---
 
@@ -214,73 +203,59 @@ The current JUCE generic editor is diagnostic only. A control being visible ther
 
 ## v0.16 — Stability gate — **CLOSED**
 
-Completed:
+Windows/Linux VST3, pluginval strictness 10, Linux sanitizers, release-mode tests, chord-memory fix and serialized-layout integrity closed.
 
-- Windows VST3 build + CTest + pluginval strictness 10.
-- Linux VST3 build + CTest + pluginval strictness 10.
-- Linux ASan+UBSan.
-- Real Release-mode checks.
-- Chord-memory held-key bug fixed.
-- Serialized parameter registry/layout integrity fixed and regression-tested.
-- Valid bundle ID and one canonical CI workflow.
+## v0.17 — Control/performance contract — **CLOSED**
 
-## v0.17 — Complete the control/performance contract — **CLOSED**
-
-Completed release scope:
-
-1. Causal ordering for host automation vs MIDI NRPN/UI mirroring.
-2. Explicit realtime no-allocation regression tests.
-3. Sustain pedal CC64.
-4. Evidence-backed synced-LFO first-key phase reset; unknown division law explicitly deferred rather than guessed.
-5. MIDI Volume CC7 and controller/channel-mode semantics for CC120/121/123.
-6. Realtime arpeggiator allocation risk removed.
-7. Unknown CC4, chord-memory storage and sequencer opaque semantics documented rather than fabricated.
-
-**Exit criterion met:** non-FX musical controls intended for this milestone either work, are explicitly hardware-unknown, or are deliberately deferred with reason. Windows/Linux VST3, control/realtime tests, pluginval strictness 10 and Linux ASan+UBSan passed the closeout gate.
+Host/MIDI causal ordering, realtime allocation regression, sustain, MIDI Volume/channel-mode CC behavior, evidence-backed synced-LFO phase reset and realtime arp ordering closed. Unknown hardware semantics remained explicit rather than fabricated.
 
 See `V0_17_CONTROL_CONTRACT.md` and `V0_17_CLOSEOUT.md`.
 
-## v0.18 — Digital effects — **ACTIVE**
+## v0.18 — Digital effects — **CLOSED**
 
-- One realtime-safe serial FX A -> B architecture.
-- Reuse/adapt mature license-compatible delay/chorus concepts where available instead of reinventing them.
-- Complete Prophet effect family: delay/BBD, chorus, phaser, flanger, ring modulation, reverbs.
-- Common tempo sync source shared with the existing clock.
-- True/off bypass semantics and state regression.
+Completed release scope:
 
-**Exit criterion:** every effect control exposed to the host has audible runtime behavior or is intentionally unsupported and hidden from release UI.
+1. One realtime-safe global serial FX A -> B architecture.
+2. Audible DSP for every effect in the verified legacy selector domains.
+3. Internal candidate DSP for PH3/Ring/FL1/FL2 without guessed serialization.
+4. Common-clock tempo sync.
+5. True bypass, deterministic parameter smoothing and state-transition hardening.
+6. Bounded-time CC120 effect invalidation.
+7. Deterministic DSP fingerprints and repeatable performance benchmarking.
+8. Safe measured optimisations: reverb coefficients, zero-history FIR, base pitch conversion and Pan Spread gains.
+9. Windows/Linux VST3, CTest, pluginval strictness 10 and Linux ASan+UBSan release gates.
 
-## v0.19 — Sound matching and optimisation
+**Exit criterion met:** every verified legacy effect control exposed to the host has runtime behavior; unsupported/unknown later-OS selector semantics remain explicitly opaque rather than guessed.
 
-- Controlled Prophet-6 hardware captures become primary calibration evidence.
-- Oscillators/PW/mixer gain staging.
-- Hard-sync residual.
-- HPF/LPF cutoff, resonance, saturation and envelope behavior.
-- ADSR timing/depth, glide, Slop/Vintage and analog distortion.
+See `V0_18_FX_AUDIT.md` and `V0_18_CLOSEOUT.md`.
+
+## v0.19 — Sound matching and optimisation — **ACTIVE**
+
+- Controlled Prophet-6 hardware captures as primary evidence.
+- Oscillator/PW/mixer gain staging and hard-sync residual.
+- HPF/LPF cutoff/resonance/saturation/envelope behavior.
+- ADSR, glide, Slop/Vintage and analog distortion.
 - Poly-Mod/LFO/pressure depth calibration.
-- CPU optimisation driven by profiling, not intuition.
-- Decide adaptive oversampling only from measured quality/CPU tradeoff.
+- FX acoustic calibration.
+- CPU optimisation driven by profiling and protected by fingerprints/Reference-A.
+- Adaptive oversampling only if measured quality/CPU data justify it.
 
-**Exit criterion:** a documented listening/measurement suite covers representative basic, sync, PWM, filter, modulation, unison and FX patches with no regression outside agreed tolerances.
+**Exit criterion:** documented listening/measurement coverage of representative basic, sync, PWM, filter, modulation, unison and FX patches with no regression outside agreed tolerances.
 
 ## v0.20 — Custom UI and preset workflow
 
-Only after the parameter/musical contract above is stable:
-
-- Bespoke editor.
-- Clear indication of panel vs Global/wrapper controls.
-- Preset/bank browser.
-- SysEx import/export.
+- Bespoke editor and final visual language.
+- Preset/bank browser and SysEx import/export.
 - Sequence editor.
 - Init / compare / A-B workflow.
-- Keep Generic JUCE editor available as a diagnostic fallback.
+- Evaluate the deferred reactive/character FX visual concepts only after core UI architecture, accessibility/reduced-motion behavior and performance budget are defined.
+- Keep Generic JUCE editor as diagnostic fallback.
 
-**Exit criterion:** every visible user control maps to a matrix row that is functional or explicitly documented; no decorative dead controls.
+**Exit criterion:** every visible user control maps to a functional/explicitly documented matrix row; no decorative dead controls and no UI work on the realtime audio thread.
 
 ## v0.21 — Public beta hardening
 
-- Windows DAW matrix.
-- Linux DAW matrix.
+- Windows/Linux DAW matrix.
 - Project save/reload and automation regression in real hosts.
 - Long-running MIDI/clock/voice-steal soak tests.
 - CPU/load tests at 44.1/48/96 kHz and common block sizes.
@@ -290,6 +265,6 @@ Only after the parameter/musical contract above is stable:
 
 # Active milestone discipline
 
-At any point there should be **one active milestone**. Work may only enter it when it closes a matrix row assigned to that milestone or fixes a regression blocking its exit criterion. Everything else stays in backlog.
+There is one active milestone at a time. Work only enters it when it closes an assigned matrix row or fixes a release-blocking regression. Everything else remains backlog.
 
-The active milestone after the v0.17 closeout gate is **v0.18: Digital effects**. Acoustic calibration and custom UI remain later milestones so the project does not oscillate between unrelated subsystems.
+**Active milestone after v0.18 closeout: v0.19 — Sound matching and optimisation.**

@@ -42,6 +42,8 @@ const char* clockDivisionName(ClockDivision division) noexcept
 void P6Clock::prepare(double sampleRate)
 {
     sampleRate_ = std::max(8000.0, sampleRate);
+    midiSamplesSincePulse_ = 0;
+    midiTempoIntervalSeen_ = false;
     restart(true);
 }
 
@@ -66,6 +68,8 @@ void P6Clock::setSyncMode(ClockSyncMode mode) noexcept
     if (mode == ClockSyncMode::MidiClock) {
         midiPulseIndex_ = 0;
         midiClockSeen_ = false;
+        midiSamplesSincePulse_ = 0;
+        midiTempoIntervalSeen_ = false;
     }
 }
 
@@ -92,9 +96,6 @@ double P6Clock::nominalStepSamples() const noexcept
 
 std::uint32_t P6Clock::midiClocksPerStep() const noexcept
 {
-    // All ten documented Prophet divisions fall on integer MIDI-clock counts:
-    // 48,24,12,18,12,8,6,6,4,3 clocks. Swing remains timing-opaque, so its
-    // conservative fallback uses the corresponding straight average spacing.
     const double clocks = 24.0 * clockDivisionInfo(division_).quarterNotesPerStep;
     return static_cast<std::uint32_t>(std::max(1.0, std::round(clocks)));
 }
@@ -140,12 +141,19 @@ void P6Clock::midiStart() noexcept
     midiPulseIndex_ = 0;
     stepIndex_ = 0;
     midiBoundaryPending_ = false;
+    midiClockSeen_ = false;
+    midiSamplesSincePulse_ = 0;
+    midiTempoIntervalSeen_ = false;
 }
 
 void P6Clock::midiContinue() noexcept
 {
-    if (syncMode_ == ClockSyncMode::MidiClock)
+    if (syncMode_ == ClockSyncMode::MidiClock) {
         running_ = true;
+        midiClockSeen_ = false;
+        midiSamplesSincePulse_ = 0;
+        midiTempoIntervalSeen_ = false;
+    }
 }
 
 void P6Clock::midiStop() noexcept
@@ -158,9 +166,25 @@ void P6Clock::midiTimingClock() noexcept
 {
     if (syncMode_ != ClockSyncMode::MidiClock)
         return;
+
+    if (midiClockSeen_ && midiSamplesSincePulse_ > 0u) {
+        const double measuredBpm = sampleRate_ * 60.0
+            / (static_cast<double>(midiSamplesSincePulse_) * 24.0);
+        // Reject transport gaps/outliers instead of clamping them into a fake
+        // tempo. Normal MIDI-clock sample quantisation is small enough that no
+        // additional tempo filter is required here; FX parameter smoothing is
+        // the appropriate place to remove audible delay-time zippering.
+        if (std::isfinite(measuredBpm) && measuredBpm >= 30.0 && measuredBpm <= 250.0) {
+            bpm_ = measuredBpm;
+            midiTempoIntervalSeen_ = true;
+        }
+    }
+
+    midiSamplesSincePulse_ = 0;
     midiClockSeen_ = true;
     if (!running_)
         return;
+
     const auto pulses = midiClocksPerStep();
     if ((midiPulseIndex_ % pulses) == 0)
         midiBoundaryPending_ = true;
@@ -169,6 +193,11 @@ void P6Clock::midiTimingClock() noexcept
 
 bool P6Clock::tick()
 {
+    // Count sample distance between MIDI Timing Clock bytes even while stopped;
+    // some devices continue sending F8 while transport is idle.
+    if (syncMode_ == ClockSyncMode::MidiClock && midiClockSeen_)
+        ++midiSamplesSincePulse_;
+
     if (!running_)
         return false;
 
@@ -184,10 +213,6 @@ bool P6Clock::tick()
     if (samplesUntilNext_ <= 1.0e-12) {
         fired = true;
         ++stepIndex_;
-        // The Prophet-6 manual identifies 8th-S and 16th-S as swing divisions
-        // but does not publish their long:short ratio. Until hardware timing is
-        // measured, those two values intentionally fall back to their straight
-        // base spacing instead of embedding an invented 2:1/3:1 constant.
         samplesUntilNext_ += std::max(1.0, nominalStepSamples());
     }
     samplesUntilNext_ -= 1.0;
