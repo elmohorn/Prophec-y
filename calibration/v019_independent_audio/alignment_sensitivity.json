@@ -1,0 +1,16 @@
+{
+  "reuse_of_existing_renders": true,
+  "additional_renders": 0,
+  "reason": "23/24 bounded alignments reached -150 ms boundary; check spectral signs without alignment and prohibit timing calibration conclusions",
+  "paired_comparisons": 12,
+  "spectral_improved": 12,
+  "band_shape_improved": 12,
+  "mr_spectral_delta_range_db": [
+    -0.17273356171256893,
+    -0.13488263718608806
+  ],
+  "band_shape_delta_range_db": [
+    -1.758690448807961,
+    -1.6945411889863013
+  ]
+}

@@ -26,7 +26,8 @@
     "Original WAV has not been RMS-normalized; interface/master gain unknown; metrics use RMS matching only.",
     "Approximate repeated C4 onsets; unrecorded velocity and gates; three gate hypotheses retained.",
     "FX and glide enabled in original attached program; initial FX-buffer history unknown.",
-    "No engine defaults changed; frozen eight-patch holdout remains unrun."
+    "No engine defaults changed; frozen eight-patch holdout remains unrun.",
+    "23/24 comparisons reach -150 ms alignment limit; timing calibration is not valid. Spectral signs independently checked with alignment disabled on same renders."
   ],
   "assets": {
     "RB004_g025": {
@@ -45,5 +46,6 @@
       "events": "c4f762edaf302475fdf303b0ee3023d375be38f61242f886ce137b2efdd922c8"
     }
   },
-  "input_protocol": "input_protocol.json"
+  "input_protocol": "input_protocol.json",
+  "alignment_sensitivity": "alignment_sensitivity.json"
 }
