@@ -107,6 +107,7 @@ void P6Voice::reset()
     glideStep_ = 0.0;
     std::fill(decimatorHistory_.begin(), decimatorHistory_.end(), 0.0);
     decimatorWrite_ = 0;
+    decimatorNonZeroSamples_ = 0;
 }
 
 double P6Voice::midiToHz(double note)
@@ -181,6 +182,7 @@ void P6Voice::configureDecimator()
         decimatorTaps_ = {1.0};
         decimatorHistory_ = {0.0};
         decimatorWrite_ = 0;
+        decimatorNonZeroSamples_ = 0;
         return;
     }
 
@@ -221,6 +223,7 @@ void P6Voice::configureDecimator()
 
     decimatorHistory_.assign(decimatorTaps_.size(), 0.0);
     decimatorWrite_ = 0;
+    decimatorNonZeroSamples_ = 0;
 }
 
 VoiceSample P6Voice::process(double lfoSignal, double pressure01)
@@ -231,8 +234,24 @@ VoiceSample P6Voice::process(double lfoSignal, double pressure01)
     VoiceSample last{};
     for (int os = 0; os < oversampleFactor_; ++os) {
         last = processInternal(lfoSignal, pressure01);
+
+        const double outgoing = decimatorHistory_[decimatorWrite_];
+        if (outgoing != 0.0)
+            --decimatorNonZeroSamples_;
+
         decimatorHistory_[decimatorWrite_] = last.dry;
+        if (last.dry != 0.0)
+            ++decimatorNonZeroSamples_;
+
         decimatorWrite_ = (decimatorWrite_ + 1) % decimatorHistory_.size();
+    }
+
+    // This is an exact shortcut: convolution of an all-zero FIR history is
+    // exactly zero. The full oversampled voice path above still runs, so VCO,
+    // slop, sync and filter history remain free-running exactly as before.
+    if (decimatorNonZeroSamples_ == 0) {
+        last.dry = 0.0;
+        return last;
     }
 
     double y = 0.0;
