@@ -134,8 +134,6 @@ struct VoiceSample {
     double slop2Cents{};
 };
 
-// Per-voice analog path. Oscillators and filter state continue to free-run while
-// the VCA is silent; performance shortcuts therefore must not skip processInternal().
 class P6Voice {
 public:
     void prepare(double sampleRate, std::uint32_t seed = 1, int oversampleFactor = 2);
@@ -157,6 +155,7 @@ private:
     VoiceSample processInternal(double lfoSignal, double pressure01);
     static double midiToHz(double note);
     static double phaseFromSeed(std::uint32_t seed);
+    double computeStaticFilterBaseHz(const VoiceFilterParams& filter, bool highPass) const;
     double filterCutoffHz(const VoiceFilterParams& filter, bool highPass,
                           double env, double polySource,
                           double lfoSemitones = 0.0,
@@ -179,6 +178,8 @@ private:
     ADSREnvelope filterEnv_{};
     CandidateLowPass4Pole lowPass_{};
     CandidateHighPass2Pole highPass_{};
+    double lowPassStaticBaseHz_{8.1757989156};
+    double highPassStaticBaseHz_{8.1757989156};
     double baseHz_{440.0};
     double glideNote_{69.0};
     double targetNote_{69.0};
