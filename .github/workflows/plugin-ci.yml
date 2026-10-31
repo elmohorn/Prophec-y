@@ -36,6 +36,13 @@ jobs:
           python3 tools/render_reference_manifest.py --self-test
           python3 tools/reference_audio_metrics.py --self-test
           python3 tools/analyze_p0a_manifest.py --self-test
+      - name: External-prior registry self-test
+        shell: bash
+        run: |
+          python3 -m py_compile tools/render_external_prior_suite.py
+          python3 -c "import json; d=json.load(open('calibration/external_priors.json', encoding='utf-8')); assert d['schema_version'] == 1; assert 'phosphor_pw_v019' in d['profiles']"
+          printf 'case_id,sysex,events\nSMOKE,dummy.syx,dummy_events.csv\n' > /tmp/external_prior_smoke.csv
+          python3 tools/render_external_prior_suite.py /tmp/external_prior_smoke.csv --output-dir /tmp/external-prior-out --dry-run
 
   build-and-validate:
     name: ${{ matrix.name }}
