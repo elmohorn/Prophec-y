@@ -70,6 +70,7 @@ struct Scenario {
     int voices;
     bool effects;
     int blockSize;
+    double panSpread{};
 };
 
 struct Result {
@@ -85,6 +86,7 @@ Result runScenario(const Scenario& scenario)
     p6::P6Engine engine;
     engine.prepare(scenario.sampleRate, scenario.oversample);
     engine.loadPatch(benchmarkPatch(scenario.effects));
+    engine.setPanSpread(scenario.panSpread);
     engine.setEffectsRuntimeBpm(120.0);
 
     constexpr std::array<int, 6> notes{48, 55, 60, 64, 67, 72};
@@ -133,10 +135,11 @@ Result runScenario(const Scenario& scenario)
 
 int main()
 {
-    constexpr std::array<Scenario, 8> scenarios{{
+    constexpr std::array<Scenario, 9> scenarios{{
         {"48k_1x_1voice_dry", 48000.0, 1, 1, false, 64},
         {"48k_2x_1voice_dry", 48000.0, 2, 1, false, 64},
         {"48k_2x_6voice_dry", 48000.0, 2, 6, false, 64},
+        {"48k_2x_6voice_pan", 48000.0, 2, 6, false, 64, 1.0},
         {"48k_2x_6voice_fx", 48000.0, 2, 6, true, 64},
         {"48k_4x_6voice_fx", 48000.0, 4, 6, true, 64},
         {"96k_1x_6voice_fx", 96000.0, 1, 6, true, 64},
