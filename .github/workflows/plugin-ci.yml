@@ -10,6 +10,18 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  online-analysis-tooling:
+    name: Online-reference measurement guards
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install analysis dependencies
+        run: python3 -m pip install -r analysis/requirements.txt
+      - name: Validate native analysis and synthetic measurement guards
+        run: |
+          python3 -m py_compile tools/compare_online_suite.py tools/prepare_recovered_online_suite.py analysis/*.py
+          python3 tests/online_metrics_test.py
+
   core-sanitizers:
     name: Linux ASan+UBSan
     runs-on: ubuntu-22.04
@@ -137,3 +149,4 @@ jobs:
           path: |
             build/**/P6 Core.vst3
           if-no-files-found: error
+

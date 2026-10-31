@@ -2,6 +2,15 @@
 
 Status: **ACTIVE**
 
+Research/comparison checkpoint (31 October 2026): see
+`V0_19_RESEARCH_REVIEW.md` and `V0_19_RECOVERED_AUDIO_RESULTS.md`.
+Five recovered real-hardware excerpts have now been re-rendered under nine
+candidate profiles and four common pre-rolls (180 renders). The data support
+keeping the current defaults while separating static-filter, envelope and
+hard-sync questions. The seven generic native analysis tools missing from the
+repository were recovered from the v0.15 project archive. Full-source MP3
+recovery and independent online-source annotation remain outstanding.
+
 v0.19 improves acoustic fidelity **without requiring access to a physical Prophet-6**. Its primary evidence is real Prophet-6 audio already available online or supplied by the project owner, combined with known program state, factory SysEx, documented controls, performance-event reconstruction and cross-source consistency.
 
 The v0.18 DSP fingerprints remain the anti-regression guard. They answer “did Prophec-y change?” Reference-A and other real Prophet-6 recordings answer the separate question “did Prophec-y move closer to the hardware?”
@@ -294,3 +303,4 @@ GitHub-hosted CPU percentages remain directional only; they are not absolute pro
 8. Profile and integrate only fingerprint-safe performance improvements alongside sound matching.
 
 The custom/reactive FX visual concept remains **DEFERRED / UI** in the master matrix and is outside v0.19 sound-matching scope unless a later UI milestone deliberately pulls it forward.
+

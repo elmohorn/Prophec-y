@@ -46,20 +46,31 @@
     },
     "reference_a_v07": {
       "description": "Historical Reference-A v0.7 filter/envelope candidate",
-      "renderer_args": ["--reference-a-v07"]
+      "renderer_args": [
+        "--reference-a-v07"
+      ]
     },
     "reference_a_v08": {
       "description": "Historical Reference-A v0.8 split-HPF candidate",
-      "renderer_args": ["--reference-a-v08"]
+      "renderer_args": [
+        "--reference-a-v08"
+      ]
     },
     "reference_a_v09": {
       "description": "Historical Reference-A v0.9 candidate including Phosphor-cross-checked Poly Mod spans",
-      "renderer_args": ["--reference-a-v09"]
+      "renderer_args": [
+        "--reference-a-v09"
+      ]
     },
     "phosphor_pw_v019": {
       "description": "Phosphor Prophet-6 PW prior only: distribute raw 0..255 over 4..96 percent duty instead of clamping after a nominal 0..100 percent mapping",
       "source": "phosphor_p6",
-      "renderer_args": ["--pw-exponent", "1.0", "--pw-inset", "0.04"],
+      "renderer_args": [
+        "--pw-exponent",
+        "1.0",
+        "--pw-inset",
+        "0.04"
+      ],
       "parameters": {
         "pulseWidthCurveExponent": 1.0,
         "pulseWidthEndInset": 0.04
@@ -78,7 +89,12 @@
     },
     "reference_a_pw015_exploratory": {
       "description": "Historical v0.8 PW-inset sweep minimum; retained for cross-checking only, not a promoted hardware law",
-      "renderer_args": ["--pw-exponent", "1.0", "--pw-inset", "0.15"],
+      "renderer_args": [
+        "--pw-exponent",
+        "1.0",
+        "--pw-inset",
+        "0.15"
+      ],
       "parameters": {
         "pulseWidthCurveExponent": 1.0,
         "pulseWidthEndInset": 0.15
@@ -88,7 +104,10 @@
     },
     "pulse_normalization_zero_exploratory": {
       "description": "Historical Reference-A sweep endpoint that minimized the old aggregate pulse-normalization score",
-      "renderer_args": ["--pulse-normalization", "0.0"],
+      "renderer_args": [
+        "--pulse-normalization",
+        "0.0"
+      ],
       "parameters": {
         "pulseMeanNormalization": 0.0
       },
@@ -98,19 +117,60 @@
     "reference_a_v09_plus_phosphor_pw": {
       "description": "Reference-A v0.9 candidate plus the independent Phosphor raw-to-PW prior",
       "source": "phosphor_p6",
-      "renderer_args": ["--reference-a-v09", "--pw-exponent", "1.0", "--pw-inset", "0.04"],
+      "renderer_args": [
+        "--reference-a-v09",
+        "--pw-exponent",
+        "1.0",
+        "--pw-inset",
+        "0.04"
+      ],
       "promotion_status": "candidate-only"
     },
     "phosphor_poly_mod_v019": {
       "description": "Explicit Phosphor Poly Mod span prior; equivalent to the span portion already carried by Reference-A v0.9",
       "source": "phosphor_p6",
-      "renderer_args": ["--pm-pitch-octaves", "4.0", "--pm-shape-range", "1.0", "--pm-pw-range", "0.5", "--pm-filter-octaves", "7.0"],
+      "renderer_args": [
+        "--pm-pitch-octaves",
+        "4.0",
+        "--pm-shape-range",
+        "1.0",
+        "--pm-pw-range",
+        "0.5",
+        "--pm-filter-octaves",
+        "7.0"
+      ],
       "parameters": {
         "polyModOscPitchRangeOctaves": 4.0,
         "polyModShapeRange": 1.0,
         "polyModPulseWidthRange": 0.5,
         "polyModFilterRangeOctaves": 7.0
       },
+      "promotion_status": "candidate-only"
+    },
+    "reference_a_v09_no_pulse_norm": {
+      "description": "Remove extra narrow-pulse peak normalization on v09; DC-safe oscillator unchanged",
+      "renderer_args": [
+        "--reference-a-v09",
+        "--pulse-normalization",
+        "0.0"
+      ],
+      "promotion_status": "candidate-only"
+    },
+    "reference_a_v09_pw015": {
+      "description": "Historical endpoint-sweep minimum on v09; exploratory, unpromoted",
+      "renderer_args": [
+        "--reference-a-v09",
+        "--pw-inset",
+        "0.15"
+      ],
+      "promotion_status": "candidate-only"
+    },
+    "reference_a_v09_sync_slope": {
+      "description": "Existing step+slope hard-sync correction hook; diagnostic, not hardware law",
+      "renderer_args": [
+        "--reference-a-v09",
+        "--sync-slope-correction"
+      ],
       "promotion_status": "candidate-only"
     }
   },

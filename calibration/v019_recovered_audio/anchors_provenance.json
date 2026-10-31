@@ -1,0 +1,52 @@
+{
+  "source_branch": "v0.19-sound-matching",
+  "source_sha": "3cc9329f96a7f2029996700de124cda34f793eb7",
+  "renderer_sha256": "c29c37dcd0bc6d4f67473d50affa472c556aa0a2faf07d0b37948ae9236184d2",
+  "profiles_file_sha256": "013176f8bb39b77e91b5a94e21f1721fb6bc68c1fd2df8c7fc7d8fdbdbc32d08",
+  "prerolls": [
+    0.0,
+    0.5,
+    1.5,
+    3.0
+  ],
+  "oversampling": 2,
+  "sample_rate": 48000,
+  "analysis_band_hz": [
+    40,
+    12000
+  ],
+  "fft_sizes": [
+    512,
+    2048,
+    8192
+  ],
+  "limits": [
+    "single recording source, not independent hardware replications",
+    "VCO pre-roll changes phase and Slop realization together",
+    "relative gain only: recovered listening references were RMS-normalized",
+    "inferred events, not recorded MIDI; sync envelope intentionally excluded",
+    "no engine defaults changed"
+  ],
+  "assets": {
+    "RA000": {
+      "reference": "09af15ec0e77fe62056308c3876e4e347302981e85c79f55f2f5ac28d21b9f66",
+      "sysex": "6c57c3318dcd9aad88216f0d4c59ce49358eb3a280e8415e549292c26418c14a",
+      "events": "bf2d4507cfb43d7b6fb21216cc3fe204897a2bf2b2f07e53edc80d4cea5d14d0"
+    },
+    "RA024": {
+      "reference": "8bd77b5e85d82fd243501ca0ad072761bd3cbf27ef9ff962b6bc4b79a94b08c8",
+      "sysex": "836f98acddb868a826533e0d623cdfc50b6faa41bce250001df92b1b3a97e7fd",
+      "events": "e6047952f0a5c582956a62d088b05cca7859888addc17e666261980c306dd192"
+    },
+    "RA067": {
+      "reference": "3a9ed0b69f4f5d89dd19e1f26e22d024524974ee59fb1cb4742aeaeac557767a",
+      "sysex": "bc8426a685e0b4beae8de46d31d0e510637d731cb7a91a90dfd7b87ee1ee0833",
+      "events": "95474ec9afd93c6e9a3ed867fa58d2a29f9faab72fce62a0b2c120c44dbe39cd"
+    },
+    "RA266": {
+      "reference": "0b6d744ddd0ee99adc6cd67c49b3924647e83c396f7de5b6920a6a58f2015f46",
+      "sysex": "94820a7c0f7d68a6c32fb670337871c981f90f600b52591b265481e5e212b1a5",
+      "events": "d023fbb381fbccfa07241b2ce36f9c0584a48184ebd3bdfbdc72b9efafdd15ec"
+    }
+  }
+}

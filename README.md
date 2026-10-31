@@ -2,6 +2,16 @@
 
 Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1024-byte hardware program state remains canonical and lossless; DSP/calibration layers are replaceable so measured sound matching can evolve without breaking SysEx/NRPN compatibility.
 
+## v0.19 recovered-audio research checkpoint — active branch
+
+The active branch includes a [primary-source research review](docs/V0_19_RESEARCH_REVIEW.md)
+and a [fresh 180-render comparison](docs/V0_19_RECOVERED_AUDIO_RESULTS.md) against
+five recovered real Prophet-6 excerpts. Nine named candidate profiles share the
+same four pre-roll realizations; spectral, envelope, stereo and sync-harmonic
+metrics remain separate. No acoustic defaults were promoted from this experiment.
+The missing generic `analysis/` tools were recovered from the existing v0.15
+project archive. Third-party audio and factory SysEx remain private inputs.
+
 ## v0.18 headline — digital effects closed
 
 v0.18 adds and hardens one global realtime-safe serial digital-effects path:
@@ -175,3 +185,4 @@ The release CI builds Windows and Linux VST3 targets, runs core/state/control/re
 ## Licensing
 
 The project uses/adapts MIT-licensed implementation ideas/code from `joshjetson/phosphor`; attribution is maintained in `THIRD_PARTY_NOTICES.md`. `ShmKnd/Patina` was reviewed as an MIT-licensed topology/architecture reference for additional effects. GPL/AGPL projects are reference-only unless explicitly documented otherwise. Factory SysEx and third-party reference audio are **not redistributed** by this source package.
+
