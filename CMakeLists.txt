@@ -25,6 +25,7 @@ add_library(p6core
     src/P6ReverbEffects.cpp
     src/ParameterRegistry.cpp
     src/ProgramLayout.cpp
+    src/ReferenceIsolation.cpp
     src/ParameterMapper.cpp
     src/CandidateFilters.cpp
     src/P6Voice.cpp
@@ -82,6 +83,15 @@ else()
   target_compile_options(p6_v018_fx_tests PRIVATE -UNDEBUG)
 endif()
 add_test(NAME p6_v018_fx_tests COMMAND p6_v018_fx_tests)
+
+add_executable(p6_v019_reference_tests tests/v019_reference_isolation_test.cpp)
+target_link_libraries(p6_v019_reference_tests PRIVATE p6core)
+if(MSVC)
+  target_compile_options(p6_v019_reference_tests PRIVATE /UNDEBUG)
+else()
+  target_compile_options(p6_v019_reference_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME p6_v019_reference_tests COMMAND p6_v019_reference_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)

@@ -1,4 +1,5 @@
 #include "p6/P6Engine.h"
+#include "p6/ReferenceIsolation.h"
 #include "p6/SysexStream.h"
 
 #include <algorithm>
@@ -85,13 +86,19 @@ void usage()
         << "  --reference-a-v07         use historical Reference-A v0.7 candidate\n"
         << "  --reference-a-v08         use historical Reference-A v0.8 candidate\n"
         << "  --reference-a-v09         use historical Reference-A v0.9 candidate\n"
-        << "  --osc-only                oscillators only; filters bypassed\n"
-        << "  --osc1-only               Osc1 only; filters bypassed\n"
-        << "  --osc2-only               Osc2 only; filters bypassed\n"
-        << "  --sync-only               Osc1 isolated, forced sync, Poly Mod bypassed\n"
-        << "  --filter-bypass           bypass HPF/LPF\n"
-        << "  --poly-mod-bypass         bypass Poly Mod destinations\n"
-        << "  --help                    show this text\n";
+        << "  --dry-isolation           neutralize verified unrelated performance/global paths\n"
+        << "  --osc-only                oscillators through mixer, filters bypassed; implies dry isolation\n"
+        << "  --osc1-only               Osc1 only, filters bypassed; implies dry isolation\n"
+        << "  --osc2-only               Osc2 only, filters bypassed; implies dry isolation\n"
+        << "  --sync-only               Osc1 isolated, forced sync, Poly Mod bypassed; implies dry isolation\n"
+        << "  --filter-bypass           bypass HPF/LPF only\n"
+        << "  --poly-mod-bypass         bypass Poly Mod destinations only\n"
+        << "  --help                    show this text\n"
+        << "\n"
+        << "Dry isolation edits only a temporary patch copy. It disables verified Sync, Glide,\n"
+        << "Slop, velocity modulation, Pan Spread, Distortion, LFO/Aftertouch destinations,\n"
+        << "digital FX, Poly Mod, Unison and Arp state while preserving Program Volume, VCA\n"
+        << "envelope/filter controls and every unknown byte in the 1024-byte payload.\n";
 }
 
 int parseInt(const char* value, const char* option)
@@ -135,7 +142,7 @@ int main(int argc, char** argv)
         double releaseSeconds = 2.0;
         p6::MapperCalibration calibration;
         p6::VoiceDiagnostics diagnostics;
-        bool isolationDiagnosticsActive = false;
+        bool dryIsolation = false;
 
         // Calibration selectors are applied first so command order cannot make
         // a historical preset unexpectedly overwrite diagnostic settings.
@@ -178,30 +185,30 @@ int main(int argc, char** argv)
             } else if (a == "--release-seconds") {
                 releaseSeconds = std::max(
                     0.0, parseDouble(requireValue("--release-seconds"), "--release-seconds"));
+            } else if (a == "--dry-isolation") {
+                dryIsolation = true;
             } else if (a == "--osc-only") {
                 diagnostics.mix = p6::VoiceDiagnosticMix::OscillatorsOnly;
                 diagnostics.bypassFilters = true;
-                isolationDiagnosticsActive = true;
+                dryIsolation = true;
             } else if (a == "--osc1-only") {
                 diagnostics.mix = p6::VoiceDiagnosticMix::Osc1Only;
                 diagnostics.bypassFilters = true;
-                isolationDiagnosticsActive = true;
+                dryIsolation = true;
             } else if (a == "--osc2-only") {
                 diagnostics.mix = p6::VoiceDiagnosticMix::Osc2Only;
                 diagnostics.bypassFilters = true;
-                isolationDiagnosticsActive = true;
+                dryIsolation = true;
             } else if (a == "--sync-only") {
                 diagnostics.mix = p6::VoiceDiagnosticMix::Osc1Only;
                 diagnostics.bypassFilters = true;
                 diagnostics.bypassPolyMod = true;
                 diagnostics.forceSync = true;
-                isolationDiagnosticsActive = true;
+                dryIsolation = true;
             } else if (a == "--filter-bypass") {
                 diagnostics.bypassFilters = true;
-                isolationDiagnosticsActive = true;
             } else if (a == "--poly-mod-bypass") {
                 diagnostics.bypassPolyMod = true;
-                isolationDiagnosticsActive = true;
             } else if (a == "--reference-a-v07" || a == "--reference-a-v08" ||
                        a == "--reference-a-v09") {
                 // Applied in the pre-pass above.
@@ -222,16 +229,14 @@ int main(int argc, char** argv)
             return 3;
         }
 
-        const auto& patch = stream.entries.front().patch;
+        auto patch = stream.entries.front().patch;
+        if (dryIsolation)
+            patch = p6::makeReferenceIsolationPatch(patch);
+
         p6::P6Engine engine;
         engine.prepare(static_cast<double>(sampleRate), oversampling);
         engine.setVoiceDiagnostics(diagnostics);
         engine.loadPatch(patch, calibration);
-
-        if (isolationDiagnosticsActive) {
-            engine.setDistortion(0.0);
-            engine.setPanSpread(0.0);
-        }
 
         const auto preRollSamples = static_cast<std::size_t>(
             std::ceil(preRollSeconds * static_cast<double>(sampleRate)));
@@ -272,6 +277,7 @@ int main(int argc, char** argv)
                   << "; noteSeconds=" << noteSeconds
                   << "; releaseSeconds=" << releaseSeconds
                   << "; oversampling=" << oversampling
+                  << "; dryIsolation=" << dryIsolation
                   << "; filterBypass=" << diagnostics.bypassFilters
                   << "; polyModBypass=" << diagnostics.bypassPolyMod
                   << "; forceSync=" << diagnostics.forceSync
