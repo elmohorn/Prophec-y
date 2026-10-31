@@ -34,6 +34,7 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
     midiVolume_ = 1.0;
     sustainPedal_ = false;
     unisonSustainHeld_ = false;
+    updatePanGains();
     constexpr double tau = 6.28318530717958647692;
     dcBlockA_ = std::exp(-tau * 12.0 / sampleRate_);
 }
@@ -68,7 +69,7 @@ void P6Engine::applyPatch(const P6PatchState& patch,
 {
     const auto mapped = mapPatchToDSP(patch, calibration);
     params_ = mapped.voice;
-    panSpread_ = std::clamp(mapped.panSpread, 0.0, 1.0);
+    setPanSpread(mapped.panSpread);
     programVolume_ = std::clamp(mapped.programVolume, 0.0, 1.0);
     distortion_ = std::clamp(mapped.distortion, 0.0, 1.0);
     effects_.setSettings(mapEffectsFromPatch(patch));
@@ -107,6 +108,7 @@ void P6Engine::applyPatch(const P6PatchState& patch,
 void P6Engine::setPanSpread(double amount01)
 {
     panSpread_ = std::clamp(amount01, 0.0, 1.0);
+    updatePanGains();
 }
 
 void P6Engine::setProgramVolume(double amount01)
@@ -507,6 +509,17 @@ double P6Engine::panPosition(std::size_t index, double spread)
     return positions[index] * spread;
 }
 
+void P6Engine::updatePanGains() noexcept
+{
+    constexpr double pi = 3.14159265358979323846;
+    for (std::size_t i = 0; i < kVoiceCount; ++i) {
+        const double pan = panPosition(i, panSpread_);
+        const double angle = (pan + 1.0) * (pi * 0.25);
+        panGainLeft_[i] = std::cos(angle);
+        panGainRight_[i] = std::sin(angle);
+    }
+}
+
 double P6Engine::applyCandidateDistortion(double x, DcBlockState& state) const
 {
     if (distortion_ <= 0.0)
@@ -528,7 +541,6 @@ double P6Engine::applyCandidateDistortion(double x, DcBlockState& state) const
 StereoSample P6Engine::process()
 {
     StereoSample out;
-    constexpr double pi = 3.14159265358979323846;
 
     // The wheel adds modulation on top of Initial Amount, but its useful travel
     // is the remaining range so full wheel always reaches 100%.
@@ -541,10 +553,8 @@ StereoSample P6Engine::process()
         if (sample == 0.0)
             continue;
 
-        const double pan = panPosition(i, panSpread_);
-        const double angle = (pan + 1.0) * (pi * 0.25);
-        out.left += sample * std::cos(angle);
-        out.right += sample * std::sin(angle);
+        out.left += sample * panGainLeft_[i];
+        out.right += sample * panGainRight_[i];
     }
 
     const double performanceGain = programVolume_ * midiVolume_;
