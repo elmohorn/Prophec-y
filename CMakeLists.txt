@@ -98,6 +98,11 @@ target_link_libraries(p6_render_events_cal PRIVATE p6core)
 add_executable(p6_render_reference tools/render_reference.cpp)
 target_link_libraries(p6_render_reference PRIVATE p6core)
 add_test(NAME p6_render_reference_help COMMAND p6_render_reference --help)
+
+add_executable(p6_generate_p0a_capture_pack tools/generate_p0a_capture_pack.cpp)
+target_link_libraries(p6_generate_p0a_capture_pack PRIVATE p6core)
+add_test(NAME p6_generate_p0a_capture_pack_self_test
+         COMMAND p6_generate_p0a_capture_pack --self-test)
 add_executable(p6_sync_probe tools/sync_probe.cpp)
 target_link_libraries(p6_sync_probe PRIVATE p6core)
 add_executable(p6_polymod_probe tools/polymod_probe.cpp)

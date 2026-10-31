@@ -24,6 +24,10 @@ SCHEMA_VERSION = "p6-reference-capture/1"
 CALIBRATION_SAMPLE_RATES = {48_000, 96_000}
 
 
+def contains_template_placeholder(value: Any) -> bool:
+    return isinstance(value, str) and "RECORD_" in value.upper()
+
+
 class Report:
     def __init__(self) -> None:
         self.errors: list[str] = []
@@ -217,6 +221,14 @@ def validate_manifest(path: Path, metadata_only: bool) -> Report:
         "acquisition.fixed_gain_reference",
         report,
     )
+    for key in ("interface_chain", "fixed_gain_reference", "output_route"):
+        if contains_template_placeholder(acquisition.get(key)):
+            report.warn(f"acquisition.{key} still contains a template placeholder")
+    globals_map = hardware.get("globals")
+    if isinstance(globals_map, dict):
+        for key, value in globals_map.items():
+            if contains_template_placeholder(value):
+                report.warn(f"hardware.globals.{key} still contains a template placeholder")
 
     tests = require_list(root.get("tests"), "tests", report)
     if not tests:

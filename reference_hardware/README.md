@@ -26,6 +26,31 @@ capture-set-YYYYMMDD-A/
 The exact SysEx is the complete patch-state authority. `raw_parameters` in the
 manifest is only a human-auditable subset of the controls relevant to a test.
 
+## Generate the P0-A capture pack
+
+After saving one real Prophet-6 Program/Edit Buffer dump as the baseline, the
+C++ generator builds a deterministic **88-take P0-A pack**. Every generated
+SysEx is an Edit Buffer message, so the sweep does not target stored program
+memory. Unknown bytes from the supplied baseline are preserved; only verified
+serialized controls are changed.
+
+```bash
+./p6_generate_p0a_capture_pack baseline.syx capture-set-YYYYMMDD-A \
+  --capture-set-id P6-A-YYYYMMDD-A \
+  --unit-id P6-A \
+  --firmware RECORD_EXACT_VERSION \
+  --sample-rate 96000
+```
+
+The pack contains one SysEx and one planned WAV path per capture condition,
+plus `manifest.json` and capture instructions. The 88 tasks cover Osc1 pitch,
+Osc2 fine tune, shape anchors, the full PW sweep used by v0.19, individual
+mixer-source laws and upper-level two-oscillator interaction probes.
+
+The generator deliberately does not invent hardware globals or interface
+metadata. Replace all `RECORD_*` placeholders and inspect the resulting
+isolation state before recording.
+
 ## Validation
 
 The validator uses only the Python standard library:
