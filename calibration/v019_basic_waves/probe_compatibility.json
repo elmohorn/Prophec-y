@@ -1,0 +1,7 @@
+{
+  "default_sync_probe_audio_bit_identical_to_previous_source": true,
+  "control_audio_sha256": "e73aa27b4c74ff72f227617f85f17d45077c090cdffee489dc743b3bcefb2e43",
+  "free_running_flag_is_tooling_only": true,
+  "new_reference_renders": 40,
+  "new_core_or_mapper_changes": false
+}

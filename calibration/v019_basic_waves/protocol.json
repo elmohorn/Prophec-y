@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "source_commit": "3e389b20a00a63e811a10f3e17d0978475cdd0eb",
+  "status": "windows-frozen-before-probe-scores",
+  "article": "https://www.bonedo.de/artikel/dave-smith-instruments-sequential-prophet-6-test/",
+  "author": "Lasse Eilers",
+  "published": "2015-08-24",
+  "source_claim": "The author identifies Oscillator 1 triangle, saw and square examples and a separate variable-pulse example.",
+  "media": [
+    {
+      "file": "Sequential_Prophet_6_HPF.mp3",
+      "bytes": 1017734,
+      "sha256": "524e64b2048496b2f4597dbfa785fb79e41be22817b2718bbd35f0c88fd38641",
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1122040,
+      "decoded_duration_s": 25.443083900226757,
+      "pcm_f32le_sha256": "7ab703f9174ef7fa60c6dfe1e6ba4d477f26196448174dd8d5e0001cb022e7c9",
+      "peak": 0.9975579977035522,
+      "rms": 0.15750381437077704,
+      "integrity": "full-decode-passed",
+      "patch_identity_verified": false,
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_HPF.mp3"
+    },
+    {
+      "file": "Sequential_Prophet_6_LPF.mp3",
+      "bytes": 1542970,
+      "sha256": "758fe404a4f9b8a06913295e6dbe6de11f2b58408c016a820f0e2e1d3823d171",
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1701858,
+      "decoded_duration_s": 38.590884353741494,
+      "pcm_f32le_sha256": "ed0aa14c4c24d19ff86d5144feff6046186fa801d45f17dad38ac127a932d6d8",
+      "peak": 1.0045831203460693,
+      "rms": 0.18620130799021853,
+      "integrity": "full-decode-passed",
+      "patch_identity_verified": false,
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_LPF.mp3"
+    },
+    {
+      "file": "Sequential_Prophet_6_PW.mp3",
+      "bytes": 635630,
+      "sha256": "07cbe930afca844f227cf2f5ddd9bf0d206346f20c98eda6dbba285f358f010d",
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 700254,
+      "decoded_duration_s": 15.87877551020408,
+      "pcm_f32le_sha256": "cfa1ad6e7a61fe830d494c102a26c574da9aedef84f34c8f102375d7ea16f05f",
+      "peak": 1.0217772722244263,
+      "rms": 0.3657685226240896,
+      "integrity": "full-decode-passed",
+      "patch_identity_verified": false,
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_PW.mp3"
+    },
+    {
+      "file": "Sequential_Prophet_6_Selfosc_1.wav",
+      "bytes": 2488856,
+      "sha256": "6ceb14cfb0d704476151f89dbc61a880a0cbbd0d157a57d376e33588e37d1847",
+      "codec": "pcm_s16le",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 622050,
+      "decoded_duration_s": 14.105442176870747,
+      "pcm_f32le_sha256": "d00c8e231f2e6643c27e6f71eabd1e21a283dbebd7297779bb0b7d28420e42f8",
+      "peak": 0.999969482421875,
+      "rms": 0.27103644610288824,
+      "integrity": "full-decode-passed",
+      "patch_identity_verified": false,
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Selfosc_1.wav"
+    },
+    {
+      "file": "Sequential_Prophet_6_Waves.mp3",
+      "bytes": 1525118,
+      "sha256": "8ddbae3ab347266f3649e16aabf0bcd8692c5561bb041ab1033a32955ff4b71b",
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1681701,
+      "decoded_duration_s": 38.133809523809525,
+      "pcm_f32le_sha256": "c6d0944cdd2d5a473f0f9fd6e71dfae33a7c84530ff8943798c53ebb80b3a0bb",
+      "peak": 0.9991455078125,
+      "rms": 0.2644502038741766,
+      "integrity": "full-decode-passed",
+      "patch_identity_verified": false,
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Waves.mp3"
+    }
+  ],
+  "comparison_source": "Sequential_Prophet_6_Waves.mp3",
+  "oversampling": [
+    2,
+    8
+  ],
+  "planned_renders": 24,
+  "assumed_shapes": [
+    0,
+    0.5,
+    1
+  ],
+  "assumed_square_duty": 0.5,
+  "frequency_policy": "Estimate actual captured F0 in nominal-note neighborhood; render oscillator at that frequency. Do not fit timbre parameters.",
+  "metric": "Stereo-channel harmonic powers relative to H1; harmonics up to 10 kHz with captured level >= -40 dBc. Report even/odd powers separately.",
+  "limits": [
+    "Publisher identifies waveforms and oscillator, but exact SysEx, filter cutoff/resonance, mixer levels, analog stage drive and firmware are unavailable.",
+    "Distributed files are MP3; no raw-oscillator node was measured. Wave files at corrected sibling URLs returned 403 and are not used.",
+    "One publisher/instrument, three waveform groups; twelve register windows are not independent instruments.",
+    "Two oversampling factors distinguish numerical sensitivity, not hardware replications.",
+    "No pure controlled hard-sync interval/ratio was acquired; the sync/reset identification remains open.",
+    "No mapper or engine default is authorized by a favorable aggregate score alone."
+  ],
+  "quality_revisions_before_first_probe": [
+    {
+      "case": "triangle_n84",
+      "from_start_s": 6.6,
+      "to_start_s": 6.8,
+      "reason": "previous-note tail: half-window drift -58.59 cents; suboctave power -6.4 dBc"
+    },
+    {
+      "case": "square_n72",
+      "from_start_s": 29.6,
+      "to_start_s": 29.8,
+      "reason": "previous-note tail: half-window drift -46.67 cents; suboctave power +0.1 dBc"
+    }
+  ],
+  "quality_gates": {
+    "maximum_half_window_pitch_drift_cents": 10,
+    "maximum_suboctave_power_dbc": -35,
+    "f0_search_edge_allowed": false
+  },
+  "diagnostic_control_counterexamples": {
+    "status": "fixed-before-diagnostic-render-scores",
+    "triangle_shape": 0.07,
+    "square_duty": 0.515,
+    "derivation": "Triangle H2/H1 at lowest n48 implies an asymmetric-triangle up fraction near .569; existing morph shape near .069. Square H2/H1 at n48 implies duty near .515 (or mirrored). Round and hold these controls across remaining registers.",
+    "limits": "Nominal endpoint baseline scores were already seen across registers. Remaining registers are a fixed-parameter cross-check, not a blind holdout. Effective controls do not establish actual raw settings or a DSP correction.",
+    "planned_additional_renders": 16
+  },
+  "metric_floor_dbc": -60,
+  "primary_diagnostics": [
+    "odd harmonic error",
+    "even-over-odd power"
+  ]
+}

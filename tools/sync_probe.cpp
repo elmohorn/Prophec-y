@@ -47,7 +47,7 @@ int main(int argc, char** argv)
         std::cerr << "usage: p6_sync_probe <out.wav> [--note 41] [--slave-semis 28] [--master-semis 0] "
                      "[--shape1 0..1] [--shape2 0..1] [--pw1 0.04..0.96] [--pw2 0.04..0.96] "
                      "[--oversampling 1|2|4|8] [--seconds N] [--preroll N] [--seed N] "
-                     "[--reset-phase 0..1] [--trigger-phase 0..1] [--correction legacy|step-slope]\n";
+                     "[--reset-phase 0..1] [--trigger-phase 0..1] [--correction legacy|step-slope] [--free-running]\n";
         return 2;
     }
 
@@ -60,6 +60,7 @@ int main(int argc, char** argv)
     double seconds = 2.0, preroll = 0.35;
     std::uint32_t seed = 0x2660u;
     double resetPhase = 0.0, triggerPhase = 0.0;
+    bool syncEnabled = true;
     p6::HardSyncCorrectionMode correctionMode = p6::HardSyncCorrectionMode::LegacyStepOnly;
 
     for (int i = 2; i < argc; ++i) {
@@ -68,7 +69,8 @@ int main(int argc, char** argv)
             if (i + 1 >= argc) throw std::runtime_error(std::string("missing value for ") + option);
             return argv[++i];
         };
-        if (a == "--note") note = std::clamp(std::stoi(next("--note")), 0, 127);
+        if (a == "--free-running") syncEnabled = false;
+        else if (a == "--note") note = std::clamp(std::stoi(next("--note")), 0, 127);
         else if (a == "--slave-semis") slaveSemis = std::stod(next("--slave-semis"));
         else if (a == "--master-semis") masterSemis = std::stod(next("--master-semis"));
         else if (a == "--shape1") shape1 = std::clamp(std::stod(next("--shape1")), 0.0, 1.0);
@@ -102,7 +104,7 @@ int main(int argc, char** argv)
     p.osc2.level = 0.0;
     p.subLevel = 0.0;
     p.noiseLevel = 0.0;
-    p.sync = true;
+    p.sync = syncEnabled;
     p.syncResetPhase = resetPhase;
     p.syncTriggerPhase = triggerPhase;
     p.syncCorrectionMode = correctionMode;
@@ -119,7 +121,7 @@ int main(int argc, char** argv)
     d.mix = p6::VoiceDiagnosticMix::Osc1Only;
     d.bypassFilters = true;
     d.bypassPolyMod = true;
-    d.forceSync = true;
+    d.forceSync = syncEnabled;
 
     p6::P6Voice voice;
     voice.prepare(sr, seed, oversampling);
@@ -152,6 +154,6 @@ int main(int argc, char** argv)
               << " ratio=" << slaveHz / masterHz << " oversampling=" << oversampling
               << " resetPhase=" << resetPhase << " triggerPhase=" << triggerPhase
               << " correction=" << (correctionMode == p6::HardSyncCorrectionMode::StepAndSlope ? "step-slope" : "legacy")
-              << " peak=" << peak << '\n';
+              << " sync=" << syncEnabled << " peak=" << peak << '\n';
     return 0;
 }
