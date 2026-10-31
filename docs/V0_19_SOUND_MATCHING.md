@@ -17,7 +17,7 @@ v0.19 therefore works from:
 3. factory/program SysEx and documented patch settings where available;
 4. reconstructed MIDI/performance events when the original MIDI is unavailable;
 5. official Sequential documentation;
-6. independent software implementations only as hypothesis/reference material, never as acoustic truth.
+6. independent software implementations as **calibration priors and hypothesis generators**, never as acoustic truth.
 
 ## 2. Reference-A
 
@@ -51,9 +51,11 @@ Reference-A is **not** authoritative for:
 
 The clearest existing validated anchor remains program 000 **Brassed Off**, where previous analysis identified approximately 65 Hz sub content, ~130 Hz Osc1 content and a reconstructed C4 → Eb4 → F4 performance. It remains a sanity check, not the entire calibration corpus.
 
+`calibration/reference_a_inventory_v019.csv` is the current compact inventory of trusted and candidate Reference-A segments. It deliberately separates boundary confidence, performance-analysis trust and usable DSP domains.
+
 ## 3. Evidence hierarchy
 
-Use the strongest available evidence per parameter, rather than pretending all online recordings are equal.
+Use the strongest available evidence per parameter, rather than pretending all online recordings or software projects are equal.
 
 ### Grade A — high-value public hardware reference
 
@@ -75,14 +77,18 @@ Real Prophet-6 audio with identifiable patch/performance but incomplete capture-
 
 Real Prophet-6 audio where patch/performance is only partly recoverable. Use for broad timbral ranking and falsifying obviously wrong candidates, not for fitting precise constants.
 
-### Grade D — hypothesis/reference only
+### Grade D — external calibration priors / hypothesis material
 
-- Phosphor and other compatible implementations;
-- factory-bank statistics without corresponding audio;
-- forum descriptions;
-- compressed demos with unknown patch identity.
+Independent implementations may contain useful calibration work. v0.19 records those hypotheses in `docs/V0_19_EXTERNAL_PRIORS.md` and machine-readable profiles in `calibration/external_priors.json`.
 
-Grade D can suggest experiments but cannot independently establish Prophet-6 behavior.
+Current classes include:
+
+- **P6-PERMISSIVE** — Prophet-6-specific permissive implementations such as Phosphor; strongest software prior;
+- **RELATED-MEASURED** — related Sequential/analog models with reported measurement work; weak-to-medium prior only;
+- **DOMAIN-PERMISSIVE** — generic DSP libraries such as Patina; architecture/numerics, not P6 calibration;
+- **COPYLEFT-REFERENCE** — GPL/AGPL projects; behavior/reference only, no implementation copying into Prophec-y.
+
+External consensus narrows the search space but does not establish hardware truth. A real Prophet-6 recording can override a software consensus. If external projects disagree, keep separate candidates rather than averaging arbitrary constants.
 
 ## 4. Online-reference corpus
 
@@ -122,9 +128,27 @@ Rules:
 5. optimize event timing separately from DSP constants so a timing error is not “fixed” by changing the synth model;
 6. report confidence per segment.
 
-## 6. v0.19 calibration order
+## 6. External-prior workflow
 
-Because available online references are uneven, the order is driven by **evidence quality**, not by an imaginary controlled capture session.
+External projects are used before brute-force fitting to generate defensible candidate laws.
+
+The machine-readable registry `calibration/external_priors.json` stores sources, licenses, exact hypotheses and renderer arguments. `tools/render_external_prior_suite.py` renders the same local SysEx/event suite under multiple named profiles without changing engine defaults.
+
+Initial executable profiles include:
+
+- `current`;
+- `reference_a_v07/v08/v09`;
+- `phosphor_pw_v019`;
+- `reference_a_v09_plus_phosphor_pw`;
+- `phosphor_poly_mod_v019`.
+
+The first real divergence selected for testing is the PW control law. Prophec-y currently maps raw 0..255 to nominal duty 0..100% and then clamps the oscillator to 4..96%, creating small dead zones at both ends. Phosphor distributes the entire raw range directly over 4..96%. The candidate is exactly representable with `pulseWidthEndInset=0.04`, so it can be A/B tested without architecture changes.
+
+Where Prophec-y already matches an external law (for example linear mixer raw/127 or the existing narrow-pulse normalization family), no duplicate candidate is created merely to claim consensus.
+
+## 7. v0.19 calibration order
+
+Because available online references are uneven, the order is driven by **evidence quality**, with external priors used to reduce candidate search space.
 
 ### P0-A — Oscillator / mixer
 
@@ -140,9 +164,9 @@ Use the strongest online examples and factory-patch matches to test:
 Two especially important hypotheses already identified:
 
 1. Prophec-y and Phosphor share essentially the same trapezoidal morph family and 4% minimum duty assumption. Agreement between implementations is **not independent hardware evidence**.
-2. Prophec-y currently inherits Phosphor-style narrow-pulse mean removal plus peak normalization. This intentionally reduces narrow-pulse AC level by nearly 6 dB at the extreme and must remain a calibration candidate, not be treated as proven Prophet behavior.
+2. Prophec-y currently inherits Phosphor-style narrow-pulse mean removal plus peak normalization. This intentionally reduces narrow-pulse AC level substantially at the extreme and must remain a calibration candidate, not be treated as proven Prophet behavior.
 
-Do not change either default until online hardware evidence favors a candidate over the existing model.
+The first external-prior A/B is `phosphor_pw_v019`, preferably judged on Carpenter Square and Poly Pulse before broader promotion.
 
 ### P0-B — Hard sync
 
@@ -154,27 +178,31 @@ Prefer dry/low-FX examples with known oscillator intervals. Compare:
 - reset transient character;
 - alias-region energy only inside the reliable bandwidth of the source.
 
+DeepSyncLead is currently ambiguous; Saw Sync Lead is retained as an independent cross-check. Prophet-6-inspired projects with contradictory master/slave topology are not treated as calibration votes.
+
 ### P0-C — LPF / HPF
 
 Use factory programs and demonstrations where one filter dominates and envelope movement is limited or reconstructable. Fit LPF and HPF independently. The historical Reference-A cutoff candidates remain hypotheses, not immutable truth.
 
+Notably, Phosphor's P6 cutoff-coordinate prior is close to the old one-semitone/raw family, while Reference-A v0.7 substantially preferred the shallower fitted law across the weighted corpus. This is a concrete example where real audio should outrank software consensus.
+
 ### P0-D — envelopes
 
-Use segments with clean attacks/releases and repeated notes when available. Estimate event onset first, then compare time-domain envelopes. Do not fit codec pre-ringing or unknown key timing as envelope behavior.
+Use segments with clean attacks/releases and repeated notes when available. Estimate event onset first, then compare time-domain envelopes. Do not fit codec pre-ringing or unknown key timing as envelope behavior. Related Sequential projects can seed timing ranges but cannot establish P6 timing constants.
 
 ### P0-E — modulation
 
-Use examples with recognizable LFO/Poly Mod/aftertouch behavior, preferably when settings or program identity are known. Measure depth/frequency relationships only to the precision supported by the recording.
+Use examples with recognizable LFO/Poly Mod/aftertouch behavior, preferably when settings or program identity are known. Measure depth/frequency relationships only to the precision supported by the recording. Phosphor-derived Poly Mod spans already carried by Reference-A v0.9 remain candidate priors until the online corpus confirms them.
 
 ### P0-F — Distortion / Slop / Vintage
 
-Aggregate multiple programs and longer passages where needed. Stochastic behavior is assessed statistically across recordings, not sample-for-sample.
+Aggregate multiple programs and longer passages where needed. Stochastic behavior is assessed statistically across recordings, not sample-for-sample. Generic analog-drift implementations are architecture references only.
 
 ### P0-G — digital FX
 
-Use dry vs wet demonstrations, isolated effect demos and matching factory programs when available. Later-OS PH3/Ring/FL1/FL2 state encoding remains an independent evidence problem and must not be guessed.
+Use dry vs wet demonstrations, isolated effect demos and matching factory programs when available. Phosphor and Patina can seed DSP hypotheses where applicable, but acoustic calibration remains online-hardware driven. Later-OS PH3/Ring/FL1/FL2 state encoding remains an independent evidence problem and must not be guessed.
 
-## 7. Metrics appropriate for online audio
+## 8. Metrics appropriate for online audio
 
 No single score is authoritative. Each comparison reports the metrics the source can actually support.
 
@@ -191,27 +219,27 @@ Preferred metrics:
 
 Absolute high-frequency alias metrics, tiny level differences and sample-wise correlation are down-weighted or disabled for lossy/unknown-chain sources.
 
-## 8. Candidate promotion rule
+## 9. Candidate promotion rule
 
 Existing `referenceACandidateV07/V08/V09()` are historical candidates and remain versioned.
 
-New v0.19 candidates should use an explicit family such as `referenceCandidateV019A`, never silently mutate historical constants.
+New v0.19 hypotheses first live as named renderer profiles. They need not become C++ calibration functions until real-audio testing justifies promoting them closer to the engine.
 
 Promotion flow:
 
 ```text
-real Prophet online evidence
+external prior and/or real Prophet evidence
   -> performance/event hypothesis
-  -> isolated DSP candidate
+  -> named isolated candidate
   -> before/after multi-segment report
   -> v0.18 fingerprint review
   -> unrelated-reference regression review
   -> promote / reject
 ```
 
-A candidate must improve more than the one clip that inspired it. Overfitting one compressed demo segment is a failure mode, not progress.
+A candidate must improve more than the one clip or software project that inspired it. Overfitting one compressed demo segment or copying another emulator's assumptions is a failure mode, not progress.
 
-## 9. Search strategy for additional evidence
+## 10. Search strategy for additional evidence
 
 v0.19 should actively seek additional public Prophet-6 material that fills Reference-A gaps, especially:
 
@@ -223,9 +251,11 @@ v0.19 should actively seek additional public Prophet-6 material that fills Refer
 - isolated FX examples;
 - videos where knob positions are visible and audio is direct.
 
-Prefer multiple independent sources for the same law. A new source is valuable even when lower quality if it constrains a parameter that Reference-A cannot identify.
+Prefer multiple independent real-hardware sources for the same law. A new source is valuable even when lower quality if it constrains a parameter that Reference-A cannot identify.
 
-## 10. Tooling
+External software searches continue too, but repos are classified before their constants are allowed into candidate generation. “Prophet-6-inspired” is not sufficient evidence by itself.
+
+## 11. Tooling
 
 Keep and extend tooling that is useful for online-reference analysis:
 
@@ -234,12 +264,14 @@ Keep and extend tooling that is useful for online-reference analysis:
 - calibration renderer;
 - DSP fingerprints;
 - spectral/timing probes;
-- source/segment manifests and confidence metadata;
+- `calibration/reference_a_inventory_v019.csv` for confidence/domain tracking;
+- `calibration/external_priors.json` for machine-readable external hypotheses;
+- `tools/render_external_prior_suite.py` for multi-profile candidate renders;
 - automated before/after comparison reports.
 
-The recently added controlled-capture manifest/schema and generated P0-A capture-pack tooling are **not v0.19 prerequisites**. They may remain as optional future infrastructure, but no roadmap item may depend on the user producing new Prophet-6 recordings.
+The controlled-capture manifest/schema and generated P0-A capture-pack tooling are **not v0.19 prerequisites**. They may remain as optional future infrastructure, but no roadmap item may depend on the user producing new Prophet-6 recordings.
 
-## 11. Performance optimisation
+## 12. Performance optimisation
 
 Performance work continues under two guards:
 
@@ -250,15 +282,15 @@ Prefer algebraically exact optimisations and moving invariant work outside sampl
 
 GitHub-hosted CPU percentages remain directional only; they are not absolute product CPU claims.
 
-## 12. Immediate work order
+## 13. Immediate work order
 
-1. Restore/reference the existing Reference-A reports, segments and inferred event files as the primary v0.19 dataset.
-2. Inventory which of the 500-preset recording segments are high enough confidence for oscillator, filter, envelope, sync, modulation and FX work.
-3. Search for additional online captures specifically targeting gaps in Reference-A.
-4. Build a confidence-weighted automated comparison report across usable segments.
-5. Re-run the existing v0.7/v0.8/v0.9 candidates through the larger reference set to establish the current baseline.
-6. Attack P0-A hypotheses first where evidence supports them: pulse-width law, narrow-pulse normalization, shape morph and mixer law.
-7. Promote no acoustic change unless it improves the weighted multi-source reference score without unacceptable regressions.
+1. Use `calibration/reference_a_inventory_v019.csv` to materialize the existing trusted A/B suite from the recovered Reference-A analysis assets.
+2. Run `current`, `reference_a_v07/v08/v09`, `phosphor_pw_v019` and the combined v09+PW profile over the same anchors.
+3. Prioritize Carpenter Square and Poly Pulse for the first PW-law decision; include Brassed Off/Solid Bass as unrelated-domain guards.
+4. Re-score the historical Reference-A candidates across the expanded inventory instead of relying only on the old six/eight-case summaries.
+5. Search for additional online Prophet-6 captures specifically targeting gaps in PW, sync, cutoff/resonance, envelopes and Poly Mod.
+6. Add new external projects to the prior matrix only after license, instrument applicability and architecture are audited.
+7. Promote no acoustic change unless it improves the weighted multi-source real-hardware score without unacceptable regressions.
 8. Profile and integrate only fingerprint-safe performance improvements alongside sound matching.
 
 The custom/reactive FX visual concept remains **DEFERRED / UI** in the master matrix and is outside v0.19 sound-matching scope unless a later UI milestone deliberately pulls it forward.
