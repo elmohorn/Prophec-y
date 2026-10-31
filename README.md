@@ -4,6 +4,12 @@ Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1
 
 ## v0.19 recovered-audio research checkpoint — active branch
 
+The [next filter/sync experiment](docs/V0_19_FILTER_AND_SYNC_RESULTS.md) adds
+320 isolated-filter-factor renders and 480 independent Fourier-oracle probe
+renders. Filter-envelope depth is now a narrower audition candidate; the
+experimental slope correction is rejected for promotion after pulse-endpoint
+failures. Production DSP/defaults remain unchanged.
+
 The active branch includes a [primary-source research review](docs/V0_19_RESEARCH_REVIEW.md)
 and a [fresh 180-render comparison](docs/V0_19_RECOVERED_AUDIO_RESULTS.md) against
 five recovered real Prophet-6 excerpts. Nine named candidate profiles share the

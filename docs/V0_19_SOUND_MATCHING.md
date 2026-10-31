@@ -2,6 +2,13 @@
 
 Status: **ACTIVE**
 
+Follow-on checkpoint: `V0_19_FILTER_AND_SYNC_RESULTS.md` documents 320
+filter-factorial real-reference renders and 480 synthetic Fourier-oracle
+comparisons. Two filter-envelope audition profiles remain unpromoted; the
+step+slope sync profile is explicitly rejected for promotion after pure-pulse
+endpoint failures. Static harmonic agreement with a mathematical family does
+not establish Prophet-6 waveform fidelity.
+
 Research/comparison checkpoint (31 October 2026): see
 `V0_19_RESEARCH_REVIEW.md` and `V0_19_RECOVERED_AUDIO_RESULTS.md`.
 Five recovered real-hardware excerpts have now been re-rendered under nine

@@ -1,0 +1,19 @@
+{
+  "source_sha": "0bc3c5e962d35c9952172c6aa00d0e37954b942c",
+  "probe_sha256": "4740216a86f5aec683fd4d745e543aadf81d06d7c882a02ad48c2ee372d5b40b",
+  "oracle": "analytic continuous-time piecewise-linear integrals",
+  "edge_fraction": 1e-06,
+  "notes": [
+    41,
+    65
+  ],
+  "sample_rate": 48000,
+  "harmonics": 20,
+  "inclusion_floor_db": -50,
+  "limits": [
+    "validates this waveform family only; not hardware truth",
+    "static ratios only, no filter/Poly Mod/Slop/FX",
+    "does not measure out-of-harmonic alias energy or all transient behavior"
+  ],
+  "renders": 480
+}

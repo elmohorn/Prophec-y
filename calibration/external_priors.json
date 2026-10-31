@@ -171,7 +171,38 @@
         "--reference-a-v09",
         "--sync-slope-correction"
       ],
-      "promotion_status": "candidate-only"
+      "promotion_status": "rejected-for-promotion",
+      "rejection": "v0.19 continuous-time Fourier oracle reveals large errors at pure-pulse endpoint; remain diagnostic-only pending correction"
+    },
+    "filter_env_depth13_v019": {
+      "description": "Current static cutoff/timing with filter-envelope depth 13 octaves",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-octaves",
+        "13.0"
+      ],
+      "promotion_status": "promising-not-promoted",
+      "experiment": "docs/V0_19_FILTER_AND_SYNC_RESULTS.md",
+      "caveat": "same-source five-case exploratory evidence; envelope and cross-domain regressions remain"
+    },
+    "filter_env_depth13_res070_v019": {
+      "description": "Current static cutoff/timing with filter-envelope depth 13 octaves and LP resonance scale .70",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-octaves",
+        "13.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "promotion_status": "promising-not-promoted",
+      "experiment": "docs/V0_19_FILTER_AND_SYNC_RESULTS.md",
+      "caveat": "same-source five-case exploratory evidence; envelope and cross-domain regressions remain"
     }
   },
   "observations": [
