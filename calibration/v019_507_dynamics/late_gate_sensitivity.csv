@@ -1,0 +1,5 @@
+source,assumed_gate_s,profile,mr_log_spectral_mae_db,log_band_shape_rmse_db,envelope_mae,wav
+amazona,15.1,v09,12.191941877135493,9.650809775267529,0.17964974993086966,reference_private/507_dynamics/amazona_late_gate15.1_v09.wav
+amazona,15.1,time10_curve3,9.071282070208781,10.581820365850767,0.16310177240078225,reference_private/507_dynamics/amazona_late_gate15.1_time10_curve3.wav
+amazona,16.1,v09,11.874036194271488,9.630879548439575,0.14104392219037457,reference_private/507_dynamics/amazona_late_gate16.1_v09.wav
+amazona,16.1,time10_curve3,8.699011247061486,10.617370820792136,0.13426185091005327,reference_private/507_dynamics/amazona_late_gate16.1_time10_curve3.wav
