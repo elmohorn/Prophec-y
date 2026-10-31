@@ -203,6 +203,17 @@
       "promotion_status": "promising-not-promoted",
       "experiment": "docs/V0_19_FILTER_AND_SYNC_RESULTS.md",
       "caveat": "same-source five-case exploratory evidence; envelope and cross-domain regressions remain"
+    },
+    "filter_env_depth12_v019": {
+      "description": "Balanced corrected-engine candidate: current static cutoff/timing/resonance, filter-envelope depth12 octaves",
+      "renderer_args": [
+        "--filter-env-octaves",
+        "12.0"
+      ],
+      "promotion_status": "promising-not-promoted",
+      "experiment": "docs/V0_19_UNISON_FIX_AND_RECALIBRATION.md",
+      "evidence": "All 20 matched-pre-roll pairs improve both MR and broad-band spectral distances across five same-source excerpts; envelope nuance remains",
+      "caveat": "Selected on the same corpus, no independent source holdout; not a hardware-identified exact depth law"
     }
   },
   "observations": [

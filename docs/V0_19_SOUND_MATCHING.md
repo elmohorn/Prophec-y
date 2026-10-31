@@ -1,5 +1,8 @@
 # v0.19 — Sound Matching and Optimisation
 
+Unison first-key/release-tail defect fixed in `23910ba4...`. See `V0_19_UNISON_FIX_AND_RECALIBRATION.md` before using the older Solid Bass calibration rows. A fresh 360-render local grid and 48-render event sensitivity test use the corrected engine; filter defaults remain unchanged.
+
+
 Status: **ACTIVE**
 
 Follow-on checkpoint: `V0_19_FILTER_AND_SYNC_RESULTS.md` documents 320

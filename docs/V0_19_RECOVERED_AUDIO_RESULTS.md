@@ -1,5 +1,7 @@
 # v0.19 — Fresh comparison with recovered Prophet-6 audio
 
+> Historical measurement caveat: the Unison first-key/release-tail bug discovered later in v0.19 affected Solid Bass multi-note renders. Preserve these numbers as historical results, but use `V0_19_UNISON_FIX_AND_RECALIBRATION.md` and the corrected-engine measurements for new calibration decisions. The independent static Fourier-oracle results are unaffected.
+
 Date: 31 October 2026. Status: **completed experiment; milestone ACTIVE**.
 
 ## What actually ran

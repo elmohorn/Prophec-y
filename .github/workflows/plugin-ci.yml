@@ -22,6 +22,7 @@ jobs:
           python3 -m py_compile tools/compare_online_suite.py tools/prepare_recovered_online_suite.py analysis/*.py
           python3 tests/online_metrics_test.py
           python3 tests/sync_fourier_oracle_test.py
+          python3 tests/event_uncertainty_test.py
           python3 -m py_compile tools/sync_fourier_oracle.py tools/analyze_filter_factorial.py
 
   core-sanitizers:
