@@ -33,6 +33,8 @@ void P6Voice::prepare(double sampleRate, std::uint32_t seed, int oversampleFacto
 void P6Voice::setParams(const VoiceParams& params)
 {
     params_ = params;
+    lowPassStaticBaseHz_ = computeStaticFilterBaseHz(params_.lowPass, false);
+    highPassStaticBaseHz_ = computeStaticFilterBaseHz(params_.highPass, true);
     ampEnv_.setTimes(params_.ampAttack, params_.ampDecay, params_.ampRelease);
     ampEnv_.setSustain(params_.ampSustain);
     filterEnv_.setTimes(params_.filterAttack, params_.filterDecay, params_.filterRelease);
@@ -81,10 +83,6 @@ void P6Voice::noteOff()
 
 void P6Voice::silence()
 {
-    // MIDI All Sound Off is a channel panic, not a synth lifecycle reset.
-    // Kill only the audible envelope state. Oscillator/slop/filter history,
-    // pitch/glide memory and decimator state continue running so the next note
-    // does not acquire an artificial phase reset that the analog VCOs lack.
     ampEnv_.reset(0.0);
     filterEnv_.reset(0.0);
     active_ = false;
@@ -125,6 +123,39 @@ double P6Voice::phaseFromSeed(std::uint32_t seed)
     return static_cast<double>(seed & 0x00ffffffu) / static_cast<double>(0x01000000u);
 }
 
+double P6Voice::computeStaticFilterBaseHz(const VoiceFilterParams& filter,
+                                          bool highPass) const
+{
+    const double lawBaseHz = highPass && params_.highPassFilterBaseHz > 0.0
+        ? params_.highPassFilterBaseHz : params_.filterBaseHz;
+    const double lawSlope = highPass && params_.highPassFilterSemitonesPerRaw > 0.0
+        ? params_.highPassFilterSemitonesPerRaw : params_.filterSemitonesPerRaw;
+
+    if (highPass && params_.highPassFilterCurveExponent > 0.0 &&
+        params_.highPassFilterTopHz > lawBaseHz) {
+        const double control = std::clamp(filter.cutoffControl, 0.0, 164.0) / 164.0;
+        const double t = std::pow(control, params_.highPassFilterCurveExponent);
+        return lawBaseHz * std::pow(params_.highPassFilterTopHz / lawBaseHz, t);
+    }
+
+    if (!highPass && params_.filterCurveExponent > 0.0 &&
+        params_.filterTopHz > lawBaseHz) {
+        const double control = std::clamp(filter.cutoffControl, 0.0, 164.0) / 164.0;
+        const double t = std::pow(control, params_.filterCurveExponent);
+        return lawBaseHz * std::pow(params_.filterTopHz / lawBaseHz, t);
+    }
+
+    if (!highPass && params_.filterHighSemitonesPerRaw > 0.0) {
+        const double control = std::clamp(filter.cutoffControl, 0.0, 164.0);
+        const double knee = std::clamp(params_.filterKneeRaw, 0.0, 164.0);
+        const double lowPart = std::min(control, knee) * lawSlope;
+        const double highPart = std::max(0.0, control - knee) * params_.filterHighSemitonesPerRaw;
+        return lawBaseHz * std::pow(2.0, (lowPart + highPart) / 12.0);
+    }
+
+    return lawBaseHz * std::pow(2.0, filter.cutoffControl * lawSlope / 12.0);
+}
+
 double P6Voice::filterCutoffHz(const VoiceFilterParams& filter, bool highPass,
                                double env, double polySource,
                                double lfoSemitones,
@@ -134,29 +165,7 @@ double P6Voice::filterCutoffHz(const VoiceFilterParams& filter, bool highPass,
     const double velScale = filter.velocity ? velocity_ : 1.0;
     const double envOct = env * filter.envAmountOctaves * velScale;
     const double pmOct = polySource * filter.polyModAmountOctaves;
-    const double lawBaseHz = highPass && params_.highPassFilterBaseHz > 0.0
-        ? params_.highPassFilterBaseHz : params_.filterBaseHz;
-    const double lawSlope = highPass && params_.highPassFilterSemitonesPerRaw > 0.0
-        ? params_.highPassFilterSemitonesPerRaw : params_.filterSemitonesPerRaw;
-    double base = 0.0;
-    if (highPass && params_.highPassFilterCurveExponent > 0.0 &&
-        params_.highPassFilterTopHz > lawBaseHz) {
-        const double control = std::clamp(filter.cutoffControl, 0.0, 164.0) / 164.0;
-        const double t = std::pow(control, params_.highPassFilterCurveExponent);
-        base = lawBaseHz * std::pow(params_.highPassFilterTopHz / lawBaseHz, t);
-    } else if (!highPass && params_.filterCurveExponent > 0.0 && params_.filterTopHz > lawBaseHz) {
-        const double control = std::clamp(filter.cutoffControl, 0.0, 164.0) / 164.0;
-        const double t = std::pow(control, params_.filterCurveExponent);
-        base = lawBaseHz * std::pow(params_.filterTopHz / lawBaseHz, t);
-    } else if (!highPass && params_.filterHighSemitonesPerRaw > 0.0) {
-        const double control = std::clamp(filter.cutoffControl, 0.0, 164.0);
-        const double knee = std::clamp(params_.filterKneeRaw, 0.0, 164.0);
-        const double lowPart = std::min(control, knee) * lawSlope;
-        const double highPart = std::max(0.0, control - knee) * params_.filterHighSemitonesPerRaw;
-        base = lawBaseHz * std::pow(2.0, (lowPart + highPart) / 12.0);
-    } else {
-        base = lawBaseHz * std::pow(2.0, filter.cutoffControl * lawSlope / 12.0);
-    }
+    const double base = highPass ? highPassStaticBaseHz_ : lowPassStaticBaseHz_;
     const double hz = base * std::pow(2.0, keyOct + envOct + pmOct +
                                       (lfoSemitones + pressureSemitones) / 12.0);
     return std::clamp(hz, 5.0, sampleRate_ * 0.45);
@@ -246,9 +255,6 @@ VoiceSample P6Voice::process(double lfoSignal, double pressure01)
         decimatorWrite_ = (decimatorWrite_ + 1) % decimatorHistory_.size();
     }
 
-    // This is an exact shortcut: convolution of an all-zero FIR history is
-    // exactly zero. The full oversampled voice path above still runs, so VCO,
-    // slop, sync and filter history remain free-running exactly as before.
     if (decimatorNonZeroSamples_ == 0) {
         last.dry = 0.0;
         return last;
