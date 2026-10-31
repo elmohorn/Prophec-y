@@ -32,7 +32,7 @@ jobs:
           python3 -m py_compile tools/inspect_reference_media.py
           python3 -m py_compile tools/analyze_selfosc_recording.py tools/prepare_independent_forum_suite.py
           python3 -m py_compile tools/analyze_sync_stages.py tools/probe_sync_ensemble.py
-          python3 -m py_compile tools/compare_basic_waveforms.py tools/prepare_basic_waveform_suite.py
+          python3 -m py_compile tools/compare_basic_waveforms.py tools/prepare_basic_waveform_suite.py tools/prepare_sync_reference_suite.py
           python3 -m py_compile tools/sync_fourier_oracle.py tools/analyze_filter_factorial.py
 
   core-sanitizers:
