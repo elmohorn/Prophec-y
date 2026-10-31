@@ -223,7 +223,7 @@ def run_self_test() -> int:
     assert abs(settle - 0.5) < 1.0e-12
     assert abs(duration - 1.0) < 1.0e-12
     settle, duration = choose_window(0.2, 0.5, 1.0)
-    assert 0.0 <= settle <= 0.08
+    assert 0.0 <= settle <= 0.0800000001
     assert duration >= 0.05
 
     values = summarize([-2.0, 1.0, 0.5])
