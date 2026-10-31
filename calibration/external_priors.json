@@ -4,7 +4,7 @@
     "external_priors_are_truth": false,
     "promotion_requires_real_prophet_audio": true,
     "default_candidate_base": "current",
-    "notes": "Profiles are renderer arguments, not engine defaults. GPL/AGPL sources are reference-only."
+    "notes": "Profiles are renderer arguments, not engine defaults. GPL/AGPL sources are reference-only. Historical Reference-A sweeps are supporting evidence and retain their original caveats."
   },
   "sources": {
     "phosphor_p6": {
@@ -49,7 +49,7 @@
       "renderer_args": ["--reference-a-v07"]
     },
     "reference_a_v08": {
-      "description": "Historical Reference-A v0.8 candidate",
+      "description": "Historical Reference-A v0.8 split-HPF candidate",
       "renderer_args": ["--reference-a-v08"]
     },
     "reference_a_v09": {
@@ -64,7 +64,36 @@
         "pulseWidthCurveExponent": 1.0,
         "pulseWidthEndInset": 0.04
       },
-      "promotion_status": "candidate-only"
+      "promotion_status": "candidate-only",
+      "reference_a_crosscheck": {
+        "historical_sweep": "pw_inset_fit.csv",
+        "rank": 10,
+        "tested_candidates": 13,
+        "score": 9.291282127957375,
+        "best_value": 0.15,
+        "best_score": 9.055711097486949,
+        "relative_score_delta_percent": 2.6013532006,
+        "interpretation": "Reference-A weakly prefers a larger inset in this historical two-case score, but v0.8 rejected endpoint/PW promotion because the effect was modest and phase/filter confounding remained."
+      }
+    },
+    "reference_a_pw015_exploratory": {
+      "description": "Historical v0.8 PW-inset sweep minimum; retained for cross-checking only, not a promoted hardware law",
+      "renderer_args": ["--pw-exponent", "1.0", "--pw-inset", "0.15"],
+      "parameters": {
+        "pulseWidthCurveExponent": 1.0,
+        "pulseWidthEndInset": 0.15
+      },
+      "promotion_status": "historical-exploratory",
+      "caveat": "v0.8 explicitly did not promote this result; unknown oscillator phase and filter/performance coupling were nuisance variables."
+    },
+    "pulse_normalization_zero_exploratory": {
+      "description": "Historical Reference-A sweep endpoint that minimized the old aggregate pulse-normalization score",
+      "renderer_args": ["--pulse-normalization", "0.0"],
+      "parameters": {
+        "pulseMeanNormalization": 0.0
+      },
+      "promotion_status": "historical-exploratory",
+      "caveat": "v0.8 explicitly retained normalization=1.0 because relaxing it improved one ratio by only about 0.8 dB and did not resolve the larger mismatch."
     },
     "reference_a_v09_plus_phosphor_pw": {
       "description": "Reference-A v0.9 candidate plus the independent Phosphor raw-to-PW prior",
@@ -91,14 +120,24 @@
       "source": "phosphor_p6",
       "prior": "linear raw/127",
       "prophecy_current": "linear raw/127",
-      "difference": false
+      "difference": false,
+      "reference_a_crosscheck": "v0.8 broadband/staged mixer fits produced implausible compensating values and were rejected; no evidence to replace the linear default."
+    },
+    {
+      "parameter": "sub_gain",
+      "source": "reference_a_v08",
+      "prior": "global gain change was tested",
+      "prophecy_current": 1.0,
+      "difference": false,
+      "reference_a_crosscheck": "Brassed Off and Solid Bass requested contradictory sub compensation once phase was considered; v0.8 rejected a global sub-gain change."
     },
     {
       "parameter": "lp_cutoff_control_coordinate",
       "source": "phosphor_p6",
       "prior": "raw 0..164 used directly as semitone-like cutoff-note coordinate",
       "prophecy_current": "legacy family is one semitone/raw; Reference-A v0.7 deliberately diverges",
-      "difference": "Reference-A candidate differs and has stronger acoustic support"
+      "difference": "Reference-A candidate differs and has stronger acoustic support",
+      "reference_a_crosscheck": "v0.7 weighted score improved from 19.3346 to 12.4566 (-35.6%) with base 88.97695 Hz and slope 0.37 semitone/raw."
     },
     {
       "parameter": "resonance_raw_law",
@@ -112,7 +151,8 @@
       "source": "phosphor_p6",
       "prior": 0.04,
       "prophecy_current": 0.04,
-      "difference": false
+      "difference": false,
+      "hardware_confidence": "medium prior / low direct measurement"
     },
     {
       "parameter": "pulse_width_raw_mapping",
@@ -120,7 +160,8 @@
       "prior": "linear raw 0..255 -> duty 0.04..0.96",
       "prophecy_current": "linear raw 0..255 -> nominal 0..1 then oscillator clamp 0.04..0.96",
       "difference": true,
-      "test_profile": "phosphor_pw_v019"
+      "test_profile": "phosphor_pw_v019",
+      "reference_a_crosscheck": "Historical sweep ranked inset 0.04 at 10/13; best was 0.15, but v0.8 judged endpoint changes modest/confounded and promoted neither."
     },
     {
       "parameter": "pulse_mean_normalization",
@@ -128,14 +169,22 @@
       "prior": "remove mean; scale by 1/(1+abs(mean))",
       "prophecy_current": "same family at pulseMeanNormalization=1",
       "difference": false,
-      "hardware_confidence": "low"
+      "hardware_confidence": "low",
+      "reference_a_crosscheck": {
+        "historical_sweep": "pulse_normalization_fit.csv",
+        "score_at_0": 12.487844577883893,
+        "score_at_1": 12.791864183419236,
+        "relative_score_delta_percent_1_vs_0": 2.4345242579,
+        "interpretation": "The old aggregate score weakly preferred removing the extra normalization, but v0.8 retained 1.0 because the gain effect was too small to explain the mismatch and phase/filter confounding dominated."
+      }
     },
     {
       "parameter": "poly_mod_spans",
       "source": "phosphor_p6",
       "prior": "pitch 4 oct, shape 1.0, PW 0.5, filters 7 oct",
       "prophecy_current": "same in Reference-A v0.9; legacy default is smaller for shape/PW/filter",
-      "difference": "candidate-vs-default"
+      "difference": "candidate-vs-default",
+      "reference_a_crosscheck": "Reference-A v0.9 could not isolate individual destinations cleanly; values remain named candidates rather than measurements."
     },
     {
       "parameter": "hard_sync_topology",
