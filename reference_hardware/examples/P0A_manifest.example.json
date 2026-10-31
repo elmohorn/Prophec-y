@@ -1,0 +1,125 @@
+{
+  "schema_version": "p6-reference-capture/1",
+  "capture_set_id": "P6-A-2026-001",
+  "captured_utc": "2026-10-31T12:00:00Z",
+  "hardware": {
+    "model": "Sequential Prophet-6",
+    "unit_id": "P6-A",
+    "firmware": "RECORD_EXACT_VERSION",
+    "warmup_minutes": 30,
+    "voice_selection": "One voice where practical; document any forced voice procedure.",
+    "globals": {
+      "vintage_mode": "RECORD_EXACT_SETTING"
+    }
+  },
+  "acquisition": {
+    "sample_rate_hz": 96000,
+    "bit_depth": 24,
+    "channels": 2,
+    "format": "WAV_PCM",
+    "interface_chain": "Prophet-6 L/R line outputs -> RECORD_INTERFACE_AND_INPUTS",
+    "fixed_gain_reference": "RECORD_INTERFACE_GAIN; do not change within this sweep",
+    "output_route": "Stereo L/R",
+    "notes": "No DAW processing, normalization, limiting, EQ, gate, dither or sample-rate conversion."
+  },
+  "default_isolation": {
+    "fx_off": true,
+    "distortion_raw": 0,
+    "pan_spread_raw": 0,
+    "slop_raw": 0,
+    "lfo_destinations_off": true,
+    "poly_mod_destinations_off": true,
+    "velocity_modulation_off": true,
+    "aftertouch_modulation_off": true
+  },
+  "tests": [
+    {
+      "capture_id": "P6-A-2026-001-OSC-SHAPE-000",
+      "test_id": "OSC1_SHAPE_C4_RAW000",
+      "family": "P0-A",
+      "capture_grade": "calibration",
+      "sysex_file": "sysex/OSC1_SHAPE_C4_RAW000.syx",
+      "audio_file": "audio/OSC1_SHAPE_C4_RAW000.wav",
+      "midi": {
+        "notes": [60],
+        "velocities": [127],
+        "channel_pressure": 0,
+        "mod_wheel": 0,
+        "pitch_bend_14bit": 8192,
+        "sustain": false
+      },
+      "timing": {
+        "pre_roll_seconds": 2.0,
+        "note_seconds": 3.0,
+        "release_seconds": 2.0
+      },
+      "raw_parameters": {
+        "0": 24,
+        "2": 127,
+        "3": 0,
+        "4": 127
+      },
+      "isolation_deviations": [],
+      "notes": "Osc1 isolated. Exact complete patch state is the paired SysEx; raw_parameters lists only the controls central to this test."
+    },
+    {
+      "capture_id": "P6-A-2026-001-OSC-PW-000",
+      "test_id": "OSC1_PW_C4_RAW000",
+      "family": "P0-A",
+      "capture_grade": "calibration",
+      "sysex_file": "sysex/OSC1_PW_C4_RAW000.syx",
+      "audio_file": "audio/OSC1_PW_C4_RAW000.wav",
+      "midi": {
+        "notes": [60],
+        "velocities": [127],
+        "channel_pressure": 0,
+        "mod_wheel": 0,
+        "pitch_bend_14bit": 8192,
+        "sustain": false
+      },
+      "timing": {
+        "pre_roll_seconds": 2.0,
+        "note_seconds": 3.0,
+        "release_seconds": 2.0
+      },
+      "raw_parameters": {
+        "0": 24,
+        "2": 127,
+        "3": 254,
+        "4": 0
+      },
+      "isolation_deviations": [],
+      "notes": "Pulse end-point capture for duty/mean/level measurement."
+    },
+    {
+      "capture_id": "P6-A-2026-001-OSC-PW-127",
+      "test_id": "OSC1_PW_C4_RAW127",
+      "family": "P0-A",
+      "capture_grade": "calibration",
+      "sysex_file": "sysex/OSC1_PW_C4_RAW127.syx",
+      "audio_file": "audio/OSC1_PW_C4_RAW127.wav",
+      "midi": {
+        "notes": [60],
+        "velocities": [127],
+        "channel_pressure": 0,
+        "mod_wheel": 0,
+        "pitch_bend_14bit": 8192,
+        "sustain": false
+      },
+      "timing": {
+        "pre_roll_seconds": 2.0,
+        "note_seconds": 3.0,
+        "release_seconds": 2.0
+      },
+      "raw_parameters": {
+        "0": 24,
+        "2": 127,
+        "3": 254,
+        "4": 127
+      },
+      "isolation_deviations": [],
+      "notes": "Near-centre pulse-width capture; also capture raw 128 as a separate test."
+    }
+  ],
+  "notes": "Template only. Replace placeholders and create the paired SysEx/WAV files before treating the set as calibration-grade."
+}
