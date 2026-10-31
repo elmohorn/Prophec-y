@@ -22,9 +22,9 @@ struct VoiceOscillatorParams {
 };
 
 struct VoicePolyModParams {
-    double filterEnvAmount{}; // bipolar source gain
-    double osc2Amount{};      // bipolar source gain
-    double osc1FreqAmount{};  // octaves at full source
+    double filterEnvAmount{};
+    double osc2Amount{};
+    double osc1FreqAmount{};
     double osc1ShapeAmount{};
     double osc1PulseWidthAmount{};
 };
@@ -32,7 +32,7 @@ struct VoicePolyModParams {
 struct VoiceLfoRouting {
     bool osc1Freq{};
     bool osc2Freq{};
-    bool pulseWidth{}; // both oscillators on the hardware
+    bool pulseWidth{};
     bool amp{};
     bool lowPass{};
     bool highPass{};
@@ -42,23 +42,21 @@ struct VoiceLfoRouting {
 };
 
 struct VoiceAftertouchRouting {
-    double amount{}; // bipolar -1..+1
+    double amount{};
     bool osc1Freq{};
     bool osc2Freq{};
     bool lowPass{};
     bool highPass{};
     bool amp{};
-    bool lfoAmount{}; // consumed by P6Engine because the LFO is global
+    bool lfoAmount{};
     double pitchRangeSemitones{12.0};
     double filterRangeSemitones{48.0};
 };
 
 struct VoiceFilterParams {
-    // Raw P6 cutoff domain (0..164) is kept until the final per-note mapping so
-    // keyboard tracking and modulation can operate in pitch/octave space.
     double cutoffControl{};
     double resonance{};
-    double keyTrack{};              // 0, 0.5, 1.0
+    double keyTrack{};
     bool velocity{};
     double envAmountOctaves{};
     double polyModAmountOctaves{};
@@ -74,8 +72,6 @@ struct VoiceParams {
     VoiceFilterParams highPass{0.0, 0.0, 0.0, false, 0.0, 0.0};
     double filterBaseHz{8.1757989156};
     double filterSemitonesPerRaw{1.0};
-    // HPF control law can be calibrated independently. Negative values mean
-    // "inherit the shared/legacy law" so existing defaults remain identical.
     double highPassFilterBaseHz{-1.0};
     double highPassFilterSemitonesPerRaw{-1.0};
     double highPassFilterCurveExponent{0.0};
@@ -95,10 +91,10 @@ struct VoiceParams {
     bool osc2LowFrequency{};
     bool osc2KeyTrack{true};
     bool glideOn{};
-    std::uint8_t glideMode{}; // 0 FR, 1 FR-A, 2 FT, 3 FT-A
+    std::uint8_t glideMode{};
     double glideSeconds{0.001};
-    double slopDepthCents{}; // slow per-oscillator random walk, not note-on offset
-    double voiceGain{1.0};   // persistent per-voice tolerance hook for Vintage mode
+    double slopDepthCents{};
+    double voiceGain{1.0};
     double ampEnvAmount{1.0};
     bool ampVelocity{};
     double ampAttack{0.01};
@@ -138,9 +134,8 @@ struct VoiceSample {
     double slop2Cents{};
 };
 
-// Per-voice analog path: Osc2 (sync master) -> audio-rate Poly Mod -> Osc1
-// (sync slave) -> triangle sub/noise mixer -> resonant HPF -> resonant 4-pole
-// LPF -> VCA. Oscillators continue to free-run when the VCA is silent.
+// Per-voice analog path. Oscillators and filter state continue to free-run while
+// the VCA is silent; performance shortcuts therefore must not skip processInternal().
 class P6Voice {
 public:
     void prepare(double sampleRate, std::uint32_t seed = 1, int oversampleFactor = 2);
@@ -150,16 +145,11 @@ public:
     void noteOn(int midiNote, double velocity01 = 1.0,
                 bool retriggerEnvelope = true, bool resetEnvelopeFromZero = false);
     void noteOff();
-    // MIDI All Sound Off closes the envelopes immediately but deliberately
-    // leaves oscillator/slop/filter phase history running. reset() is a much
-    // stronger lifecycle operation and must not be used as a channel panic.
     void silence();
     void reset();
     VoiceSample process(double lfoSignal = 0.0, double pressure01 = 0.0);
 
     bool active() const noexcept { return active_; }
-    // Diagnostic/calibration accessor: current per-voice pitch after glide,
-    // before oscillator coarse/fine/slop/modulation.
     double currentPitchNote() const noexcept { return glideNote_; }
     double effectiveBasePitchNote() const noexcept { return glideNote_ + pitchBendSemitones_; }
 
@@ -205,6 +195,7 @@ private:
     std::vector<double> decimatorTaps_{};
     std::vector<double> decimatorHistory_{};
     std::size_t decimatorWrite_{};
+    std::size_t decimatorNonZeroSamples_{};
 };
 
 } // namespace p6
