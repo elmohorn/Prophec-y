@@ -3,6 +3,8 @@
 Date: 31 October 2026. Engine baseline: `23dc4d7d0e641f5fcdd7aa25738bf30c5c3a1bde`.
 Status: **seven official audio files acquired and decoded; quantitative holdouts registered, not run**.
 
+Subsequent work: [two additional independent WAVs and 24 actual renderer comparisons](V0_19_INDEPENDENT_AUDIO_RESULTS.md). These are exploratory measurements outside the frozen eight-program set; that set remains unrun.
+
 ## What was acquired
 
 The current [Sequential Prophet-6 page](https://sequential.com/modern-analog/prophet-6/) provides six individual examples: Buzzy Pad, Polymod Pad, Big Bass, Classic Sync Lead, Detune Unison Lead and Big Pad. All six downloaded successfully. The Peter Dyer song on the same page also downloaded successfully; Sequential identifies all its sounds, including drums, as Prophet-6.
