@@ -13,6 +13,13 @@ namespace {
 
 void setRaw(p6::P6PatchState& patch, std::uint16_t id, std::uint16_t raw)
 {
+    for (auto& parameter : patch.rawParameters) {
+        if (parameter.id == id) {
+            parameter.raw = raw;
+            parameter.recognized = true;
+            return;
+        }
+    }
     patch.rawParameters.push_back({id, raw, 0.0f, true});
 }
 
