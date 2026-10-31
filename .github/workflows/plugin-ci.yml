@@ -29,6 +29,13 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
         run: ctest --test-dir build-sanitize --output-on-failure
+      - name: Reference corpus tooling self-tests
+        shell: bash
+        run: |
+          python3 tools/validate_reference_manifest.py reference_hardware/examples/P0A_manifest.example.json --metadata-only
+          python3 tools/render_reference_manifest.py --self-test
+          python3 tools/reference_audio_metrics.py --self-test
+          python3 tools/analyze_p0a_manifest.py --self-test
 
   build-and-validate:
     name: ${{ matrix.name }}

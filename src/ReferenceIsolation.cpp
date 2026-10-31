@@ -68,9 +68,11 @@ P6PatchState makeReferenceIsolationPatch(const P6PatchState& source,
     }
 
     // A reference note is one voice unless the test explicitly exercises
-    // stacking; arp/sequencer timing is likewise outside a direct renderer.
+    // stacking. Clear both the switch and mode so a stored CHD mode cannot
+    // remain semantically active behind Unison Off.
     setVerifiedRaw(out, 156, 0);
-    setVerifiedRaw(out, 160, 0);
+    setVerifiedRaw(out, 157, 0);
+    setVerifiedRaw(out, 160, 0); // Arp off for direct-render reference notes.
 
     // rawPayload is canonical. Rebuild the convenience NRPN view so all mapper
     // layers observe the edited bytes while every unknown byte stays intact.

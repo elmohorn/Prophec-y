@@ -21,6 +21,8 @@ capture-set-YYYYMMDD-A/
     ...
   audio/
     ...
+  model/
+    ...
 ```
 
 The exact SysEx is the complete patch-state authority. `raw_parameters` in the
@@ -51,7 +53,31 @@ The generator deliberately does not invent hardware globals or interface
 metadata. Replace all `RECORD_*` placeholders and inspect the resulting
 isolation state before recording.
 
-## Validation
+### Hardware WAV timing convention
+
+The hardware WAV is the **untouched full take**: start recording before the
+manifest's `pre_roll_seconds`, retain that pre-roll in the file, then retain the
+whole note and release. Do not trim the hardware take. This is intentional:
+free-running oscillator state and pre-roll duration remain auditable.
+
+`p6_render_reference` advances through the same pre-roll internally but writes
+its model WAV starting at Note On. The P0-A report tool accounts for this
+explicitly; it never tries to align the two files by guessing.
+
+### Analog voice variance
+
+Do not treat a single analog voice as exact ground truth. The Prophet-6 can
+cycle repeated notes across its six analog voices, and voice-to-voice tuning,
+filter and level differences can be comparable to a proposed calibration
+change. During the first real session, record repeated anchor notes before and
+after the P0-A sweep without changing gain. Those repeats are used to estimate
+hardware repeatability; model improvements smaller than that uncertainty are
+not promoted as measured wins.
+
+The 88 generated conditions remain the deterministic transfer-function matrix;
+repeat anchors are uncertainty controls, not 6x duplication of the whole pack.
+
+## Validate a capture set
 
 The validator uses only the Python standard library:
 
@@ -78,6 +104,72 @@ Passing validation does **not** prove that a capture is acoustically suitable.
 Clipping, wrong hardware globals, wrong patch state, DAW processing, unstable
 gain, or a mislabeled test can still invalidate a take. Those conditions are
 part of the capture procedure and later analysis report.
+
+## Render the same P0-A matrix in Prophec-y
+
+The batch renderer reads note, velocity, sample rate and timing directly from
+the manifest and invokes the standardized v0.19 renderer with dry isolation:
+
+```bash
+python tools/render_reference_manifest.py \
+  reference_hardware/capture-set-YYYYMMDD-A/manifest.json \
+  --renderer ./build/p6_render_reference \
+  --output-dir reference_hardware/capture-set-YYYYMMDD-A/model \
+  --oversampling 2
+```
+
+Use `--dry-run` to inspect every command without rendering. Historical
+Reference-A candidates can be selected explicitly with `--calibration v07`,
+`v08` or `v09`; the default is the current unqualified mapper, so candidate
+comparisons remain deliberate rather than implicit.
+
+## Measure one pair
+
+`reference_audio_metrics.py` reads both 24-bit hardware PCM and the float32 WAV
+written by the model renderer. It reports DC, AC RMS, peak, positive-duty
+fraction, frequency and H1–H16 relative levels without external Python
+packages.
+
+```bash
+python tools/reference_audio_metrics.py hardware.wav \
+  --compare model.wav \
+  --start-seconds 2.5 \
+  --compare-start-seconds 0.5 \
+  --duration-seconds 1 \
+  --pretty
+```
+
+Harmonic error ignores terms below -70 dBc in both signals, while a harmonic
+present above that threshold in only one signal is penalized rather than being
+silently dropped. This avoids letting numerical/noise-floor harmonics dominate
+the score without hiding a genuinely missing or spurious partial.
+
+## Build the P0-A report
+
+For a complete capture set, the report tool chooses the same steady-state
+window in hardware and model automatically, accounting for the retained
+hardware pre-roll:
+
+```bash
+python tools/analyze_p0a_manifest.py \
+  reference_hardware/capture-set-YYYYMMDD-A/manifest.json \
+  --model-dir reference_hardware/capture-set-YYYYMMDD-A/model \
+  --output p0a-report.json \
+  --pretty
+```
+
+Absolute interface gain is not treated as a synth error. The report uses one
+global level anchor (`MIX_OSC1_C4_RAW127` by default), then reports all other
+RMS deviations relative to that single anchor. Pitch error, pulse duty and
+relative H2–H16 spectra do not use that gain normalization. Per-file
+normalization is deliberately forbidden because it would hide mixer/level-law
+errors.
+
+The report also applies metrics by test role: pitch sweeps are not scored on
+harmonics, noise/mixed-source level tests are not assigned a fake pitch, and
+shape/PW tests retain their spectral/duty metrics. A manifest may later specify
+`analysis_metrics` explicitly; otherwise the stable P0-A test-ID convention is
+used.
 
 ## IDs
 

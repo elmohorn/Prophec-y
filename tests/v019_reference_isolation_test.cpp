@@ -1,7 +1,6 @@
 #include "p6/ProgramLayout.h"
 #include "p6/ReferenceIsolation.h"
 
-#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -44,7 +43,7 @@ void testDryIsolationPreservesUnknownBytes()
         {109, 127}, {110, 0}, {111, 0}, {112, 0}, {113, 0}, {114, 0}, {115, 0},
         {119, 0}, {127, 0}, {135, 0},
         {143, 127}, {144, 127}, {145, 0}, {146, 0}, {147, 0}, {148, 0}, {149, 0},
-        {156, 0}, {160, 0}
+        {156, 0}, {157, 0}, {160, 0}
     };
 
     const auto isolated = p6::makeReferenceIsolationPatch(source);
@@ -62,8 +61,6 @@ void testDryIsolationPreservesUnknownBytes()
             assert(isolated.rawPayload[i] == before[i]);
     }
 
-    // The source is immutable: reference isolation is never allowed to mutate
-    // the canonical imported hardware state in-place.
     assert(source.rawPayload == before);
 }
 
@@ -92,11 +89,11 @@ void testOptionalSyncGlideAndPolyModPreservation()
     for (const auto& [nrpn, raw] : seed)
         expectRaw(isolated, nrpn, raw);
 
-    // Unrelated dry-reference protections still apply.
     expectRaw(isolated, 33, 0);
     expectRaw(isolated, 64, 0);
     expectRaw(isolated, 135, 0);
     expectRaw(isolated, 156, 0);
+    expectRaw(isolated, 157, 0);
 }
 
 } // namespace
