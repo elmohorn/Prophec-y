@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "current": {
+      "renderer_args": [],
+      "stage_role": "production baseline",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "control_preserve": {
+      "renderer_args": [
+        "--preserve-output-controls"
+      ],
+      "stage_role": "no-op control; must be bit-identical to current",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "depth12": {
+      "renderer_args": [
+        "--filter-env-octaves",
+        "12"
+      ],
+      "stage_role": "existing audition candidate",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "raw_mix": {
+      "renderer_args": [
+        "--filter-bypass",
+        "--preserve-output-controls"
+      ],
+      "stage_role": "component ablation; not a replacement patch",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "osc1": {
+      "renderer_args": [
+        "--osc1-only",
+        "--preserve-output-controls"
+      ],
+      "stage_role": "component ablation; not a replacement patch",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "osc2": {
+      "renderer_args": [
+        "--osc2-only",
+        "--preserve-output-controls"
+      ],
+      "stage_role": "component ablation; not a replacement patch",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "sync_only": {
+      "renderer_args": [
+        "--sync-only",
+        "--preserve-output-controls"
+      ],
+      "stage_role": "component ablation; not a replacement patch",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "pm_pitch_zero": {
+      "renderer_args": [
+        "--pm-pitch-octaves",
+        "0"
+      ],
+      "stage_role": "pitch modulation ablation",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "mix_sqrt": {
+      "renderer_args": [
+        "--mixer-exponent",
+        ".5"
+      ],
+      "stage_role": "isolated mixer-law intervention",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "mix_squared": {
+      "renderer_args": [
+        "--mixer-exponent",
+        "2"
+      ],
+      "stage_role": "isolated mixer-law intervention",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "lp_half": {
+      "renderer_args": [
+        "--filter-scale",
+        ".5",
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1"
+      ],
+      "stage_role": "isolated LP static-cutoff intervention; HP law held",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "lp_double": {
+      "renderer_args": [
+        "--filter-scale",
+        "2",
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1"
+      ],
+      "stage_role": "isolated LP static-cutoff intervention; HP law held",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "res070": {
+      "renderer_args": [
+        "--lp-res-scale",
+        ".7"
+      ],
+      "stage_role": "isolated LP resonance intervention",
+      "promotion_status": "diagnostic-not-promoted"
+    },
+    "res130": {
+      "renderer_args": [
+        "--lp-res-scale",
+        "1.3"
+      ],
+      "stage_role": "isolated LP resonance intervention",
+      "promotion_status": "diagnostic-not-promoted"
+    }
+  }
+}

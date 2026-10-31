@@ -2,6 +2,8 @@
 
 > Historical measurement caveat: the Unison first-key/release-tail bug discovered later in v0.19 affected Solid Bass multi-note renders. Preserve these numbers as historical results, but use `V0_19_UNISON_FIX_AND_RECALIBRATION.md` and the corrected-engine measurements for new calibration decisions. The independent static Fourier-oracle results are unaffected.
 
+Follow-up completed: [Sync Stack stage and ensemble isolation](V0_19_SYNC_STAGE_RESULTS.md) adds 132 renders, stereo-power harmonic analysis and cross-preset rejection evidence. No tested filter/mixer intervention is sufficient to repair H4/H5 or justify a global change.
+
 Date: 31 October 2026. Engine baseline: `0bc3c5e962d35c9952172c6aa00d0e37954b942c`.
 
 **800 new final renders:** 320 real-reference candidate renders plus 480 synthetic sync-probe renders. The earlier 240-render single-register oracle pilot is superseded by the two-register matrix. No engine implementation, serialized state or product defaults changed.

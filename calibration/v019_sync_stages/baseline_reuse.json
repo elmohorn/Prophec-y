@@ -1,0 +1,11 @@
+{
+  "baseline_file": "calibration/v019_unison_recalibration/fixed_local_comparisons.csv",
+  "profile": "depth10.5833_res1",
+  "baseline_rows": 16,
+  "baseline_renderer_sha256": "d50580d35a9d810b97eda0441b9329ea9ed27e6e19d837939535dab49048f857",
+  "baseline_renderer_matches_archived_provenance": true,
+  "old_and_new_current_RA266_pre05_bit_identical": true,
+  "new_current_and_control_preserve_bit_identical_count": 4,
+  "new_renderer_sha256": "0fe0e053f421b6bce716298c51218a47757902f135a9a960cee25d7107f6e678",
+  "limits": "No core or mapping source changed; new tool flag is inactive for both reused baseline and whole-patch interventions."
+}

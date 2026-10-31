@@ -1,0 +1,37 @@
+{
+  "source_branch": "v0.19-sound-matching",
+  "source_sha": "34135bbc4334269b6b358065b45167557f676b50",
+  "renderer_sha256": "0fe0e053f421b6bce716298c51218a47757902f135a9a960cee25d7107f6e678",
+  "profiles_file_sha256": "ba229d5cd90badb3274a8560d4b4961a41425c9aaf7967477c3ab23cc0f8b2be",
+  "prerolls": [
+    0.0,
+    0.5,
+    1.5,
+    3.0
+  ],
+  "oversampling": 2,
+  "sample_rate": 48000,
+  "analysis_band_hz": [
+    40,
+    12000
+  ],
+  "fft_sizes": [
+    512,
+    2048,
+    8192
+  ],
+  "limits": [
+    "single recording source, not independent hardware replications",
+    "VCO pre-roll changes phase and Slop realization together",
+    "relative gain only: recovered listening references were RMS-normalized",
+    "inferred events, not recorded MIDI; sync envelope intentionally excluded",
+    "no engine defaults changed"
+  ],
+  "assets": {
+    "RA266": {
+      "reference": "0b6d744ddd0ee99adc6cd67c49b3924647e83c396f7de5b6920a6a58f2015f46",
+      "sysex": "94820a7c0f7d68a6c32fb670337871c981f90f600b52591b265481e5e212b1a5",
+      "events": "d023fbb381fbccfa07241b2ce36f9c0584a48184ebd3bdfbdc72b9efafdd15ec"
+    }
+  }
+}
