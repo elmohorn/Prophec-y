@@ -16,7 +16,7 @@ void setRaw(p6::P6PatchState& patch, std::uint16_t id, std::uint16_t raw)
     for (auto& parameter : patch.rawParameters) {
         if (parameter.id == id) {
             parameter.raw = raw;
-            parameter.recognized = true;
+            parameter.implemented = true;
             return;
         }
     }
