@@ -28,6 +28,15 @@
       "evidence_class": "COPYLEFT-REFERENCE",
       "instrument": "Prophet-5 Rev4-oriented engine",
       "copy_policy": "reference-only"
+    },
+    "analog_synth_p6_inspired": {
+      "repository": "straplocked/analog-synth",
+      "license": "GPL-3.0-or-later",
+      "evidence_class": "COPYLEFT-REFERENCE",
+      "instrument": "Prophet-6-inspired generic virtual analog",
+      "copy_policy": "reference-only",
+      "calibration_vote": false,
+      "reason": "Documented sync topology and several DSP choices are generic/incompatible with the Prophet-6 contract; useful only as architecture contrast."
     }
   },
   "profiles": {
@@ -127,6 +136,15 @@
       "prior": "pitch 4 oct, shape 1.0, PW 0.5, filters 7 oct",
       "prophecy_current": "same in Reference-A v0.9; legacy default is smaller for shape/PW/filter",
       "difference": "candidate-vs-default"
+    },
+    {
+      "parameter": "hard_sync_topology",
+      "source": "analog_synth_p6_inspired",
+      "prior": "Osc1 master -> Osc2 slave",
+      "prophecy_current": "Osc2 master -> Osc1 slave",
+      "difference": true,
+      "calibration_vote": false,
+      "reason": "Project is P6-inspired rather than a state-compatible emulator; contradiction lowers its calibration weight instead of creating a candidate."
     }
   ]
 }
