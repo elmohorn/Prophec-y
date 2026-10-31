@@ -120,12 +120,13 @@ struct Fingerprint {
     }
 };
 
-Fingerprint render(const p6::P6PatchState& patch, int oversample)
+Fingerprint render(const p6::P6PatchState& patch, int oversample, double panSpread = 0.0)
 {
     constexpr double sampleRate = 48000.0;
     p6::P6Engine engine;
     engine.prepare(sampleRate, oversample);
     engine.loadPatch(patch);
+    engine.setPanSpread(panSpread);
     engine.setEffectsRuntimeBpm(120.0);
 
     Fingerprint fp;
@@ -171,5 +172,6 @@ int main()
     print("sync_poly_2x", render(syncPolyPatch(), 2));
     print("fx_2x", render(fxPatch(), 2));
     print("dry_1x", render(basePatch(), 1));
+    print("pan_2x", render(basePatch(), 2, 1.0));
     return 0;
 }
