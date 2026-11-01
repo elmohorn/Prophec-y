@@ -10,12 +10,13 @@ static void set(P6AudioProcessor& p,const char* id,float v)
     auto* parameter=p.parameters().getParameter(id);
     parameter->beginChangeGesture();parameter->setValueNotifyingHost(parameter->convertTo0to1(v));parameter->endChangeGesture();
 }
-static void screenshot(juce::Component& c,const juce::File& file)
+static bool screenshot(juce::Component& c,const juce::File& file)
 {
     juce::Image image(juce::Image::ARGB,c.getWidth(),c.getHeight(),true);
     juce::Graphics g(image);c.paintEntireComponent(g,true);
-    file.deleteFile();
-    juce::FileOutputStream stream(file);juce::PNGImageFormat().writeImageToStream(image,stream);
+    juce::MemoryOutputStream stream;
+    if(!juce::PNGImageFormat().writeImageToStream(image,stream))return false;
+    return file.replaceWithData(stream.getData(),stream.getDataSize());
 }
 int main(int argc,char** argv)
 {
@@ -68,7 +69,7 @@ int main(int argc,char** argv)
     editor.reset();editor.reset(p.createEditor());editor->setSize(1460,P6PluginEditor::expandedHeight);
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
-        screenshot(*editor,folder.getChildFile("module_tube.png"));
+        CHECK(screenshot(*editor,folder.getChildFile("module_tube.png")));
         int frame=0;
         float quietLevel=0.f,loudLevel=0.f;
         for(int volume:{0,12,24,64,100,127,100,64,24,12,0,0}) {
@@ -77,7 +78,7 @@ int main(int argc,char** argv)
             if(frame==0)quietLevel=p.characterTelemetry().inputRms;
             if(frame==5)loudLevel=p.characterTelemetry().inputRms;
             editor.reset();editor.reset(p.createEditor());
-            screenshot(*editor,folder.getChildFile("tube_signal_"+juce::String(frame++).paddedLeft('0',2)+".png"));
+            CHECK(screenshot(*editor,folder.getChildFile("tube_signal_"+juce::String(frame++).paddedLeft('0',2)+".png")));
         }
         CHECK(loudLevel>quietLevel*4.f);
         midi.addEvent(juce::MidiMessage::controllerEvent(1,7,127),0);
@@ -88,15 +89,15 @@ int main(int argc,char** argv)
         for(int i=0;i<200;++i)p.processBlock(audio,midi);
         CHECK(!p.characterTelemetry().active);
         editor.reset();editor.reset(p.createEditor());
-        screenshot(*editor,folder.getChildFile("module_tube_bypass.png"));
+        CHECK(screenshot(*editor,folder.getChildFile("module_tube_bypass.png")));
         set(p,p6plugin::kCharacterBypassID,0.f);
         for(auto* child:editor->getChildren())
             if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getButtonText()=="STUDIO")button->onClick();
-        screenshot(*editor,folder.getChildFile("studio.png"));
+        CHECK(screenshot(*editor,folder.getChildFile("studio.png")));
         set(p,p6plugin::kCharacterTypeID,0.f);
         editor.reset();editor.reset(p.createEditor());
         CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
-        screenshot(*editor,folder.getChildFile("module_none.png"));
+        CHECK(screenshot(*editor,folder.getChildFile("module_none.png")));
     }
     editor.reset();p.releaseResources();
     std::cout<<"Native editor, restored controls, SysEx isolation and live audio smoke passed\n";

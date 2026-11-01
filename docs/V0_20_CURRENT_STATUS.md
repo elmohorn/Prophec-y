@@ -10,7 +10,7 @@ Prophec-y v0.20 keeps the Prophet-6-compatible raw/SysEx state as the canonical 
 
 ## UI implemented
 
-- Native JUCE aluminum Module editor based on the approved desktop-module direction.
+- Native JUCE aluminum Module editor based on the owner's desktop-module reference; final visual approval remains pending.
 - Oscillator, mixer, filter, Poly Mod, LFO, filter envelope, amplifier envelope, performance and output controls connected to the existing APVTS/raw parameter contract.
 - Standard Prophet-style FX type selectors are now visible in Module:
   - FX A: Off, BBD Delay, Digital Delay, Chorus, Phaser 1, Phaser 2.
@@ -140,3 +140,7 @@ The clipping/headroom issue is therefore **diagnosed and measured, not yet fixed
 ## CI / release policy
 
 The focused headroom workflow passed for the current diagnostic implementation. Full Windows/Linux plugin CI remains the release gate: core/state/control/realtime tests, native editor/audio smoke, pluginval strictness 10, Linux ASan+UBSan and analysis guards must pass before a preview is published.
+
+## Product review and proposed next steps
+
+The owner's comparison with Surge XT, Vital, Dexed, Gearmulator and Odin 2 has been reviewed against this checkpoint. Concrete formatter/calibration and MIDI-channel findings, references and proposed acceptance criteria are recorded in [V0_20_PRODUCT_REVIEW.md](V0_20_PRODUCT_REVIEW.md). These recommendations are not marked implemented.
