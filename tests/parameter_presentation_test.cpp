@@ -44,5 +44,22 @@ int main()
     CHECK(!parseParameterValue(88,"3 Hz",reference));
     CHECK(formatParameterValue(88,100,base).find("Hz")!=std::string::npos);
     CHECK(formatParameterValue(49,164,base).find("OPEN")==std::string::npos);
+    // The shared control is now used across the whole hardware surface.
+    // Every displayed scalar must accept its own printed unit; raw/morph
+    // fields deliberately use the explicit raw editor instead.
+    for(const auto& context:{base,ParameterContext{p6::referenceACandidateV09(),false}})
+        for(int nrpn:{0,3,4,2,5,8,9,7,6,49,45,46,77,143,144,88,89,90,78,79,80,81,67,68,69,70,30,33,63,62,120,128,27,32}) {
+            const auto* descriptor=p6::findProgramParameter(static_cast<std::uint16_t>(nrpn));CHECK(descriptor!=nullptr);
+            for(unsigned raw=descriptor->minimum;raw<=descriptor->maximum;++raw) {
+                const auto unit=parameterValue(nrpn,raw,context).unit;
+                if(unit==ValueUnit::Morph||unit==ValueUnit::Raw)
+                    CHECK(parseParameterValue(nrpn,std::to_string(raw),context,true)==static_cast<double>(raw));
+                else {
+                    const auto text=formatParameterValue(nrpn,raw,context);
+                    const auto parsed=parseParameterValue(nrpn,text,context);CHECK(parsed.has_value());
+                    CHECK(formatParameterValue(nrpn,*parsed,context)==text);
+                }
+            }
+        }
     std::cout<<"Parameter presentation matches effective mapper profiles, discrete parsing and synced-rate policy\n";
 }
