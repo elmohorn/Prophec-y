@@ -64,10 +64,18 @@ Los algoritmos están vinculados a structs/dispatch del motor C. Las inicializac
 
 [chowdsp_wdf](https://github.com/Chowdhury-DSP/chowdsp_wdf), BSD-3-Clause, es infraestructura de modelado de circuitos, no una colección terminada de los ocho efectos. Su licencia fue comprobada; la evaluación técnica previa sigue siendo de arquitectura. Útil si necesitamos diseñar o ampliar un circuito, con más trabajo propio que adaptar un procesador ya existente.
 
+### DaisySP — base modular prioritaria para los efectos creativos
+
+[Repositorio actual](https://github.com/daisyaudio/DaisySP), antes `electro-smith/DaisySP`. Añadido tras la sugerencia del usuario. Se verificó el árbol actual y se leyeron licencia, submódulos, Overdrive, Tremolo y PitchShifter. Su núcleo MIT está destinado también a plugins/JUCE; no requiere adoptar una placa Daisy para reutilizar DSP portátil.
+
+Overdrive es soft clipping con ganancias pre/post, no una simulación dedicada de triodo. Tremolo multiplica por una modulación de oscilador, no representa por sí solo la dinámica de lámpara/fotorresistencia. PitchShifter usa líneas de retardo y crossfades: componente candidato para shimmer al combinarlo con reverb/feedback, no un shimmer completo ya evaluado. Wavefolder, ruido, resonadores y delay lines amplían las posibilidades creativas; esos módulos se inventariaron sin lectura completa ni escucha en esta revisión.
+
+La separación de licencias importa: el submódulo DaisySP-LGPL fijado en el árbol tiene licencia LGPL-2.1 y contiene ReverbSc, entre otros. No tratar todo lo que aparece en ejemplos históricos como MIT. Evaluar módulos/dependencias concretos; no se copia código ni se declara una incompatibilidad general de LGPL. DaisySP entra como toolbox prioritario para los efectos futuros, mientras la válvula sigue requiriendo la comparación específica Tube2/DSPark.
+
 ## Recomendación y límite de la búsqueda
 
 Comparar primero **Tube2 y DSPark TubePreamp** en un harness separado, con entradas musicales del sintetizador, niveles emparejados y un preset limpio de control. Evaluar costo, latencia, continuidad de parámetros y aliasing, además de escucha. Elegir el núcleo después de esa comparación; la identidad Prophec-y provendrá también del voicing, parámetros e interacción/visual propios.
 
-Para cinta/resorte/óptico/ring/shimmer, conservar Patina y0xFX como fuentes de módulos a auditar individualmente. En los archivos inspeccionados no se verificó una implementación directa de los conceptos plasma ni ferrofluido. Eso no prueba que no exista en otros proyectos; evita prometer una biblioteca que resuelve exactamente toda la colección.
+Para cinta/resorte/óptico/ring/shimmer, priorizar también la composición de bloques DaisySP MIT y conservar Patina y0xFX como fuentes de módulos a auditar individualmente. En los archivos inspeccionados no se verificó una implementación directa de los conceptos plasma ni ferrofluido. Eso no prueba que no exista en otros proyectos; evita prometer una biblioteca que resuelve exactamente toda la colección.
 
 La búsqueda reduce trabajo DSP, pero no proporciona la bahía visual, telemetría, persistencia extendida o integración JUCE. Esas piezas comunes se diseñarán una vez para todos los efectos, empezando por la válvula.

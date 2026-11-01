@@ -60,6 +60,27 @@
         "LICENSE"
       ],
       "license": "BSD-3-Clause"
+    },
+    {
+      "repository": "daisyaudio/DaisySP",
+      "previous_url": "electro-smith/DaisySP",
+      "sha": "2c72eaf9eac5fc0dca1919d65d606da907832618",
+      "files_inspected": [
+        "LICENSE",
+        ".gitmodules",
+        "Source/Effects/overdrive.cpp",
+        "Source/Effects/tremolo.cpp",
+        "Source/Effects/pitchshifter.h"
+      ],
+      "license": "MIT core; separate DaisySP-LGPL submodule must be assessed independently"
+    },
+    {
+      "repository": "daisyaudio/DaisySP-LGPL",
+      "sha": "c89d380c62620d6fee9105c5035e081c9b7ea843",
+      "files_inspected": [
+        "LICENSE"
+      ],
+      "license": "LGPL-2.1; module inventory inspected, no effect implementation audited"
     }
   ]
 }
