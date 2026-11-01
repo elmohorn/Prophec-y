@@ -79,15 +79,39 @@ Editor nativo JUCE sobre el wrapper existente. No introducir un navegador embebi
 4. Persistencia de preferencias visuales separada del SysEx canónico, manteniendo compatibilidad de sesiones anteriores.
 5. Medir costo UI, host automation y abrir/cerrar editor durante reproducción; las huellas de audio deben conservarse cuando no hay edición.
 
-## Etapas
+## Etapas y secuencia integrada
 
-| Etapa | Entregable | Aceptación |
-|---|---|---|
-| 0.20a — concepto | Module de aluminio + Studio y bahía de varios dispositivos, sobre un inventario común de controles | **En implementación avanzada**: Module y Tube funcionales; Studio final pendiente |
-| 0.20b — Module + Studio | Todos los controles de síntesis conectados; entrada precisa, gestos y estado coherente | Module mayormente conectado; valores semánticos iniciados; Studio custom pendiente |
-| 0.20c — presets | Browser, SysEx, Init/Compare/A-B y undo/redo con alcance definido | Import/export lossless, guardar/reabrir y protección de cambios no guardados |
-| 0.20d — FX y secuencia | Edición visible de funciones verificadas; conservación de metadatos opacos | Tipos FX A/B visibles; edición profunda y secuencia aún pendientes |
-| 0.20e — accesibilidad y host | DPI, resizing, teclado, reduced motion y costo de UI medido | Sin regresión de audio/estado; gates Windows/Linux y pluginval |
+Integración del plan previo con la revisión de producto del 1 de noviembre de 2026. Se conserva el alcance de 0.20a–e; se explicitan dependencias y se divide 0.20b para que el Inspector y las visualizaciones se apoyen en un contrato de parámetros común. La revisión técnica que justifica este orden está en [V0_20_PRODUCT_REVIEW.md](V0_20_PRODUCT_REVIEW.md). Los elementos siguientes son trabajo pendiente salvo donde se indica implementación existente.
+
+Module de aluminio, Performance, FX A/B y Tube se conservan como base implementada. El diseño final sigue pendiente de revisión visual; esa revisión no impide avanzar en compatibilidad, edición o diagnóstico. No se reinicia el diseño ni se descartan los avances actuales.
+
+| Orden | Encaje en el plan previo | Trabajo | Criterio de salida |
+|---|---|---|---|
+| 0 | Protección transversal de 0.20b–e | Congelar un checkpoint trazable y recuperar fixtures genuinos de estados v0.17–v0.20 antes de refactorizar o añadir configuración persistente | Los estados históricos cargan y conservan el estado musical, bytes opacos y valores del wrapper; defaults y migraciones nuevos quedan explícitos |
+| 1 | 0.20a y base de 0.20b | Consolidar la superficie existente y extraer gradualmente controles, display, Character y edición contextual de PluginEditor | Mismas funciones y estado al cambiar de componente/vista; sin una reescritura general ni un framework multi-sinte |
+| 2 | 0.20b.1 — contrato común | Descriptor/formateador/parseo compartido con el modelo efectivo; ProphecyParameterControl con edición exacta, reset, fine edit, raw/NRPN, ayuda, foco y teclado | Formato y DSP coinciden bajo los perfiles y modos disponibles; los gestos host y límites raw se mantienen |
+| 3 | 0.20b.2 — salida y MIDI | Master final independiente de Program Volume, medidores L/R y diagnóstico por etapas; selector Omni/1–16 y monitor por canal | Ganancia histórica preservada al migrar; headroom medido; pitch bend/CC/NRPN, sustain y note-offs comprobados por canal sin notas atascadas |
+| 4 | 0.20c — presets | Browser local con búsqueda, banco/programa, etiquetas/categorías propias, favoritos, import/export SysEx, guardar/guardar como e indicador de edición | Cargar/guardar/reabrir y cancelar conservan el estado; import/export lossless; protección de cambios sin guardar; Init, Compare/A-B y undo/redo con alcance definido |
+| 5 | 0.20b.3 — Studio y display | Reemplazar el genérico por Inspector del módulo seleccionado; compartir la selección con el OLED y añadir vistas OSC/ENV/LFO/FILTER/OUTPUT/FX por entregas pequeñas | Valores efectivos y relaciones reales; previews identificados como tales; filtro nominal distinguido de medición; modulación indicada sin desplazar el knob base |
+| 6 | 0.20d — FX y secuencia | Completar edición específica de A/B, relación clara con Character Inicio/Final y edición de notas/velocidades verificadas de Sequence | Sin funciones ficticias ni reinterpretación de bits opacos; tipos/mixes actuales conservados; Tube es el único Character necesario para cerrar esta versión |
+| 7 | 0.20e — cierre y RC1 | Congelar funciones, revisar coherencia visual, DPI/resizing, accesibilidad básica, reduced motion, costo UI y pruebas de uso en DAW; publicar binarios trazables | Gates Windows/Linux, pluginval, sanitizers y regresiones aprobados; carga/reapertura de proyectos, automatización y MIDI comprobados en una matriz mínima de hosts documentada |
+
+El siguiente bloque ejecutable es **protección de compatibilidad + 0.20b.1**, empezando por un control representativo como Low Pass y la corrección del formateo de envolventes bajo distintos perfiles. Se extrae el componente necesario y se verifica antes de extender el patrón al resto; no se paraliza todo el producto para reorganizar carpetas.
+
+### Decisiones que atraviesan todas las etapas
+
+- Accesibilidad, foco, ayuda, teclado y reduced motion forman parte de cada widget desde su incorporación; 0.20e los revisa de conjunto.
+- La compatibilidad se comprueba con cada cambio persistente, no únicamente al final. Un nuevo Master o selector MIDI no altera silenciosamente sesiones anteriores.
+- Descriptor/formateador, Inspector y display comparten datos efectivos. No se vuelven a implementar leyes de tiempo/frecuencia por separado en cada vista.
+- Compare/A-B de patches es independiente de los slots de efectos A/B. Su alcance debe especificar patch, Character y controles globales, conservando clock/transporte/oversampling según el contrato acordado.
+- Cada entrega deja commit, estado documentado, gates y preview descargable cuando corresponda. Una compilación de desarrollo no implica cierre del hito ni aprobación visual.
+- 0.20 RC1 incluye pruebas manuales mínimas de uso real. v0.21 conserva la matriz amplia de hosts, soak de reloj/voice stealing, carga/CPU en máquina dedicada y endurecimiento del empaquetado.
+
+### Alcance conservado y pospuesto
+
+Se mantienen en v0.20 Module, Studio/Inspector, browser local, SysEx, Init/Compare/A-B/undo, display veraz, edición FX/secuencia verificada y accesibilidad básica. La nueva revisión cambia el orden y los criterios de salida; no elimina esas funciones del plan original.
+
+Quedan para trabajo posterior la conexión librarian bidireccional con hardware, nube de presets, nuevos Character FX, una vista Performance independiente y un framework para otros sintetizadores. Los controles Performance existentes permanecen en Module. El backlog acústico de v0.19 sigue abierto por separado y no se declara resuelto por terminar la interfaz.
 
 ## Fuera de alcance inicial
 
