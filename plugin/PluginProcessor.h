@@ -63,6 +63,8 @@ public:
                 characterActive_.load(std::memory_order_relaxed)};
     }
     unsigned characterTelemetryRevision() const noexcept { return characterTelemetryRevision_.load(std::memory_order_relaxed); }
+    int midiPitchBendRaw14() const noexcept { return midiRouter_.pitchBendRaw14(); }
+    unsigned midiPitchBendRevision() const noexcept { return midiRouter_.pitchBendRevision(); }
 
 private:
     struct HostBinding
@@ -139,4 +141,3 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (P6AudioProcessor)
 };
-
