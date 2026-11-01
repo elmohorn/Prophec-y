@@ -14,6 +14,7 @@ struct CharacterFx::Impl {
     bool ready{}, initial{true}, parametersInitial{true};
     std::array<float,7> lastParameters{};
     float step{1.f/480.f};
+    double inputPower{}, outputPower{}, changePower{}, meterAlpha{};
 };
 CharacterFx::CharacterFx() : impl_(std::make_unique<Impl>()) {}
 CharacterFx::~CharacterFx() = default;
@@ -28,6 +29,8 @@ void CharacterFx::prepare(double sr)
     p.fadeSamples=std::max(1, static_cast<int>(sr*.01));
     p.step=1.f/static_cast<float>(p.fadeSamples);
     p.ready=true; p.initial=true; p.parametersInitial=true;
+    p.inputPower=p.outputPower=p.changePower=0.;
+    p.meterAlpha=1.-std::exp(-1./(sr*.02));
 }
 void CharacterFx::setState(const CharacterState& state) noexcept
 {
@@ -90,10 +93,24 @@ p6::StereoSample CharacterFx::process(p6::StereoSample x) noexcept
         wet={l,r};
     }
     p.meter=std::max(static_cast<float>(std::max(std::abs(x.left),std::abs(x.right))), p.meter*.9995f);
-    return {dry.left+(wet.left-dry.left)*p.blend, dry.right+(wet.right-dry.right)*p.blend};
+    const p6::StereoSample out{dry.left+(wet.left-dry.left)*p.blend, dry.right+(wet.right-dry.right)*p.blend};
+    const double dl=out.left-dry.left, dr=out.right-dry.right;
+    p.inputPower+=p.meterAlpha*(.5*(x.left*x.left+x.right*x.right)-p.inputPower);
+    p.outputPower+=p.meterAlpha*(.5*(out.left*out.left+out.right*out.right)-p.outputPower);
+    p.changePower+=p.meterAlpha*(.5*(dl*dl+dr*dr)-p.changePower);
+    return out;
 }
 bool CharacterFx::beforeEffects() const noexcept { return impl_->active.position==0; }
 float CharacterFx::routeGain() const noexcept { return impl_->gain; }
 int CharacterFx::latency() const noexcept { return impl_->delay; }
 float CharacterFx::excitation() const noexcept { return impl_->requested.type==1&&!impl_->requested.bypass ? impl_->meter*impl_->blend : 0.f; }
+CharacterTelemetry CharacterFx::telemetry() const noexcept
+{
+    const auto& p=*impl_;
+    return {static_cast<float>(std::sqrt(std::max(0.,p.inputPower))),
+            static_cast<float>(std::sqrt(std::max(0.,p.outputPower))),
+            static_cast<float>(std::sqrt(std::max(0.,p.changePower))),
+            p.ready&&p.requested.type==1&&!p.requested.bypass&&p.requested.tube[5]>0.f};
+}
 } // namespace p6plugin
+

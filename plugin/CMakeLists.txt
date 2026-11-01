@@ -20,6 +20,9 @@ juce_add_plugin(P6CorePlugin
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE)
 
+juce_add_binary_data(P6PanelAssets SOURCES assets/tube_glass.png)
+set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_sources(P6CorePlugin PRIVATE
     PluginProcessor.cpp
     PluginProcessor.h
@@ -40,6 +43,7 @@ target_link_libraries(P6CorePlugin
     PRIVATE
         p6core
         p6character
+        P6PanelAssets
         juce::juce_audio_processors
     PUBLIC
         juce::juce_recommended_config_flags
@@ -66,3 +70,4 @@ if(P6_BUILD_UI_SMOKE)
     target_include_directories(P6UiSmoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(P6UiSmoke PRIVATE P6CorePlugin p6character juce::juce_audio_processors)
 endif()
+

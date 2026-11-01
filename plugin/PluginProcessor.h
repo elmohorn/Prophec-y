@@ -55,6 +55,14 @@ public:
     juce::AudioProcessorValueTreeState& parameters() noexcept { return apvts_; }
     const p6::P6PatchState& canonicalPatchUnsafeForAudioThread() const noexcept { return patch_; }
     float characterExcitation() const noexcept { return characterExcitation_.load(std::memory_order_relaxed); }
+    p6plugin::CharacterTelemetry characterTelemetry() const noexcept
+    {
+        return {characterInputRms_.load(std::memory_order_relaxed),
+                characterOutputRms_.load(std::memory_order_relaxed),
+                characterChangeRms_.load(std::memory_order_relaxed),
+                characterActive_.load(std::memory_order_relaxed)};
+    }
+    unsigned characterTelemetryRevision() const noexcept { return characterTelemetryRevision_.load(std::memory_order_relaxed); }
 
 private:
     struct HostBinding
@@ -94,6 +102,10 @@ private:
     p6::P6Engine engine_;
     p6plugin::CharacterFx character_;
     std::atomic<float> characterExcitation_{};
+    // Independent cosmetic readings; no lock or UI access on the audio thread.
+    std::atomic<float> characterInputRms_{},characterOutputRms_{},characterChangeRms_{};
+    std::atomic<bool> characterActive_{};
+    std::atomic<unsigned> characterTelemetryRevision_{};
     std::array<std::atomic<float>*, 7> tubeParameters_{};
     std::array<std::atomic<float>*, 3> characterParameters_{};
     p6::P6PerformanceScheduler scheduler_ { engine_ };
@@ -127,3 +139,4 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (P6AudioProcessor)
 };
+

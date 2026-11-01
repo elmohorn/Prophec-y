@@ -1,0 +1,7 @@
+# Native panel assets
+
+`tube_glass.png` is an AI-generated glass-valve cutout created on 2026-11-01 with the built-in image generation tool. It was resampled to 384×576 with its alpha channel preserved for native UI use. Dynamic heater/glow rendering is implemented in JUCE, independently from this static resource. No audio or timing information is baked into the bitmap.
+
+Final generation prompt:
+
+> Use case: product-mockup. Asset type: transparent cutout of ONE photorealistic miniature vacuum tube for a high-end native synthesizer plugin UI. A single upright 12AX7-style glass thermionic valve on a low circular black bakelite socket, perfectly front-on orthographic view, centered. Entire glass envelope and socket visible, no cropping. Height about 3x width. Beautiful physically realistic clear smoked glass with delicate rim and subtle white studio reflections on upper left; two graphite anode plates, fine metallic grids, mica supports, convincing pins and internal construction visible through glass. The heater filament is DARK unlit copper, NO orange glow anywhere: the application will add dynamic amber illumination underneath and over this transparent asset. Brushed silver / charcoal premium audio hardware aesthetic, soft overhead left lighting, sharp realistic detailed 3D product render. Isolated on genuinely transparent background, no colored rectangle or floor, no shadow beyond socket, no words, no typography, no logos, no other objects. Leave generous transparent padding around silhouette.

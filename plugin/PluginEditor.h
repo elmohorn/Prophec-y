@@ -39,14 +39,18 @@ private:
     juce::ComboBox type_,position_,keyTrack_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> typeBinding_,positionBinding_,keyBinding_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassBinding_;
-    std::array<Knob,36> synth_;
+    std::array<Knob,37> synth_;
     std::array<Switch,18> switches_;
     std::array<Knob,7> tube_;
     std::unique_ptr<juce::GenericAudioProcessorEditor> diagnostic_;
-    juce::Image grain_;
+    juce::Image grain_,tubeGlass_;
     juce::String focusName_{"LOW PASS"},focusValue_{"164 RAW"},presetName_;
-    float focusPosition_{1.f},glow_{};
+    float focusPosition_{1.f},glow_{},characterGlow_{};
+    p6plugin::CharacterTelemetry visual_{};
+    unsigned lastVisualRevision_{};
+    int staleVisualTicks_{};
     bool studioView_{},collapsed_{},showTube_{};
     juce::Rectangle<int> tubeArea_,displayArea_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(P6PluginEditor)
 };
+

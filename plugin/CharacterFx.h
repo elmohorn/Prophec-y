@@ -23,6 +23,13 @@ struct CharacterState {
     std::array<float, 7> tube{kTubeDefaults};
 };
 
+// Audio-thread snapshot. Levels are linear RMS, not dB or a THD estimate.
+// Change compares the mixed output with the latency-aligned dry waveform.
+struct CharacterTelemetry {
+    float inputRms{}, outputRms{}, changeRms{};
+    bool active{};
+};
+
 // Setup on the host prepare thread; all subsequent calls belong to the stream
 // owner. The one tube is retained, not allocated when the carousel changes.
 class CharacterFx {
@@ -39,8 +46,10 @@ public:
     float routeGain() const noexcept;
     int latency() const noexcept;
     float excitation() const noexcept;
+    CharacterTelemetry telemetry() const noexcept;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
 } // namespace p6plugin
+

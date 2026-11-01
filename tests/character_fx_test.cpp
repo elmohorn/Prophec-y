@@ -45,6 +45,29 @@ int main()
         state.type=0;state.position=0;fx.setState(state);
         for(int n=0;n<10000;++n){fx.advanceRoute();fx.process({});}
         CHECK(!fx.beforeEffects());CHECK(fx.routeGain()==1.f);CHECK(fx.excitation()==0.f);
+        CHECK(!fx.telemetry().active);
+        // Metering uses sample-rate-derived RMS and latency-aligned dry, so
+        // None cannot report a waveform change merely because of its delay.
+        fx.prepare(sr);state={};fx.setState(state);
+        for(int n=0;n<static_cast<int>(sr);++n) {
+            const double x=.2*std::sin(2.*3.141592653589793*1000.*n/sr);
+            fx.process({x,x});
+        }
+        const auto dryMeter=fx.telemetry();
+        CHECK(std::abs(dryMeter.inputRms-.141421f)<.003f);
+        CHECK(std::abs(dryMeter.outputRms-.141421f)<.003f);
+        CHECK(dryMeter.changeRms==0.f);
+        state.type=1;state.tube[0]=.8f;fx.setState(state);
+        for(int n=0;n<static_cast<int>(sr*.5);++n) {
+            const double x=.2*std::sin(2.*3.141592653589793*1000.*n/sr);
+            fx.advanceRoute();fx.process({x,x});
+        }
+        CHECK(fx.telemetry().active);CHECK(fx.telemetry().changeRms>1e-5f);
+        state.bypass=true;fx.setState(state);CHECK(!fx.telemetry().active);
+        for(int n=0;n<static_cast<int>(sr*.5);++n){fx.advanceRoute();fx.process({});}
+        CHECK(fx.telemetry().inputRms<1e-5f);CHECK(fx.telemetry().outputRms<1e-5f);
+        CHECK(fx.telemetry().changeRms<1e-5f);
+        fx.prepare(sr);CHECK(fx.telemetry().inputRms==0.f);CHECK(fx.telemetry().changeRms==0.f);
     }
     // The unchanged engine and the None wrapper must null after exactly the
     // declared delay; do not compare only RMS/spectrum.
@@ -70,3 +93,4 @@ int main()
     CHECK(difference>1e-4);
     std::cout<<"Character FX delay, stereo, routing, transitions and ordinary-new checks passed\n";
 }
+

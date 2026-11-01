@@ -69,6 +69,27 @@ int main(int argc,char** argv)
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         screenshot(*editor,folder.getChildFile("module_tube.png"));
+        int frame=0;
+        float quietLevel=0.f,loudLevel=0.f;
+        for(int volume:{0,12,24,64,100,127,100,64,24,12,0,0}) {
+            midi.addEvent(juce::MidiMessage::controllerEvent(1,7,volume),0);
+            for(int block=0;block<32;++block){p.processBlock(audio,midi);midi.clear();}
+            if(frame==0)quietLevel=p.characterTelemetry().inputRms;
+            if(frame==5)loudLevel=p.characterTelemetry().inputRms;
+            editor.reset();editor.reset(p.createEditor());
+            screenshot(*editor,folder.getChildFile("tube_signal_"+juce::String(frame++).paddedLeft('0',2)+".png"));
+        }
+        CHECK(loudLevel>quietLevel*4.f);
+        midi.addEvent(juce::MidiMessage::controllerEvent(1,7,127),0);
+        for(int block=0;block<32;++block){p.processBlock(audio,midi);midi.clear();}
+        // A second native frame proves that bypass extinguishes the heater
+        // while leaving the complete tube/control surface available.
+        set(p,p6plugin::kCharacterBypassID,1.f);
+        for(int i=0;i<200;++i)p.processBlock(audio,midi);
+        CHECK(!p.characterTelemetry().active);
+        editor.reset();editor.reset(p.createEditor());
+        screenshot(*editor,folder.getChildFile("module_tube_bypass.png"));
+        set(p,p6plugin::kCharacterBypassID,0.f);
         for(auto* child:editor->getChildren())
             if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getButtonText()=="STUDIO")button->onClick();
         screenshot(*editor,folder.getChildFile("studio.png"));
@@ -80,3 +101,4 @@ int main(int argc,char** argv)
     editor.reset();p.releaseResources();
     std::cout<<"Native editor, restored controls, SysEx isolation and live audio smoke passed\n";
 }
+

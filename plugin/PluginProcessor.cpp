@@ -653,6 +653,12 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         right[sample] = static_cast<float> (out.right)*character_.routeGain();
     }
     characterExcitation_.store(character_.excitation(),std::memory_order_relaxed);
+    const auto visual=character_.telemetry();
+    characterInputRms_.store(visual.inputRms,std::memory_order_relaxed);
+    characterOutputRms_.store(visual.outputRms,std::memory_order_relaxed);
+    characterChangeRms_.store(visual.changeRms,std::memory_order_relaxed);
+    characterActive_.store(visual.active,std::memory_order_relaxed);
+    characterTelemetryRevision_.fetch_add(1,std::memory_order_relaxed);
 }
 
 juce::AudioProcessorEditor* P6AudioProcessor::createEditor()
@@ -814,3 +820,4 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new P6AudioProcessor();
 }
+

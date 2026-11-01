@@ -120,10 +120,17 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
-            xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke
+            xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
           else
-            ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke.exe
+            ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke.exe ui-smoke
           fi
+
+      - name: Upload native editor evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: P6-native-editor-${{ runner.os }}
+          path: ui-smoke/*.png
+          if-no-files-found: error
 
       - name: DSP fingerprint snapshot
         shell: bash
@@ -173,4 +180,74 @@ jobs:
           path: |
             build/**/P6 Core.vst3
           if-no-files-found: error
+
+
+
+  publish-preview:
+    name: Publish validated v0.20 preview
+    needs: [online-analysis-tooling, core-sanitizers, build-and-validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v0.20-ui'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PREVIEW_TAG: v0.20.0-preview.${{ github.run_number }}
+    steps:
+      - name: Download exact validated artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" > artifacts.json
+          python3 - <<'PY'
+          import json, os
+          artifacts=json.load(open("artifacts.json"))["artifacts"]
+          for platform in ("Windows", "Linux"):
+              name="P6-Core-v0.20-prototype-"+platform+"-VST3"
+              matches=[a for a in artifacts if a["name"]==name and not a["expired"]]
+              assert len(matches)==1, name
+              a=matches[0]
+              assert a["workflow_run"]["head_sha"]==os.environ["GITHUB_SHA"]
+              assert a["workflow_run"]["id"]==int(os.environ["GITHUB_RUN_ID"])
+              with open(platform+".id","w") as f: f.write(str(a["id"]))
+              with open(platform+".sha","w") as f: f.write(a["digest"].removeprefix("sha256:"))
+          PY
+          for platform in Windows Linux; do
+            artifact_id="$(cat "${platform}.id")"
+            filename="P6-Core-v0.20-prototype-${platform}-VST3.zip"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "${filename}"
+            printf '%s  %s\n' "$(cat "${platform}.sha")" "${filename}" >> SHA256SUMS.txt
+            unzip -t "${filename}"
+          done
+          sha256sum --check SHA256SUMS.txt
+
+      - name: Publish immutable test build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'EOF'
+          ## v0.20 — Native panel and reactive Tube revision
+          - Panel proportions revised against the owner's original aluminum render.
+          - Embedded glass-valve resource with signal-driven heater and waveform-change illumination.
+          - Input/output RMS and latency-aligned waveform-change readings. These are not THD measurements.
+          - Bypass extinguishes the tube; stopping audio processing releases stale readings. Motion can be paused independently of the audio.
+
+          This remains a preview. Final visual approval, preset workflow, custom Studio and manual DAW testing remain pending. Fixed host latency is 71 samples, including None.
+
+          ### Windows installation
+          Close the DAW, extract the Windows ZIP, locate the entire **P6 Core.vst3** folder and copy it to `C:\Program Files\Common Files\VST3\`. Rescan plugins and load **P6 Core** as an instrument. Preserve a backup before replacing an older build; the plugin identity is shared.
+
+          Linux: copy the complete bundle to `~/.vst3/`. No standalone application, installer, factory SysEx or reference audio is included.
+          EOF
+          printf '\nCommit: `%s`\n\nCI: https://github.com/%s/actions/runs/%s\n\nAll required Windows/Linux builds, tests, native editor/audio smoke, pluginval 10, Linux sanitizers and analysis guards passed before publication. ZIP provenance and SHA-256 were verified.\n' "${GITHUB_SHA}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}" >> notes.md
+          if gh release view "${PREVIEW_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Immutable preview already exists."
+            exit 0
+          fi
+          gh release create "${PREVIEW_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" --prerelease --latest=false \
+            --title "Prophec-y ${PREVIEW_TAG}" --notes-file notes.md \
+            P6-Core-v0.20-prototype-Windows-VST3.zip \
+            P6-Core-v0.20-prototype-Linux-VST3.zip SHA256SUMS.txt
 
