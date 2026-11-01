@@ -1,7 +1,7 @@
 # v0.20 — Interfaz y flujo de presets
 
-Estado: **PROPUESTA PARA REVISIÓN**, 1 de noviembre de2026, Santiago.
-Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_CAROUSEL.md` para el carrusel Inicio/Final y `V0_20_FX_COMPARISON.md` para los cinco núcleos ensayados. DSPark es el candidato técnico de válvula; todavía no está integrado. El diseño final de controles y la implementación todavía están pendientes.
+Estado: **PROTOTIPO INICIAL EN IMPLEMENTACIÓN**, 1 de noviembre de2026, Santiago.
+Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_CAROUSEL.md` para el carrusel Inicio/Final y `V0_20_FX_COMPARISON.md` para los cinco núcleos ensayados. DSPark es el candidato técnico de válvula; todavía no está integrado. El primer editor nativo Module/Studio y la válvula ya tienen implementación experimental; ver `V0_20_TUBE_PROTOTYPE.md`. Studio conserva por ahora el editor genérico completo. El diseño final y el resto de las etapas siguen pendientes.
 
 ## Dirección recomendada
 

@@ -8,6 +8,7 @@
 #include "p6/P6PatchState.h"
 #include "p6/ParameterMapper.h"
 #include "p6/VersionedEditMailbox.h"
+#include "CharacterFx.h"
 
 #include <array>
 #include <atomic>
@@ -53,6 +54,7 @@ public:
 
     juce::AudioProcessorValueTreeState& parameters() noexcept { return apvts_; }
     const p6::P6PatchState& canonicalPatchUnsafeForAudioThread() const noexcept { return patch_; }
+    float characterExcitation() const noexcept { return characterExcitation_.load(std::memory_order_relaxed); }
 
 private:
     struct HostBinding
@@ -90,6 +92,10 @@ private:
     p6::P6PatchState patch_;
     p6::P6PatchState audioPatch_;
     p6::P6Engine engine_;
+    p6plugin::CharacterFx character_;
+    std::atomic<float> characterExcitation_{};
+    std::array<std::atomic<float>*, 7> tubeParameters_{};
+    std::array<std::atomic<float>*, 3> characterParameters_{};
     p6::P6PerformanceScheduler scheduler_ { engine_ };
     p6::P6MidiRouter midiRouter_{};
     juce::AudioProcessorValueTreeState apvts_;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(P6Core VERSION 0.19.0 LANGUAGES C CXX)
+project(P6Core VERSION 0.20.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,6 +45,10 @@ else()
 endif()
 
 enable_testing()
+add_library(p6character plugin/CharacterFx.cpp)
+target_include_directories(p6character PUBLIC plugin PRIVATE third_party/DSPark)
+target_link_libraries(p6character PUBLIC p6core)
+set_target_properties(p6character PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_executable(p6core_tests tests/test_main.cpp)
 target_link_libraries(p6core_tests PRIVATE p6core)
 if(MSVC)
@@ -92,6 +96,10 @@ else()
   target_compile_options(p6_v019_reference_tests PRIVATE -UNDEBUG)
 endif()
 add_test(NAME p6_v019_reference_tests COMMAND p6_v019_reference_tests)
+
+add_executable(p6_character_tests tests/character_fx_test.cpp)
+target_link_libraries(p6_character_tests PRIVATE p6character)
+add_test(NAME p6_character_tests COMMAND p6_character_tests)
 
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)

@@ -563,8 +563,12 @@ StereoSample P6Engine::process()
     }
 
     const double performanceGain = programVolume_ * midiVolume_;
-    out.left = applyCandidateDistortion(out.left * performanceGain, distDcL_);
-    out.right = applyCandidateDistortion(out.right * performanceGain, distDcR_);
+    out.left *= performanceGain;
+    out.right *= performanceGain;
+    if (insertCallback_ != nullptr && insertBeforeEffects_)
+        out = insertCallback_(insertContext_, out);
+    out.left = applyCandidateDistortion(out.left, distDcL_);
+    out.right = applyCandidateDistortion(out.right, distDcR_);
 
     // Prophet-6 digital effects are a serial global path: Effect A feeds
     // Effect B. The single P6Effects instance owns that order and its true
@@ -572,6 +576,8 @@ StereoSample P6Engine::process()
     const auto effected = effects_.process(out.left, out.right);
     out.left = effected.left;
     out.right = effected.right;
+    if (insertCallback_ != nullptr && !insertBeforeEffects_)
+        out = insertCallback_(insertContext_, out);
     return out;
 }
 

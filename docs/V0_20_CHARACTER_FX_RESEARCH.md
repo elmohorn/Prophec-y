@@ -1,6 +1,6 @@
 # v0.20 — Familia de efectos Prophec-y y fuentes DSP
 
-1 de noviembre de2026. Investigación de repositorios y lectura focalizada de fuentes. La comparación ejecutable posterior está en `V0_20_FX_COMPARISON.md`; este inventario no certifica rendimiento ni preferencia sonora. Commits y archivos inspeccionados en `calibration/prophecy_fx_sources_v020.json`. No se integra código externo en esta tarea.
+1 de noviembre de2026. Investigación de repositorios y lectura focalizada de fuentes. La comparación ejecutable posterior está en `V0_20_FX_COMPARISON.md`; este inventario no certifica rendimiento ni preferencia sonora. Commits y archivos inspeccionados en `calibration/prophecy_fx_sources_v020.json`. Esta investigación no integró código. La implementación posterior de Tube usa una selección MIT fijada de DSPark; ver `V0_20_TUBE_PROTOTYPE.md`.
 
 ## Decisiones de producto confirmadas por el usuario
 

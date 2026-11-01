@@ -59,6 +59,12 @@ public:
     void midiAllSoundOff();
     StereoSample process();
 
+    // Non-owning optional global insert. The stream owner sets it while stopped
+    // or from its own audio thread; the callback must be allocation/lock free.
+    using InsertCallback = StereoSample (*)(void*, StereoSample) noexcept;
+    void setCharacterInsert(void* context, InsertCallback callback, bool beforeEffects) noexcept
+    { insertContext_ = context; insertCallback_ = callback; insertBeforeEffects_ = beforeEffects; }
+
     std::size_t activeVoiceCount() const noexcept;
     std::size_t unisonVoiceCount() const noexcept { return unisonVoiceCount_; }
     std::uint8_t keyMode() const noexcept { return keyMode_; }
@@ -125,6 +131,9 @@ private:
     double midiVolume_{1.0};
     double distortion_{};
     P6Effects effects_{};
+    void* insertContext_{};
+    InsertCallback insertCallback_{};
+    bool insertBeforeEffects_{};
     P6LFO lfo_{};
     double lfoInitialAmount_{};
     bool lfoClockSync_{};

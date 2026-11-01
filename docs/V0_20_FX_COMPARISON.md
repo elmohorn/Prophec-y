@@ -1,5 +1,7 @@
 # Comparación ejecutable de núcleos para la válvula Prophec-y
 
+Actualización posterior: el primer prototipo nativo está descrito en `V0_20_TUBE_PROTOTYPE.md`; incluye la política de latencia fija y las limitaciones actuales. El texto siguiente conserva el alcance de esta propuesta/evaluación.
+
 1de noviembre de2026. Evaluación técnica de cinco núcleos seleccionados de los ocho repositorios inventariados. **Recomendación: DSPark TubePreamp para el primer prototipo de válvula; DaisySP como caja de bloques para el resto de la colección.** Airwindows Tube2 queda como alternativa de costo reducido. La elección musical final requiere escuchar los A/B; aquí no se emite una preferencia auditiva ficticia.
 
 ## Qué se probó realmente

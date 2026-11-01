@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cmath>
 
 namespace p6plugin {
 namespace {
@@ -49,17 +50,25 @@ std::vector<std::uint8_t> encodeState(const WrapperState& state)
     for (const auto value : state.sequenceControls)
         putU16(out, value);
     out.insert(out.end(), state.extras.begin(), state.extras.end());
+    out.push_back(static_cast<std::uint8_t>(std::clamp(state.character.type,0,1)));
+    out.push_back(static_cast<std::uint8_t>(std::clamp(state.character.position,0,1)));
+    out.push_back(static_cast<std::uint8_t>(state.character.bypass));
+    for(std::size_t i=0;i<state.character.tube.size();++i) {
+        const float v=state.character.tube[i];
+        putU16(out,static_cast<std::uint16_t>(std::lround(1000.f*(std::isfinite(v)?std::clamp(v,0.f,1.f):kTubeDefaults[i]))));
+    }
     return out;
 }
 
 bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
 {
-    if (bytes.size() < kEncodedStateBytes
+    if (bytes.size() < kV1StateBytes
         || !std::equal(kStateMagic.begin(), kStateMagic.end(), bytes.begin()))
         return false;
 
     std::size_t offset = kStateMagic.size();
-    if (getU16(bytes, offset) != kStateVersion)
+    const auto version=getU16(bytes, offset);
+    if ((version!=1 && version!=kStateVersion) || (version==kStateVersion && bytes.size()<kEncodedStateBytes))
         return false;
 
     WrapperState decoded;
@@ -80,6 +89,18 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
     }
     for (auto& value : decoded.extras)
         value = bytes[offset++];
+    if(version==kStateVersion) {
+        decoded.character.type=bytes[offset++];
+        decoded.character.position=bytes[offset++];
+        const auto bypass=bytes[offset++];
+        if(decoded.character.type>1 || decoded.character.position>1 || bypass>1) return false;
+        decoded.character.bypass=bypass!=0;
+        for(auto& v:decoded.character.tube) {
+            const auto raw=getU16(bytes,offset);
+            if(raw>1000) return false;
+            v=static_cast<float>(raw)/1000.f;
+        }
+    }
 
     state = std::move(decoded);
     return true;

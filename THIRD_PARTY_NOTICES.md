@@ -58,3 +58,12 @@ No additional third-party runtime source was incorporated in v0.15.
 ## v0.20 isolated character-FX research harness
 
 The optional research harness under `research/character_fx/` builds selected MIT-licensed sources from pinned Airwindows (Chris Johnson), DSPark (Cristian Moresi), Patina (ShmKnd), DaisySP (Electrosmith/credited contributors) and 0xFX (Dan Michael) revisions in a private source directory. Upstream LICENSE files are retained there. None of these new sources is linked into the production Prophec-y plugin by this research change. The SDK-free Tube2 shim and extraction of the 0xFX Valve Color kernel are research adapters. Any later vendoring/adoption must carry the corresponding complete notices, source provenance and dependency review. No GPL/LGPL kernel is used by this harness.
+
+## DSPark TubePreamp — v0.20 prototype dependency
+
+The minimal transitive header set for `Effects/TubePreamp.h` is now vendored
+unmodified in `third_party/DSPark` from CristianMoresi/DSPark commit
+`0a66a4dd1a4e114d3020ccedd454c4d2e0202560` (MIT, copyright 2026 Cristian Moresi).
+The complete license is retained at `third_party/DSPark/LICENSE` and original
+header notices remain intact. Only the tube adapter links this selection;
+no other previously researched library is a plugin dependency.

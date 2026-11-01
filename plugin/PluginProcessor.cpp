@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginStateCodec.h"
+#include "PluginEditor.h"
 
 #include "p6/NrpnCodec.h"
 #include "p6/ParameterRegistry.h"
@@ -82,6 +83,11 @@ P6AudioProcessor::P6AudioProcessor()
     clearPendingNrpn();
     for (auto& value : hostObservedRaw_) value.store (0, std::memory_order_relaxed);
     initialiseBindings();
+    for(std::size_t i=0;i<tubeParameters_.size();++i)
+        tubeParameters_[i]=apvts_.getRawParameterValue(p6plugin::kTubeIDs[i]);
+    characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
+                          apvts_.getRawParameterValue(p6plugin::kCharacterPositionID),
+                          apvts_.getRawParameterValue(p6plugin::kCharacterBypassID)};
     syncHostParametersFromPatch (patch_);
     hostSequencePlayObserved_.store (
         apvts_.getRawParameterValue (kSequencePlayID)->load() >= 0.5f ? 1 : 0,
@@ -232,6 +238,16 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
     layout.add (std::make_unique<juce::AudioParameterBool> (
         juce::ParameterID { kSequencePlayID, 1 }, "Sequence Play", false));
 
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{p6plugin::kCharacterTypeID,1},"Prophec-y Module",juce::StringArray{"None","Tube"},0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{p6plugin::kCharacterPositionID,1},"Prophec-y Position",juce::StringArray{"Start","End"},1));
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{p6plugin::kCharacterBypassID,1},"Prophec-y Bypass",false));
+    for(std::size_t i=0;i<p6plugin::kTubeIDs.size();++i)
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{p6plugin::kTubeIDs[i],1},juce::String("Tube ")+p6plugin::kTubeNames[i],
+            juce::NormalisableRange<float>{0.f,1.f,.001f},p6plugin::kTubeDefaults[i]));
     return layout;
 }
 
@@ -353,6 +369,11 @@ void P6AudioProcessor::prepareToPlay (double sampleRate, int maximumExpectedSamp
     sampleRate_ = sampleRate;
     oversampling_ = selectedOversampling();
     engine_.prepare (sampleRate_, oversampling_);
+    character_.prepare(sampleRate_);
+    setLatencySamples(character_.latency());
+    engine_.setCharacterInsert(&character_, [](void* context,p6::StereoSample x) noexcept {
+        return static_cast<p6plugin::CharacterFx*>(context)->process(x);
+    },false);
     scheduler_.prepare (sampleRate_);
 
     const juce::SpinLock::ScopedLockType lock (patchLock_);
@@ -598,6 +619,15 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     }
 
     applyHostTransport();
+    p6plugin::CharacterState characterState;
+    characterState.type=static_cast<int>(characterParameters_[0]->load());
+    characterState.position=static_cast<int>(characterParameters_[1]->load());
+    characterState.bypass=characterParameters_[2]->load()>=.5f;
+    for(std::size_t i=0;i<tubeParameters_.size();++i) characterState.tube[i]=tubeParameters_[i]->load();
+    character_.setState(characterState);
+    engine_.setCharacterInsert(&character_, [](void* context,p6::StereoSample x) noexcept {
+        return static_cast<p6plugin::CharacterFx*>(context)->process(x);
+    },character_.beforeEffects());
 
     auto event = midi.cbegin();
     const auto end = midi.cend();
@@ -614,17 +644,20 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
             ++event;
         }
 
+        if(character_.advanceRoute())
+            engine_.setCharacterInsert(&character_, [](void* context,p6::StereoSample x) noexcept {
+                return static_cast<p6plugin::CharacterFx*>(context)->process(x);
+            },character_.beforeEffects());
         const auto out = scheduler_.process();
-        left[sample] = static_cast<float> (out.left);
-        right[sample] = static_cast<float> (out.right);
+        left[sample] = static_cast<float> (out.left)*character_.routeGain();
+        right[sample] = static_cast<float> (out.right)*character_.routeGain();
     }
+    characterExcitation_.store(character_.excitation(),std::memory_order_relaxed);
 }
 
 juce::AudioProcessorEditor* P6AudioProcessor::createEditor()
 {
-    // The generic editor remains deliberately diagnostic until the engine and
-    // control contract are complete enough to support a purpose-built UI.
-    return new juce::GenericAudioProcessorEditor (*this);
+    return new P6PluginEditor(*this);
 }
 
 const juce::String P6AudioProcessor::getProgramName (int)
@@ -688,6 +721,10 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
         }())
     };
 
+    state.character.type=static_cast<int>(characterParameters_[0]->load());
+    state.character.position=static_cast<int>(characterParameters_[1]->load());
+    state.character.bypass=characterParameters_[2]->load()>=.5f;
+    for(std::size_t i=0;i<tubeParameters_.size();++i) state.character.tube[i]=tubeParameters_[i]->load();
     const auto bytes = p6plugin::encodeState (state);
     destData.replaceAll (bytes.data(), bytes.size());
 }
@@ -725,6 +762,11 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual (kSlopModeID, state.extras[5] != 0);
     setActual (kCalibrationID, std::clamp<int> (state.extras[6], 0, 1));
     setActual (kSequencePlayID, state.extras[7] != 0);
+    setActual(p6plugin::kCharacterTypeID,state.character.type);
+    setActual(p6plugin::kCharacterPositionID,state.character.position);
+    setActual(p6plugin::kCharacterBypassID,state.character.bypass?1:0);
+    for(std::size_t i=0;i<p6plugin::kTubeIDs.size();++i)
+        if(auto* p=apvts_.getParameter(p6plugin::kTubeIDs[i])) p->setValueNotifyingHost(state.character.tube[i]);
     sequencePlay_.store (state.extras[7] != 0, std::memory_order_release);
     hostSequencePlayObserved_.store (state.extras[7] != 0 ? 1 : 0, std::memory_order_release);
 

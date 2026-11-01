@@ -49,7 +49,7 @@ jobs:
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build sanitizer tests
-        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
+        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
       - name: Run sanitizer tests
         env:
           ASAN_OPTIONS: detect_leaks=1
@@ -104,16 +104,26 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DP6_BUILD_PLUGIN=ON
           -DP6_FETCH_JUCE=ON
+          -DP6_BUILD_UI_SMOKE=ON
 
       - name: Build VST3, tests and diagnostics
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3
+          --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3 P6UiSmoke
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests
         run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Native editor and audio smoke
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke
+          else
+            ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke.exe
+          fi
 
       - name: DSP fingerprint snapshot
         shell: bash
@@ -159,7 +169,7 @@ jobs:
       - name: Upload validated VST3
         uses: actions/upload-artifact@v4
         with:
-          name: P6-Core-v0.19-${{ runner.os }}-VST3
+          name: P6-Core-v0.20-prototype-${{ runner.os }}-VST3
           path: |
             build/**/P6 Core.vst3
           if-no-files-found: error

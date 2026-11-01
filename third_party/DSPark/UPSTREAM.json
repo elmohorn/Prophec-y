@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/CristianMoresi/DSPark",
+  "commit": "0a66a4dd1a4e114d3020ccedd454c4d2e0202560",
+  "license": "MIT",
+  "modifications": "None; minimal transitive TubePreamp header selection",
+  "files_sha256": {
+    "LICENSE": "f7e3287a3b298d7b4e93dceeb3691c4095bfd9c616e116790421db3bc6aad0c4",
+    "Effects/TubePreamp.h": "f5f11cdf6b9313311f0dcec20125a182311e1032c28042a2f4ffc02818b08237",
+    "Core/WDF.h": "517f90270cc76c0d18c3bdfbfc710a47aff3a616bfe68a77ebcdcbda87a41098",
+    "Core/Biquad.h": "48fb5a093a4c315c9c90a47a55094ed6e1defd471534bde0ce1c1ac3ff4c09ad",
+    "Core/AudioBuffer.h": "446936df9e1e550ce16b721e75aef0f2ccf51d2e1da5f70c96eac692be3ed829",
+    "Core/SmoothedValue.h": "88348da7f7f33c78882d05c2e88ca618db3bdb7c687e0615973de82be52d1a86",
+    "Core/SimdOps.h": "eedfa23f90b295292df8f876b8bd6ea60e7a02d0e0336dfe9aba26531065fda1",
+    "Core/DspMath.h": "15200c34d1c1ce979589a0ea287f328f414a9105fb70b1048c2a62b4dd17c29f",
+    "Core/WindowFunctions.h": "d5bbf0e275270c13f8aca8c8a90decc967e16af8fd91ed953a6d686a3a862a81",
+    "Core/FIRFilter.h": "96fe56d71f3afac9a7e398fa2b44ca118e6dbdbdc097269b9b8e4add4d879f69",
+    "Core/DenormalGuard.h": "e459897c89a141c850921a7a8e6e73b06247bb80f6b5c8ea8f44cac8bf693699",
+    "Core/StateBlob.h": "38fb78e87fa09a549d2d76d4f9e3e68592add34d7d91b9bb14c042c8ec60d5f3",
+    "Core/Oversampling.h": "df9d9d44f962fdcf54086be03ea8b8098d5761d872341e78f58abe52b6fd4106",
+    "Core/AudioSpec.h": "a3d7b98c57bbdedd71b940e2edf28e3c7caf3a605b01e9ba377ecc1765bd7535"
+  }
+}

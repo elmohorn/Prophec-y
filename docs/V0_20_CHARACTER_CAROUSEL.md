@@ -1,5 +1,7 @@
 # Prophec-y FX — carrusel de módulos
 
+Actualización posterior: el primer prototipo nativo está descrito en `V0_20_TUBE_PROTOTYPE.md`; incluye la política de latencia fija y las limitaciones actuales. El texto siguiente conserva el alcance de esta propuesta/evaluación.
+
 Propuesta concreta a partir de la idea del usuario,1de noviembre de2026. Module y Studio siguen mostrando el mismo instrumento. Performance permanece fuera de esta fase.
 
 ## Comportamiento inicial
