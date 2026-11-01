@@ -1,6 +1,6 @@
 # Prophec-y — v0.20 prototype
 
-Native Module/Studio and the first DSPark tube insert are now implemented as an experimental prototype. See [implementation and validation](docs/V0_20_TUBE_PROTOTYPE.md). The wrapper reports a fixed 71-sample latency even with None; the standalone core retains its original no-insert behavior. Module is a focused first surface; Studio still uses the complete diagnostic editor.
+The native editor now follows the approved aluminum desktop-module layout: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, plus the collapsible Tube bay. See [aluminum panel revision](docs/V0_20_ALUMINUM_PANEL.md). Module/Studio and the first DSPark tube insert remain an experimental prototype. See [implementation and validation](docs/V0_20_TUBE_PROTOTYPE.md). The wrapper reports a fixed 71-sample latency even with None; the standalone core retains its original no-insert behavior. Module is a focused first surface; Studio still uses the complete diagnostic editor.
 
 Unison correction checkpoint: [fixed first-key release-tail behavior and corrected calibration](docs/V0_19_UNISON_FIX_AND_RECALIBRATION.md). The fix restores a missing Solid Bass note; 360 corrected local-grid renders identify a balanced 12-octave audition profile. Earlier affected Unison calibration rows remain historical only.
 

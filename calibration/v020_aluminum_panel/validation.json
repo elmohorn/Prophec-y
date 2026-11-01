@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-01",
+  "phase": "v0.20 aluminum native panel revision",
+  "changes": "Editor layout, look and feel, existing parameter bindings and UI smoke only; no DSP, host IDs or state format changes",
+  "native_smoke": {
+    "exit_code": 0,
+    "checked_widths": [
+      1240,
+      1460,
+      1780
+    ],
+    "default_size": [
+      1460,
+      700
+    ],
+    "tube_size": [
+      1460,
+      930
+    ],
+    "covers": [
+      "editor construction preserves SysEx",
+      "Drive textbox has dB units",
+      "visible controls inside window with chassis margin",
+      "v2 state restore",
+      "live audio finite while changing type/position/bypass",
+      "editor reopen",
+      "None height recovery"
+    ]
+  },
+  "visual_review": [
+    "Module with Tube",
+    "Module with None and uncut footer",
+    "legible diagnostic Studio"
+  ],
+  "surface_controls": {
+    "sliders": 36,
+    "switches": 18,
+    "lp_keyboard_choice": 1,
+    "tube_controls": 7,
+    "note": "Oscillator levels also appear as mixer faders; same existing IDs"
+  },
+  "readout": "Raw synthesis values and CONTROL POSITION guide; not a measured frequency response",
+  "pluginval": {
+    "version": "1.0.4",
+    "platform": "Linux",
+    "strictness": 10,
+    "skip_gui_tests": true,
+    "seed": "0x4b2ef4d",
+    "exit_code": 0,
+    "result": "SUCCESS"
+  },
+  "binary_sha256": "665afa72ad7f85530bb657459fea4a7ad5cf1aa89caa2aa806918e317d0e53dc",
+  "preview_sha256": "dcf2b717d95b883e16756372fde7a49b9fbe15c6beee728c244f79543a17b331",
+  "previous_commit_ci": {
+    "commit": "931ac1fa646c25ec9926997556b280e6634c2295",
+    "workflow_run": 41303346436,
+    "Linux": "success",
+    "Windows": "success",
+    "ASan_UBSan": "success",
+    "reference_guards": "success"
+  },
+  "current_revision_windows": "CI configured; not run locally",
+  "limitations": [
+    "Studio custom layout and preset browser pending",
+    "manual DAW audition pending",
+    "full accessibility review pending",
+    "fixed 71-sample wrapper latency retained"
+  ]
+}

@@ -1,6 +1,6 @@
 # v0.20 — válvula y primer editor nativo
 
-Prototipo funcional, 1 de noviembre de 2026. No es el cierre de v0.20 ni el diseño final del mock.
+Prototipo funcional, 1 de noviembre de 2026. La revisión visual posterior está en `V0_20_ALUMINUM_PANEL.md`; la lista inicial de diez controles de este documento describe el primer prototipo. No es el cierre de v0.20 ni el diseño final del mock.
 
 ## Implementación
 

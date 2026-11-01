@@ -1,7 +1,7 @@
 # v0.20 — Interfaz y flujo de presets
 
 Estado: **PROTOTIPO INICIAL EN IMPLEMENTACIÓN**, 1 de noviembre de2026, Santiago.
-Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_CAROUSEL.md` para el carrusel Inicio/Final y `V0_20_FX_COMPARISON.md` para los cinco núcleos ensayados. DSPark es el candidato técnico de válvula; todavía no está integrado. El primer editor nativo Module/Studio y la válvula ya tienen implementación experimental; ver `V0_20_TUBE_PROTOTYPE.md`. Studio conserva por ahora el editor genérico completo. El diseño final y el resto de las etapas siguen pendientes.
+Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_CAROUSEL.md` para el carrusel Inicio/Final y `V0_20_FX_COMPARISON.md` para los cinco núcleos ensayados. DSPark es el candidato técnico de válvula; todavía no está integrado. El editor nativo incorpora ahora la distribución física del mock de aluminio; ver `V0_20_ALUMINUM_PANEL.md`. Module/Studio y la válvula tienen implementación experimental; ver `V0_20_TUBE_PROTOTYPE.md`. Studio conserva por ahora el editor genérico completo. El diseño final y el resto de las etapas siguen pendientes.
 
 ## Dirección recomendada
 
@@ -29,7 +29,7 @@ La novedad propuesta es el **foco de sección**: seleccionar un módulo amplía 
 
 ## Superficie y navegación
 
-Ventana inicial orientativa1280×820, redimensionable. Layout compacto alrededor de1040×720 mediante reorganización; mantener texto y áreas de interacción legibles en lugar de reducir una imagen completa.
+La revisión nativa actual usa1460×700 sin bandeja y1460×930 con Tube desplegado, ancho mínimo1240. Mantener texto y áreas de interacción legibles en lugar de reducir una imagen completa; ver `V0_20_ALUMINUM_PANEL.md`.
 
 1. **Cabecera permanente:** nombre/número de preset, anterior/siguiente, browser, guardar/guardar como, Init, Compare, A/B, undo/redo y acceso a ajustes. Estado modificado visible.
 2. **Vista Module:** Osc1/Osc2 y mixer a la izquierda; HP/LP y ADSR en el centro; Poly Mod/LFO a la derecha. Performance (Unison/key mode/glide/Slop/pan) en una franja clara. Las dos envolventes deben poder compararse visualmente.

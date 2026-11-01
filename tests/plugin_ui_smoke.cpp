@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <iostream>
@@ -31,13 +32,25 @@ int main(int argc,char** argv)
     CHECK(restored.exportEditBuffer()==sysex);
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
     CHECK(editor!=nullptr);
-    editor->setSize(1180,790);
+    editor->setSize(1460,P6PluginEditor::expandedHeight);
     bool driveDisplayFormatted=false;
     for(auto* child:editor->getChildren())
         if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="Drive")
             for(auto* text:slider->getChildren())
                 if(auto* label=dynamic_cast<juce::Label*>(text);label&&label->getText().contains("dB"))driveDisplayFormatted=true;
     CHECK(driveDisplayFormatted);
+    CHECK(p.exportEditBuffer()==sysex);
+    // Every visible control must remain inside the resized physical surface.
+    for(int width:{1240,1460,1780}) {
+        editor->setSize(width,P6PluginEditor::expandedHeight);
+        for(auto* child:editor->getChildren()) if(child->isVisible()) {
+            CHECK(child->getX()>=0 && child->getY()>=0);
+            CHECK(child->getRight()<=editor->getWidth());
+            CHECK(child->getBottom()<=editor->getHeight()-28);
+        }
+    }
+    editor->setSize(1460,P6PluginEditor::expandedHeight);
+
     juce::AudioBuffer<float> audio(2,128);juce::MidiBuffer midi;
     midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);
     double energy=0;
@@ -52,7 +65,7 @@ int main(int argc,char** argv)
     CHECK(energy>0);
     // Reopen after live automation: attachments must reflect the current host
     // values without a timer turn or an audio restart.
-    editor.reset();editor.reset(p.createEditor());editor->setSize(1180,790);
+    editor.reset();editor.reset(p.createEditor());editor->setSize(1460,P6PluginEditor::expandedHeight);
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         screenshot(*editor,folder.getChildFile("module_tube.png"));
@@ -61,7 +74,7 @@ int main(int argc,char** argv)
         screenshot(*editor,folder.getChildFile("studio.png"));
         set(p,p6plugin::kCharacterTypeID,0.f);
         editor.reset();editor.reset(p.createEditor());
-        CHECK(editor->getHeight()==500);
+        CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
         screenshot(*editor,folder.getChildFile("module_none.png"));
     }
     editor.reset();p.releaseResources();
