@@ -1,6 +1,6 @@
 # v0.20 — Familia de efectos Prophec-y y fuentes DSP
 
-1 de noviembre de2026. Investigación de repositorios y lectura focalizada de fuentes; no es una prueba de sonido ni una certificación de rendimiento. Commits y archivos inspeccionados en `calibration/prophecy_fx_sources_v020.json`. No se integra código externo en esta tarea.
+1 de noviembre de2026. Investigación de repositorios y lectura focalizada de fuentes. La comparación ejecutable posterior está en `V0_20_FX_COMPARISON.md`; este inventario no certifica rendimiento ni preferencia sonora. Commits y archivos inspeccionados en `calibration/prophecy_fx_sources_v020.json`. No se integra código externo en esta tarea.
 
 ## Decisiones de producto confirmadas por el usuario
 
@@ -12,13 +12,7 @@
 
 ## Integración visual propuesta
 
-Una bahía extensible de efectos Prophec-y, accesible desde ambas vistas. Module presenta la bahía como una franja/bandeja integrada al objeto industrial: miniaturas de los dispositivos presentes, selección, bypass y controles esenciales. Puede contraerse para recuperar el panel principal. No se incrusta una válvula aislada permanentemente en un hueco que luego debamos rediseñar.
-
-Studio muestra la cadena y abre el dispositivo seleccionado en un área de edición común. Cada dispositivo conserva su representación: vidrio/filamento, descargas, muelles, carretes, lámpara, portadora, líquido o partículas. La carcasa del editor, navegación, estados y lectura de parámetros son consistentes entre ellos. El espacio detallado se reutiliza al seleccionar otro efecto, en vez de dibujar ocho animaciones grandes simultáneas.
-
-La válvula puede ocupar inicialmente toda el área de detalle aunque sea el único procesador implementado. Eso no presupone que sea el único futuro elemento. Los espacios reservados no deben aparentar efectos ya funcionales. La interacción y el tamaño final de la bahía se validarán en un mock que muestre más de un dispositivo.
-
-No es necesario sustituir el par FX A/B del Prophet por esta cadena. La ubicación musical de la nueva bahía se decidirá al probar los primeros modelos; serial/parallel/pre/post no deben aparecer como opciones si no están implementadas y probadas.
+La propuesta actual adopta el **carrusel de módulos completos** sugerido por el usuario: un efecto activo inicialmente, catálogo ampliable y cuerpo visual propio por tipo. Posición **Inicio/Final** respecto de toda la cadena normal, incluida distorsión. Ninguno quita el procesador y oculta el cuerpo; contraer sólo oculta la edición. Especificación de estado, latencia, colas y transiciones en `V0_20_CHARACTER_CAROUSEL.md`.
 
 ## Contrato técnico propuesto
 
@@ -74,7 +68,7 @@ La separación de licencias importa: el submódulo DaisySP-LGPL fijado en el ár
 
 ## Recomendación y límite de la búsqueda
 
-Comparar primero **Tube2 y DSPark TubePreamp** en un harness separado, con entradas musicales del sintetizador, niveles emparejados y un preset limpio de control. Evaluar costo, latencia, continuidad de parámetros y aliasing, además de escucha. Elegir el núcleo después de esa comparación; la identidad Prophec-y provendrá también del voicing, parámetros e interacción/visual propios.
+La comparación separada de cinco núcleos está completada: **315 renders**, pruebas de bloques, sanitizers y audios musicales. Resultados y límites en `V0_20_FX_COMPARISON.md`, datos en `calibration/v020_character_fx/` y harness en `research/character_fx/`. Recomendar **DSPark TubePreamp** para el primer prototipo de válvula y **Airwindows Tube2** como alternativa ligera. Aún falta selección musical y validación integrada; ningún núcleo se enlazó al plugin.
 
 Para cinta/resorte/óptico/ring/shimmer, priorizar también la composición de bloques DaisySP MIT y conservar Patina y0xFX como fuentes de módulos a auditar individualmente. En los archivos inspeccionados no se verificó una implementación directa de los conceptos plasma ni ferrofluido. Eso no prueba que no exista en otros proyectos; evita prometer una biblioteca que resuelve exactamente toda la colección.
 

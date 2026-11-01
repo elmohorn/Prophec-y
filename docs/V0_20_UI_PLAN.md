@@ -1,7 +1,7 @@
 # v0.20 — Interfaz y flujo de presets
 
 Estado: **PROPUESTA PARA REVISIÓN**, 1 de noviembre de2026, Santiago.
-Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_FX_RESEARCH.md` para la bahía ampliable y fuentes DSP. El diseño final de controles y la implementación todavía están pendientes.
+Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_CAROUSEL.md` para el carrusel Inicio/Final y `V0_20_FX_COMPARISON.md` para los cinco núcleos ensayados. DSPark es el candidato técnico de válvula; todavía no está integrado. El diseño final de controles y la implementación todavía están pendientes.
 
 ## Dirección recomendada
 
@@ -34,7 +34,7 @@ Ventana inicial orientativa1280×820, redimensionable. Layout compacto alrededor
 1. **Cabecera permanente:** nombre/número de preset, anterior/siguiente, browser, guardar/guardar como, Init, Compare, A/B, undo/redo y acceso a ajustes. Estado modificado visible.
 2. **Vista Module:** Osc1/Osc2 y mixer a la izquierda; HP/LP y ADSR en el centro; Poly Mod/LFO a la derecha. Performance (Unison/key mode/glide/Slop/pan) en una franja clara. Las dos envolventes deben poder compararse visualmente.
 3. **Vista Studio / foco contextual:** valores ampliados, mapeo de fuentes/destinos y ayuda breve del módulo elegido, sin tapar el control activo. Preview de curvas estáticas y movimiento opcional sólo donde exista telemetría adecuada.
-4. **FX normales y Prophec-y:** acceso directo a On/Off, tipos A/B y mixes desde Module; edición convencional de los tipos normales. Bahía independiente y ampliable para dispositivos Prophec-y, con miniaturas/estados en Module y dispositivo seleccionado ampliado en Studio. No incrustar sólo la válvula como si fuera el único efecto futuro.
+4. **FX normales y Prophec-y:** acceso directo a On/Off, tipos A/B y mixes desde Module; edición convencional de los tipos normales. Bahía independiente y ampliable para dispositivos Prophec-y, mediante carrusel de un efecto activo inicialmente, módulo visual completo por tipo y posición Inicio/Final de toda la cadena normal. Ninguno oculta el cuerpo y elimina el efecto; contraer mantiene el audio. Studio amplía el mismo dispositivo. No incrustar sólo la válvula como si fuera el único efecto futuro.
 5. **Browser:** búsqueda por nombre/número, bancos, favoritos y etiquetas propias. Metadatos del plugin separados del payload Prophet original. Import/export de programa y banco SysEx mediante las APIs existentes.
 6. **Sequence:** editor de las notas/velocidades verificadas. Bits opacos y modos no comprobados se conservan; no se inventan botones de tie ni semánticas de firmware. Arp con sus opciones funcionales ya establecidas.
 7. **Ajustes:** oversampling y su aplicación al preparar/reiniciar audio, clock source, perfil de calibración y modo Slop. No esconder controles musicales esenciales aquí.
@@ -74,4 +74,4 @@ Editor nativo JUCE sobre el wrapper existente. No introducir un navegador embebi
 
 ## Fuera de alcance inicial
 
-No rediseñar el DSP Prophet validado, ampliar polifonía, inventar una matriz de modulación, resolver por apariencia los modos de secuencia desconocidos ni implementar todos los conceptos de FX animados. La colección propia será una extensión opcional separada, con bahía común y primer prototipo de válvula; su adopción DSP requiere la evaluación descrita en el informe de fuentes. La identidad puede ser fuerte con una superficie sobria y una buena interacción.
+No rediseñar el DSP Prophet validado, ampliar polifonía, inventar una matriz de modulación, resolver por apariencia los modos de secuencia desconocidos ni implementar todos los conceptos de FX animados. La colección propia será una extensión opcional separada, con bahía común y primer prototipo de válvula; la comparación aislada está completada y su integración requiere escucha, prueba de host y presupuesto conjunto de CPU/latencia. La identidad puede ser fuerte con una superficie sobria y una buena interacción.

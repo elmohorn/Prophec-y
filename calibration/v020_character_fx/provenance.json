@@ -1,0 +1,66 @@
+{
+  "source_commits": [
+    {
+      "repo": "CristianMoresi/DSPark",
+      "commit": "0a66a4dd1a4e114d3020ccedd454c4d2e0202560",
+      "archive_sha256": "b934c587b6171549c5a2c9bd024e373b48d37b515e7fb31f013db06096a6388e"
+    },
+    {
+      "repo": "ShmKnd/Patina",
+      "commit": "8ad9e700348a0a272107880741aded659e100966",
+      "archive_sha256": "85af7dd9fdfcf94a57d3b3b915b847b8a4b60af0fab28a2abe4b202fb3584e2e"
+    },
+    {
+      "repo": "daisyaudio/DaisySP",
+      "commit": "2c72eaf9eac5fc0dca1919d65d606da907832618",
+      "archive_sha256": "78db7ee9da2d472bf7316a1d16ad7100d174dc1bc90422bc3a55a11760d6014d"
+    },
+    {
+      "repo": "airwindows/airwindows",
+      "commit": "7fd5f5cae262a41e6dd7d9a83d60c46e84d3092a"
+    },
+    {
+      "repo": "averagenative/0xFX",
+      "commit": "5b248779c96dce6e64d0ed29cfa598014dc4d3c4"
+    }
+  ],
+  "protocol": {
+    "candidates": 5,
+    "sample_rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "native_dials": [
+      0.2,
+      0.5,
+      0.8
+    ],
+    "signals": [
+      "silence",
+      "tone_low",
+      "tone_hot",
+      "hf",
+      "impulse",
+      "left_only",
+      "chord"
+    ],
+    "frames": 32768,
+    "warmup_seconds": 0.25,
+    "block": 128,
+    "normalized_drive_is_not_matched_distortion": true,
+    "native_settings": {
+      "DSPark": "1 stage, sag0.3, mix1, output0dB, default internal2x; drive=-12+48*dial dB",
+      "Airwindows": "original float Tube2Proc body; input pad1; fixed RNG seeds",
+      "Patina": "drive=dial, bias0.5, output1, default noise/grid conduction",
+      "Daisy": "Overdrive SetDrive(dial), one instance per channel",
+      "0xFX": "original valve_color_process; bias0.5, output1, mix1; separate channel state"
+    }
+  },
+  "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "probe_sha256": "4678dad8a0b91ac14239cc6cc2b4dd0c81abd7aed916ee9e6da8d0ef2daba9e6",
+  "cpu": "Use benchmark_quiet.csv for sequential benchmark; render run timings may overlap sanitizer jobs.",
+  "prototype_only": true,
+  "plugin_DSP_changed": false,
+  "subjective_listening_verdict": false
+}
