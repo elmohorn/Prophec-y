@@ -7,6 +7,71 @@ namespace {
 const juce::Colour ink{0xff252827},muted{0xff636a68},amber{0xffe68c40},silver{0xffd7d6d0};
 juce::String hardwareID(int nrpn) { return "nrpn_"+juce::String(nrpn).paddedLeft('0',4); }
 constexpr float designWidth=1460.f;
+
+int nrpnFromID(const juce::String& id)
+{
+    return id.startsWith("nrpn_") ? id.substring(5).getIntValue() : -1;
+}
+
+juce::String percent(double raw,double maximum)
+{
+    if(maximum<=0.0)return "0 %";
+    return juce::String(std::round(std::clamp(raw/maximum,0.0,1.0)*100.0),0)+" %";
+}
+
+juce::String bipolarPercent(double raw,double centre=127.0)
+{
+    const double value=std::clamp((raw-centre)/centre,-1.0,1.0)*100.0;
+    return juce::String(value>=0.0?"+":"")+juce::String(value,0)+" %";
+}
+
+juce::String timeText(double seconds)
+{
+    if(seconds<1.0)return juce::String(seconds*1000.0,seconds<0.1?1:0)+" ms";
+    return juce::String(seconds,seconds<10.0?2:1)+" s";
+}
+
+juce::String hardwareDisplayValue(int nrpn,double raw)
+{
+    switch(nrpn) {
+        case 0: case 5: {
+            const int st=static_cast<int>(std::lround(raw))-24;
+            return juce::String(st>=0?"+":"")+juce::String(st)+" st";
+        }
+        case 6: {
+            const double cents=std::clamp((raw-127.0)/127.0,-1.0,1.0)*50.0;
+            return juce::String(cents>=0.0?"+":"")+juce::String(cents,0)+" cent";
+        }
+        case 3: case 8: {
+            const double x=std::clamp(raw/254.0,0.0,1.0);
+            if(x<0.5)return "TRI > SAW  "+juce::String(x*200.0,0)+" %";
+            return "SAW > PULSE  "+juce::String((x-0.5)*200.0,0)+" %";
+        }
+        case 4: case 9:
+            return juce::String(std::clamp(raw/255.0,0.04,0.96)*100.0,0)+" % PW";
+        case 2: case 7: case 27: case 32: case 33: case 62: case 63:
+        case 69: case 80: case 120: case 128:
+            return percent(raw,127.0);
+        case 46:
+            return percent(raw,255.0);
+        case 45: case 49:
+            return percent(raw,164.0)+" OPEN";
+        case 77: case 143: case 144:
+            return bipolarPercent(raw);
+        case 88:
+            return juce::String(p6::rawLfoHz(static_cast<std::uint16_t>(std::clamp(raw,0.0,254.0))),2)+" Hz";
+        case 89:
+            return percent(raw,255.0);
+        case 78: case 79: case 81: case 67: case 68: case 70:
+            return timeText(p6::rawEnvelopeTime(static_cast<std::uint16_t>(std::clamp(raw,0.0,127.0)),10.0,3.5));
+        case 30: {
+            const double t=std::clamp(raw/127.0,0.0,1.0);
+            return timeText(0.001*std::pow(10000.0,t));
+        }
+        default:
+            return juce::String(raw,0);
+    }
+}
 }
 void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
                                                 float value,float start,float end,juce::Slider&)
@@ -140,10 +205,11 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     diagnostic_=std::make_unique<juce::GenericAudioProcessorEditor>(p);addChildComponent(*diagnostic_);
     presetName_=p.getProgramName(0);visual_=p.characterTelemetry();
     lastVisualRevision_=p.characterTelemetryRevision();
+    lastPitchBendRevision_=p.midiPitchBendRevision();pitchBendRaw14_=p.midiPitchBendRaw14();
     if(params.getRawParameterValue(p6plugin::kCharacterBypassID)->load()>=.5f)visual_.active=false;
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
-    focusValue_=juce::String(static_cast<int>(params.getRawParameterValue(hardwareID(45))->load()))+" RAW";
+    focusValue_=hardwareDisplayValue(45,params.getRawParameterValue(hardwareID(45))->load());
     setResizable(true,false);setResizeLimits(1240,compactHeight,1920,1200);setSize(1460,compactHeight);
     refreshVisibility();startTimerHz(30);
 }
@@ -155,12 +221,14 @@ void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String&
     k.slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     k.slider.setTextBoxStyle(values?juce::Slider::TextBoxBelow:juce::Slider::NoTextBox,false,90,20);
     k.slider.setPopupDisplayEnabled(!values,!values,this);
+    const int nrpn=nrpnFromID(id);
+    if(nrpn>=0)k.slider.textFromValueFunction=[nrpn](double v){return hardwareDisplayValue(nrpn,v);};
     k.slider.setTitle(name);k.slider.setTooltip(name+" — drag to edit; Studio provides numeric entry.");
     k.label.setText(name,juce::dontSendNotification);k.label.setColour(juce::Label::textColourId,ink);
     k.label.setFont(juce::Font(10.5f).withExtraKerningFactor(.05f));k.label.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(k.slider);addAndMakeVisible(k.label);
     k.attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor_.parameters(),id,k.slider);
-    auto focus=[this,&k,name,values]{focusName_=name;focusValue_=k.slider.getTextFromValue(k.slider.getValue())+(values?"":" RAW");focusPosition_=static_cast<float>(k.slider.valueToProportionOfLength(k.slider.getValue()));repaint(displayArea_);};
+    auto focus=[this,&k,name]{focusName_=name;focusValue_=k.slider.getTextFromValue(k.slider.getValue());focusPosition_=static_cast<float>(k.slider.valueToProportionOfLength(k.slider.getValue()));pitchDisplayTicks_=0;repaint(displayArea_);};
     k.slider.onDragStart=focus;k.slider.onValueChange=focus;
 }
 void P6PluginEditor::setType(int value)
@@ -173,6 +241,16 @@ void P6PluginEditor::timerCallback()
     const bool selected=processor_.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()>=.5f;
     if(selected!=showTube_)refreshVisibility();
     const auto name=processor_.getProgramName(0);if(name!=presetName_){presetName_=name;repaint(displayArea_);}
+    const auto pitchRevision=processor_.midiPitchBendRevision();
+    if(pitchRevision!=lastPitchBendRevision_) {
+        lastPitchBendRevision_=pitchRevision;
+        pitchBendRaw14_=processor_.midiPitchBendRaw14();
+        pitchDisplayTicks_=pitchBendRaw14_==8192?30:60;
+        repaint(displayArea_);
+    } else if(pitchDisplayTicks_>0) {
+        --pitchDisplayTicks_;
+        if(pitchDisplayTicks_==0)repaint(displayArea_);
+    }
     const auto revision=processor_.characterTelemetryRevision();
     staleVisualTicks_=revision==lastVisualRevision_?std::min(30,staleVisualTicks_+1):0;
     lastVisualRevision_=revision;
@@ -266,6 +344,25 @@ void P6PluginEditor::paintReadout(juce::Graphics& g)
     g.setColour(juce::Colour{0xff708f98});g.setFont(10.f);g.drawText("POLY / 6",displayArea_.getRight()-100,displayArea_.getY()+18,80,18,juce::Justification::centredRight);
     g.setColour(juce::Colour{0xff476269}.withAlpha(.4f));g.drawLine(r.getX()+18,r.getY()+48,r.getRight()-18,r.getY()+48,1.f);
     const auto graph=juce::Rectangle<float>(r.getX()+18,r.getY()+58,r.getWidth()*.43f,40);
+    const bool pitchLive=pitchDisplayTicks_>0;
+    if(pitchLive) {
+        const double bipolar=pitchBendRaw14_>=8192?static_cast<double>(pitchBendRaw14_-8192)/8191.0:static_cast<double>(pitchBendRaw14_-8192)/8192.0;
+        const float centre=graph.getCentreX();
+        const float marker=centre+static_cast<float>(bipolar)*(graph.getWidth()*.47f);
+        g.setColour(juce::Colour{0xff476269}.withAlpha(.65f));g.drawLine(graph.getX(),graph.getCentreY(),graph.getRight(),graph.getCentreY(),1.f);
+        g.drawLine(centre,graph.getY()+3,centre,graph.getBottom()-3,1.f);
+        g.setColour(juce::Colour{0xffb6d2db});g.fillEllipse(marker-3.f,graph.getCentreY()-3.f,6.f,6.f);
+        g.setColour(juce::Colour{0xff6d929d});g.setFont(8.f);g.drawText("PITCH BEND  -  /  +",static_cast<int>(graph.getX()),static_cast<int>(graph.getBottom()),170,14,juce::Justification::centredLeft);
+        const int range=std::clamp(static_cast<int>(std::lround(processor_.parameters().getRawParameterValue(hardwareID(31))->load())),0,12);
+        const double semitones=bipolar*static_cast<double>(range);
+        const int tx=static_cast<int>(r.getX()+r.getWidth()*.54f),tw=static_cast<int>(r.getWidth()*.42f);
+        g.setColour(juce::Colour{0xff8eb1bb});g.setFont(11.f);g.drawText("PITCH BEND",tx,static_cast<int>(r.getY()+59),tw,20,juce::Justification::centredLeft);
+        g.setColour(juce::Colour{0xffd6e6e9});g.setFont(17.f);
+        g.drawText(juce::String(semitones>=0.0?"+":"")+juce::String(semitones,2)+" st",tx,static_cast<int>(r.getY()+78),tw,24,juce::Justification::centredLeft);
+        g.setColour(juce::Colour{0xff6d929d});g.setFont(8.f);
+        g.drawText("RAW14 "+juce::String(pitchBendRaw14_),tx,static_cast<int>(r.getY()+101),tw,14,juce::Justification::centredLeft);
+        return;
+    }
     juce::Path curve;curve.startNewSubPath(graph.getX(),graph.getY()+8);
     const float knee=graph.getX()+graph.getWidth()*(.15f+.55f*focusPosition_);
     curve.lineTo(knee,graph.getY()+8);curve.cubicTo(knee+20,graph.getY()+8,knee+25,graph.getBottom()-7,graph.getRight(),graph.getBottom()-7);
