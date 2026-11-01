@@ -44,11 +44,11 @@ private:
     std::array<Knob,7> tube_;
     std::unique_ptr<juce::GenericAudioProcessorEditor> diagnostic_;
     juce::Image grain_,tubeGlass_;
-    juce::String focusName_{"LOW PASS"},focusValue_{"164 RAW"},presetName_;
+    juce::String focusName_{"LOW PASS"},focusValue_{"100 %"},presetName_;
     float focusPosition_{1.f},glow_{},characterGlow_{};
     p6plugin::CharacterTelemetry visual_{};
-    unsigned lastVisualRevision_{};
-    int staleVisualTicks_{};
+    unsigned lastVisualRevision_{},lastPitchBendRevision_{};
+    int staleVisualTicks_{},pitchDisplayTicks_{},pitchBendRaw14_{8192};
     bool studioView_{},collapsed_{},showTube_{};
     juce::Rectangle<int> tubeArea_,displayArea_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(P6PluginEditor)
