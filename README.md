@@ -6,16 +6,18 @@ Actualizado: 1 de noviembre de 2026.
 
 | Versión | Estado | Windows x64 VST3 | Linux x64 VST3 |
 |---|---|---|---|
-| [v0.20 preview 269](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.269) | Prototipo de interfaz Module/Studio + Tube | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.269/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.269/P6-Core-v0.20-prototype-Linux-VST3.zip) |
+| [v0.20 preview 271](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.271) | Module + OLED contextual + Tube empotrado | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.271/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.271/P6-Core-v0.20-prototype-Linux-VST3.zip) |
 | [v0.19.0](https://github.com/elmohorn/Prophec-y/releases/tag/v0.19.0) | Checkpoint de ingeniería y calibración provisional; editor de diagnóstico | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Linux-VST3.zip) |
 
-**Para probar el avance actual, descarga v0.20 preview 269.** Incluye la revisión del panel y la válvula reactiva, selectores FX A/B, formato semántico, pitch bend RAW14 y diagnósticos de headroom. El acabado visual y la resolución del headroom siguen pendientes.
+**Para probar el avance actual, descarga v0.20 preview 271.** Incluye la revisión del panel y la válvula reactiva, selectores FX A/B, formato semántico, pitch bend RAW14 y diagnósticos de headroom. El acabado visual y la resolución del headroom siguen pendientes.
 
 Los binarios están publicados en Releases, junto con SHA256SUMS.txt. No necesitas compilar ni buscarlos entre los artefactos temporales de Actions. El repositorio es privado: debes iniciar sesión en GitHub con una cuenta que tenga acceso.
 
 La base de edición añade el contrato común de edición en las 37 instancias de controles de síntesis (34 parámetros distintos): valor exacto/raw, reset a Init, ajuste fino y teclado. Corrige las lecturas de envolvente según el perfil activo e incorpora fixtures de compatibilidad emitidos por codificadores históricos. [Detalle del bloque](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PARAMETER_FOUNDATION.md). Los formatos de estado existentes y las huellas DSP se conservan.
 
-La preview 269 incorpora el **OLED contextual**: al seleccionar OSC 1/2 muestra su ciclo nominal de shape/PW; al seleccionar una envolvente muestra el ADSR del motor, con gate y escala de tiempo. Son previews del modelo, antes de modulación, no osciloscopio ni mediciones del hardware. La respuesta del filtro, LFO, FX y medidores siguen pendientes. [Alcance, captura y validación](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CONTEXT_DISPLAY.md).
+La preview 271 incorpora el **OLED contextual**: al seleccionar OSC 1/2 muestra su ciclo nominal de shape/PW; al seleccionar una envolvente muestra el ADSR del motor, con gate y escala de tiempo. Son previews del modelo, antes de modulación, no osciloscopio ni mediciones del hardware. La respuesta del filtro, LFO, FX y medidores siguen pendientes. [Alcance, captura y validación](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CONTEXT_DISPLAY.md).
+
+La preview 271 implementa el diseño Character aprobado: **panel de aluminio independiente y válvula hundida en una cavidad oscura**, con marco mecanizado, circuito interior y luz cálida por capas ligada a la señal. Conserva bypass, inserción Start/End, plegado y los siete controles Tube. [Captura del editor real y detalle](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_RECESSED_CHARACTER.md).
 
 ### Instalación en Windows
 
@@ -29,7 +31,7 @@ En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se inclu
 ### Qué contiene cada versión
 
 - **v0.19:** corrección de primera tecla Unison tras una cola Release, consistencia de dominios de parámetros y herramientas/comparaciones acústicas ampliadas. Default permanece congelado; no se declara paridad acústica completa con Prophet-6. [Cierre y límites](https://github.com/elmohorn/Prophec-y/blob/v0.19-sound-matching/docs/V0_19_CLOSEOUT.md).
-- **v0.20 preview 269:** panel nativo de aluminio, controles de síntesis con valores semánticos, selectores FX A/B, diagnóstico RAW14 y Tube reactivo con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Browser/flujo de presets, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
+- **v0.20 preview 271:** panel nativo de aluminio, controles de síntesis con valores semánticos, selectores FX A/B, diagnóstico RAW14 y Tube reactivo con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Browser/flujo de presets, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
 
 ### Código y validación
 
@@ -38,7 +40,7 @@ En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se inclu
 | Código | Commit del binario publicado | Validación |
 |---|---|---|
 | [v0.19-sound-matching](https://github.com/elmohorn/Prophec-y/tree/v0.19-sound-matching) | `3e148b6c9d1002178ca294fc4613943fa7533ee6` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41268532229) |
-| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `bc449c1e48b31b53883eb7bffd64a235481a0107` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41341404409) |
+| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `97178e17f810aaab72b638ae95c8a35c63067af5` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41351264905) |
 
 Windows/Linux VST3, tests automatizados, pluginval strictness 10, sanitizers Linux y guards de análisis aprobados en las ejecuciones indicadas. v0.20 también incluye smoke nativo de editor/audio. Las releases reutilizan exactamente esos ZIP validados y verifican procedencia, checksums e integridad antes de publicarlos. La matriz de pruebas manuales en distintos DAW sigue pendiente.
 
