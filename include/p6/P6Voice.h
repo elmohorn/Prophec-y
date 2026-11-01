@@ -136,6 +136,12 @@ struct VoiceSample {
     double polyModSource{};
     double slop1Cents{};
     double slop2Cents{};
+    // Control diagnostics at the final internal oversample, before audio
+    // decimation. These are applied DSP controls, not measured audio features.
+    double lowPassCutoffHz{};
+    double highPassCutoffHz{};
+    double osc1Shape{};
+    double osc1PulseWidth{};
 };
 
 // Per-voice analog path: Osc2 (sync master) -> audio-rate Poly Mod -> Osc1

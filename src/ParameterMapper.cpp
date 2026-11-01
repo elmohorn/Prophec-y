@@ -1,4 +1,5 @@
 #include "p6/ParameterMapper.h"
+#include "p6/ParameterRegistry.h"
 
 #include <algorithm>
 #include <cmath>
@@ -9,8 +10,14 @@ namespace {
 std::uint16_t rawByNrpn(const P6PatchState& patch, std::uint16_t nrpn, std::uint16_t fallback = 0)
 {
     for (const auto& p : patch.rawParameters)
-        if (p.id == nrpn)
+        if (p.id == nrpn) {
+            // SysEx retains bytes outside documented domains for lossless
+            // roundtrips. DSP consumption must use the same limits as an
+            // NRPN/host edit, without rewriting the imported state.
+            if (const auto* info = findProgramParameter(nrpn))
+                return std::clamp(p.raw, info->minimum, info->maximum);
             return p.raw;
+        }
     return fallback;
 }
 

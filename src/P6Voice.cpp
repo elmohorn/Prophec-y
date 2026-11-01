@@ -339,10 +339,12 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
         f1Base * std::pow(2.0, polySource * params_.polyMod.osc1FreqAmount));
 
     osc1_.setFrequency(f1);
-    osc1_.setShape(std::clamp(params_.osc1.shape + polySource * params_.polyMod.osc1ShapeAmount, 0.0, 1.0));
+    out.osc1Shape = std::clamp(params_.osc1.shape + polySource * params_.polyMod.osc1ShapeAmount, 0.0, 1.0);
+    osc1_.setShape(out.osc1Shape);
     osc1_.setMeanNormalizationAmount(params_.osc1.meanNormalizationAmount);
-    osc1_.setPulseWidth(std::clamp(params_.osc1.pulseWidth + lfoPw +
-                                   polySource * params_.polyMod.osc1PulseWidthAmount, 0.04, 0.96));
+    out.osc1PulseWidth = std::clamp(params_.osc1.pulseWidth + lfoPw +
+                                   polySource * params_.polyMod.osc1PulseWidthAmount, 0.04, 0.96);
+    osc1_.setPulseWidth(out.osc1PulseWidth);
     const double a = osc1_.process(syncAt);
 
     sub_.setFrequency(std::max(0.01, f1 * 0.5));
@@ -375,6 +377,8 @@ VoiceSample P6Voice::processInternal(double lfoSignal, double pressure01)
     const double lpAtSemi = params_.aftertouch.lowPass ? pressure * params_.aftertouch.filterRangeSemitones : 0.0;
     const double hpHz = filterCutoffHz(params_.highPass, true, out.filterEnvelope, polySource, hpLfoSemi, hpAtSemi);
     const double lpHz = filterCutoffHz(params_.lowPass, false, out.filterEnvelope, polySource, lpLfoSemi, lpAtSemi);
+    out.highPassCutoffHz = hpHz;
+    out.lowPassCutoffHz = lpHz;
 
     if (diagnostics_.bypassFilters) {
         out.highPass = out.preFilter;

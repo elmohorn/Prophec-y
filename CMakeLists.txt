@@ -155,3 +155,7 @@ if(P6_BUILD_PLUGIN)
   endif()
   add_subdirectory(plugin)
 endif()
+
+add_executable(p6_parameter_domain_audit tests/parameter_domain_audit_test.cpp)
+target_link_libraries(p6_parameter_domain_audit PRIVATE p6core)
+add_test(NAME p6_parameter_domain_audit COMMAND p6_parameter_domain_audit)
