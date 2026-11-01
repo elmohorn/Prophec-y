@@ -70,11 +70,11 @@ int main(int argc,char** argv)
     CHECK(p.exportEditBuffer()==sysex);
     CHECK(cutoff->getWantsKeyboardFocus());CHECK(cutoff->isAccessible());
     CHECK(cutoff->getTitle().isNotEmpty()&&cutoff->getDescription().isNotEmpty());
-    // JUCE only creates an accessibility handler when a native peer exists.
-    editor->addToDesktop(0);editor->setVisible(true);
+    // The standalone smoke editor is normally hosted without an OS peer.
+    // Do not manufacture an unhosted AudioProcessorEditor window: bare Xvfb
+    // has no window-manager atoms, unlike a real DAW-owned plugin window.
     if(editor->getWindowHandle()!=nullptr)CHECK(cutoff->getAccessibilityHandler()!=nullptr);
     else std::cout<<"Native peer unavailable locally; accessibility metadata checked, OS integration requires host testing\n";
-    editor->setVisible(false);editor->removeFromDesktop();
     CHECK(cutoff->getTextFromValue(cutoff->getValue()).contains("%"));
     const auto previousAttack=p.parameters().getRawParameterValue("nrpn_0078")->load();
     set(p,"nrpn_0078",64.f);set(p,"wrapper_calibration",1.f);
