@@ -88,17 +88,22 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     look_.setColour(juce::ComboBox::textColourId,ink);
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
-    for(auto* c:std::array<juce::Component*,10>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_}) {
+    for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
     }
-    for(auto* c:{&type_,&position_,&keyTrack_}) c->setColour(juce::ComboBox::textColourId,ink);
+    for(auto* c:{&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) c->setColour(juce::ComboBox::textColourId,ink);
     type_.addItem("None",1);type_.addItem("Tube",2);type_.setTitle("Prophec-y effect");
     position_.addItem("START OF FX",1);position_.addItem("END OF FX",2);position_.setTitle("Effect position");
     keyTrack_.addItem("OFF",1);keyTrack_.addItem("HALF",2);keyTrack_.addItem("FULL",3);keyTrack_.setTitle("Low-pass keyboard tracking");
+    fxAType_.addItemList(juce::StringArray{"A · OFF","A · BBD DELAY","A · DIGITAL DELAY","A · CHORUS","A · PHASER 1","A · PHASER 2"},1);
+    fxBType_.addItemList(juce::StringArray{"B · OFF","B · BBD DELAY","B · DIGITAL DELAY","B · CHORUS","B · PHASER 1","B · PHASER 2","B · HALL","B · ROOM","B · PLATE","B · SPRING"},1);
+    fxAType_.setTitle("Standard FX A type");fxBType_.setTitle("Standard FX B type");
     auto& params=p.parameters();
     typeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kCharacterTypeID,type_);
     positionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kCharacterPositionID,position_);
     keyBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(47),keyTrack_);
+    fxATypeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(119),fxAType_);
+    fxBTypeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(127),fxBType_);
     bypassBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,p6plugin::kCharacterBypassID,bypass_);
     previous_.onClick=[this]{setType(0);};next_.onClick=[this]{setType(1);};
     module_.onClick=[this]{studioView_=false;refreshVisibility();};studio_.onClick=[this]{studioView_=true;refreshVisibility();};
@@ -106,6 +111,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     motion_.setTooltip("Pause the light animation; audio continues.");collapse_.setTooltip("Hide the device, keeping its audio active.");
     type_.setTooltip("None removes the character effect; Tube settings are retained.");
     position_.setTooltip("Start: before distortion, FX A and FX B. End: after FX B.");
+    fxAType_.setTooltip("Select standard Prophet-6 FX slot A. Use FX ON to enable the standard chain.");
+    fxBType_.setTooltip("Select standard Prophet-6 FX slot B. Slot B also contains the reverbs.");
     constexpr std::array<int,37> ids{0,3,4,2,5,8,9,7,6,49,45,46,77,143,144,88,89,90,78,79,80,81,67,68,69,70,30,33,63,62,120,128,2,7,27,32,45};
     constexpr std::array<const char*,37> labels{"FREQ","SHAPE","PULSE WIDTH","LEVEL","FREQ","SHAPE","PULSE WIDTH","LEVEL","FINE","HIGH PASS","LOW PASS","RESONANCE","ENV AMOUNT","FILTER ENV","OSC 2","RATE","INITIAL AMT","WAVEFORM","ATTACK","DECAY","SUSTAIN","RELEASE","ATTACK","DECAY","SUSTAIN","RELEASE","GLIDE","SLOP","PAN SPREAD","OUTPUT","MIX A","MIX B","OSC 1","OSC 2","SUB","NOISE","LOW PASS"};
     for(std::size_t i=0;i<synth_.size();++i)makeKnob(synth_[i],hardwareID(ids[i]),labels[i]);
@@ -188,6 +195,7 @@ void P6PluginEditor::refreshVisibility()
     showTube_=processor_.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()>=.5f;
     for(auto& k:synth_){k.slider.setVisible(!studioView_);k.label.setVisible(!studioView_);}
     for(auto& s:switches_)s.button.setVisible(!studioView_);
+    fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
     for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_);k.label.setVisible(k.slider.isVisible());}
     diagnostic_->setVisible(studioView_);
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
@@ -219,6 +227,7 @@ void P6PluginEditor::resized()
     switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(558,607,70,19));switches_[5].button.setBounds(rect(795,446,98,24));
     switches_[6].button.setBounds(rect(916,552,76,36));switches_[7].button.setBounds(rect(1288,273,65,24));
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
+    fxAType_.setBounds(rect(916,590,100,18));fxBType_.setBounds(rect(916,611,100,18));
     keyTrack_.setBounds(rect(587,446,132,24));
     previous_.setBounds(rect(304,644,27,24));type_.setBounds(rect(340,644,135,24));next_.setBounds(rect(484,644,27,24));
     position_.setBounds(rect(551,644,151,24));bypass_.setBounds(rect(733,644,90,24));collapse_.setBounds(rect(1190,644,90,24));motion_.setBounds(rect(1301,644,91,24));
@@ -326,4 +335,3 @@ void P6PluginEditor::paint(juce::Graphics& g)
     g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),644,static_cast<int>(240*sx),24,juce::Justification::centredLeft);
     if(showTube_&&!collapsed_)paintTube(g);
 }
-
