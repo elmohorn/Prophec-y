@@ -2,6 +2,7 @@
 #include "BinaryData.h"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace {
 const juce::Colour ink{0xff252827},muted{0xff636a68},amber{0xffe68c40},silver{0xffd7d6d0};
@@ -95,6 +96,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     look_.setColour(juce::ComboBox::textColourId,ink);
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
+    addAndMakeVisible(display_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
     }
@@ -153,7 +155,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
     focusValue_=juce::String(p6plugin::ui::formatParameterValue(45,params.getRawParameterValue(hardwareID(45))->load(),p.parameterPresentationContext()));
     setResizable(true,false);setResizeLimits(1240,compactHeight,1920,1200);setSize(1460,compactHeight);
-    refreshVisibility();startTimerHz(30);
+    refreshVisibility();refreshDisplay();startTimerHz(30);
 }
 P6PluginEditor::~P6PluginEditor(){stopTimer();setLookAndFeel(nullptr);}
 void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String& name,bool values)
@@ -172,8 +174,8 @@ void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String&
     // Attach first: JUCE installs its own formatter during attachment setup.
     if(nrpn>=0)k.slider.textFromValueFunction=[this,nrpn](double raw){return juce::String(p6plugin::ui::formatParameterValue(nrpn,raw,processor_.parameterPresentationContext()));};
     if(nrpn>=0)k.slider.configure(*processor_.parameters().getParameter(id),nrpn,[this]{return processor_.parameterPresentationContext();});
-    auto focus=[this,&k,name,nrpn]{focusNrpn_=nrpn;focusName_=name;focusValue_=k.slider.getTextFromValue(k.slider.getValue());focusPosition_=static_cast<float>(k.slider.valueToProportionOfLength(k.slider.getValue()));pitchDisplayTicks_=0;repaint(displayArea_);};
-    k.slider.onDragStart=focus;k.slider.onValueChange=focus;
+    auto focus=[this,&k,name,nrpn]{focusNrpn_=nrpn;focusName_=name;focusValue_=k.slider.getTextFromValue(k.slider.getValue());focusPosition_=static_cast<float>(k.slider.valueToProportionOfLength(k.slider.getValue()));pitchDisplayTicks_=0;refreshDisplay();};
+    k.slider.onDragStart=focus;k.slider.onSelected=focus;k.slider.onValueChange=focus;
 }
 void P6PluginEditor::setType(int value)
 {
@@ -218,6 +220,7 @@ void P6PluginEditor::timerCallback()
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
     if(showTube_&&!collapsed_&&!studioView_)repaint(tubeArea_);
+    refreshDisplay();
 }
 void P6PluginEditor::refreshVisibility()
 {
@@ -226,7 +229,7 @@ void P6PluginEditor::refreshVisibility()
     for(auto& s:switches_)s.button.setVisible(!studioView_);
     fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
     for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_);k.label.setVisible(k.slider.isVisible());}
-    diagnostic_->setVisible(studioView_);
+    diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
     collapse_.setVisible(!studioView_&&showTube_);motion_.setVisible(!studioView_&&showTube_&&!collapsed_);
     position_.setEnabled(showTube_);bypass_.setEnabled(showTube_);previous_.setEnabled(showTube_);next_.setEnabled(!showTube_);
@@ -261,7 +264,7 @@ void P6PluginEditor::resized()
     previous_.setBounds(rect(304,644,27,24));type_.setBounds(rect(340,644,135,24));next_.setBounds(rect(484,644,27,24));
     position_.setBounds(rect(551,644,151,24));bypass_.setBounds(rect(733,644,90,24));collapse_.setBounds(rect(1190,644,90,24));motion_.setBounds(rect(1301,644,91,24));
     knob(36,883,109,88,88);
-    displayArea_=rect(526,96,322,122);tubeArea_={32,688,getWidth()-64,std::max(225,getHeight()-712)};
+    displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,688,getWidth()-64,std::max(225,getHeight()-712)};
     for(std::size_t i=0;i<tube_.size();++i){const float x=390+140.f*static_cast<float>(i);tube_[i].label.setBounds(rect(x,751,120,20));tube_[i].slider.setBounds(rect(x,774,120,108));}
 
 }
@@ -286,42 +289,40 @@ void P6PluginEditor::paintSurface(juce::Graphics& g)
     g.setColour(juce::Colours::white.withAlpha(.78f));g.drawRoundedRectangle(face.reduced(.5f),7.f,1.f);
     g.setColour(juce::Colour{0xff727c74});g.drawLine(22,24,22,h-29,2.f);g.drawLine(w-22,24,w-22,h-29,2.f);
 }
-void P6PluginEditor::paintReadout(juce::Graphics& g)
+void P6PluginEditor::refreshDisplay()
 {
-    auto r=displayArea_.toFloat();g.setColour(juce::Colour{0xff8b948b});g.fillRoundedRectangle(r.expanded(2),6.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff162024},r.getX(),r.getY(),juce::Colour{0xff080f12},r.getRight(),r.getBottom(),false));g.fillRoundedRectangle(r,4.f);
-    g.setColour(juce::Colours::white.withAlpha(.12f));g.drawRoundedRectangle(r.reduced(.5f),4.f,1.f);
-    g.setColour(juce::Colour{0xffcee2e5});g.setFont(18.f);g.drawText(presetName_,displayArea_.reduced(19,12).removeFromTop(25),juce::Justification::centredLeft);
-    g.setColour(juce::Colour{0xff708f98});g.setFont(10.f);g.drawText("POLY / 6",displayArea_.getRight()-100,displayArea_.getY()+18,80,18,juce::Justification::centredRight);
-    g.setColour(juce::Colour{0xff476269}.withAlpha(.4f));g.drawLine(r.getX()+18,r.getY()+48,r.getRight()-18,r.getY()+48,1.f);
-    const auto graph=juce::Rectangle<float>(r.getX()+18,r.getY()+58,r.getWidth()*.43f,40);
-    const bool pitchLive=pitchDisplayTicks_>0;
-    if(pitchLive) {
-        const double bipolar=pitchBendRaw14_>=8192?static_cast<double>(pitchBendRaw14_-8192)/8191.0:static_cast<double>(pitchBendRaw14_-8192)/8192.0;
-        const float centre=graph.getCentreX();
-        const float marker=centre+static_cast<float>(bipolar)*(graph.getWidth()*.47f);
-        g.setColour(juce::Colour{0xff476269}.withAlpha(.65f));g.drawLine(graph.getX(),graph.getCentreY(),graph.getRight(),graph.getCentreY(),1.f);
-        g.drawLine(centre,graph.getY()+3,centre,graph.getBottom()-3,1.f);
-        g.setColour(juce::Colour{0xffb6d2db});g.fillEllipse(marker-3.f,graph.getCentreY()-3.f,6.f,6.f);
-        g.setColour(juce::Colour{0xff6d929d});g.setFont(8.f);g.drawText("PITCH BEND  -  /  +",static_cast<int>(graph.getX()),static_cast<int>(graph.getBottom()),170,14,juce::Justification::centredLeft);
-        const int range=std::clamp(static_cast<int>(std::lround(processor_.parameters().getRawParameterValue(hardwareID(31))->load())),0,12);
-        const double semitones=bipolar*static_cast<double>(range);
-        const int tx=static_cast<int>(r.getX()+r.getWidth()*.54f),tw=static_cast<int>(r.getWidth()*.42f);
-        g.setColour(juce::Colour{0xff8eb1bb});g.setFont(11.f);g.drawText("PITCH BEND",tx,static_cast<int>(r.getY()+59),tw,20,juce::Justification::centredLeft);
-        g.setColour(juce::Colour{0xffd6e6e9});g.setFont(17.f);
-        g.drawText(juce::String(semitones>=0.0?"+":"")+juce::String(semitones,2)+" st",tx,static_cast<int>(r.getY()+78),tw,24,juce::Justification::centredLeft);
-        g.setColour(juce::Colour{0xff6d929d});g.setFont(8.f);
-        g.drawText("RAW14 "+juce::String(pitchBendRaw14_),tx,static_cast<int>(r.getY()+101),tw,14,juce::Justification::centredLeft);
-        return;
+    if(studioView_)return;
+    ContextDisplay::Content content;
+    content.preset=presetName_;content.title=focusName_;content.value=focusValue_;
+    content.position=focusPosition_;content.caption="CONTROL POSITION / MODEL RESPONSE PENDING";
+    auto raw=[this](int nrpn){return static_cast<double>(processor_.parameters().getRawParameterValue(hardwareID(nrpn))->load());};
+    const auto context=processor_.parameterPresentationContext();
+    if(pitchDisplayTicks_>0) {
+        const double bipolar=pitchBendRaw14_>=8192?static_cast<double>(pitchBendRaw14_-8192)/8191.:static_cast<double>(pitchBendRaw14_-8192)/8192.;
+        content.pitchBend=true;content.pitchRaw=pitchBendRaw14_;content.position=bipolar;content.title="PITCH BEND";
+        const double semitones=bipolar*std::clamp(raw(31),0.,12.);
+        content.value=juce::String(semitones>=0.?"+":"")+juce::String(semitones,2)+" st";
+        content.caption="LIVE MIDI / RAW14 "+juce::String(pitchBendRaw14_);
+    } else if((focusNrpn_>=0&&focusNrpn_<=11)) {
+        const bool second=focusNrpn_>=5;
+        content.spec.kind=p6plugin::ui::PreviewKind::Oscillator;
+        content.spec.values={raw(second?8:3)/254.,p6::mappedPulseWidth(static_cast<std::uint16_t>(raw(second?9:4)),context.calibration),context.calibration.pulseMeanNormalization,0.,0.};
+        content.title=juce::String(second?"OSC 2 / ":"OSC 1 / ")+focusName_;
+        content.caption="NOMINAL CYCLE / PHASE 0-1 / NO SYNC OR MOD";
+    } else if((focusNrpn_>=67&&focusNrpn_<=70)||(focusNrpn_>=78&&focusNrpn_<=81)||focusNrpn_==77) {
+        const bool filter=focusNrpn_>=77;
+        const int first=filter?78:67;
+        auto time=[&](int nrpn){return p6plugin::ui::parameterValue(nrpn,raw(nrpn),context).value;};
+        content.spec.kind=p6plugin::ui::PreviewKind::Envelope;
+        content.spec.values={time(first),time(first+1),raw(first+2)/127.,time(first+3),.25};
+        content.title=juce::String(filter?"FILTER ENV / ":"AMP ENV / ")+focusName_;
+        const double gate=content.spec.values[0]+content.spec.values[1]+.25;
+        const double span=gate+content.spec.values[3];
+        content.caption="MODEL ADSR / GATE "+juce::String(gate,2)+" s / AXIS 0-"+juce::String(span,2)+" s";
+    } else if(focusNrpn_==45||focusNrpn_==49||focusNrpn_==46) {
+        content.caption="CUTOFF CONTROL / NOT A FILTER RESPONSE";
     }
-    juce::Path curve;curve.startNewSubPath(graph.getX(),graph.getY()+8);
-    const float knee=graph.getX()+graph.getWidth()*(.15f+.55f*focusPosition_);
-    curve.lineTo(knee,graph.getY()+8);curve.cubicTo(knee+20,graph.getY()+8,knee+25,graph.getBottom()-7,graph.getRight(),graph.getBottom()-7);
-    g.setColour(juce::Colour{0xffb6d2db});g.strokePath(curve,juce::PathStrokeType(1.3f));
-    g.setColour(juce::Colour{0xff6d929d});g.setFont(8.f);g.drawText("CONTROL POSITION",static_cast<int>(graph.getX()),static_cast<int>(graph.getBottom()),170,14,juce::Justification::centredLeft);
-    const int tx=static_cast<int>(r.getX()+r.getWidth()*.54f),tw=static_cast<int>(r.getWidth()*.42f);
-    g.setColour(juce::Colour{0xff8eb1bb});g.setFont(11.f);g.drawText(focusName_,tx,static_cast<int>(r.getY()+59),tw,20,juce::Justification::centredLeft);
-    g.setColour(juce::Colour{0xffd6e6e9});g.setFont(18.f);g.drawText(focusValue_,tx,static_cast<int>(r.getY()+82),tw,30,juce::Justification::centredLeft);
+    display_.setContent(std::move(content));
 }
 void P6PluginEditor::paintTube(juce::Graphics& g)
 {
@@ -377,7 +378,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
     section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);section(g,"FX",916,528,315);
     section(g,"POLY MOD",1020,85,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,316,373);section(g,"AMPLIFIER ENVELOPE",1020,426,373);
     g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
-    paintReadout(g);
+
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
     g.setColour(muted.withAlpha(.3f));g.drawLine(52*sx,633,1408*sx,633,1.f);
     g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),644,static_cast<int>(240*sx),24,juce::Justification::centredLeft);

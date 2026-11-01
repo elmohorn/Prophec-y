@@ -57,7 +57,9 @@ Module mantiene la lectura de instrumento; Studio debe abrir edición completa d
 
 El display central no debe inventar telemetría. La visualización genérica actual de posición de control es transitoria. La excepción ya implementada es el diagnóstico de pitch bend, que muestra el valor MIDI 14-bit realmente recibido (`RAW14`) y su desplazamiento en semitonos.
 
-Dirección prevista:
+Primera entrega implementada: OSC 1/2 nominal y ADSR del modelo, con selección por ratón/teclado y curvas cacheadas. Ver `V0_20_CONTEXT_DISPLAY.md`. Filtro, LFO, FX y medidores siguen pendientes.
+
+Dirección completa:
 
 - oscilador: preview de waveform/morph basado en el control real;
 - filtro: respuesta/control coherente con cutoff/resonancia;
@@ -96,7 +98,7 @@ Module de aluminio, Performance, FX A/B y Tube se conservan como base implementa
 | 6 | 0.20d — FX y secuencia | Completar edición específica de A/B, relación clara con Character Inicio/Final y edición de notas/velocidades verificadas de Sequence | Sin funciones ficticias ni reinterpretación de bits opacos; tipos/mixes actuales conservados; Tube es el único Character necesario para cerrar esta versión |
 | 7 | 0.20e — cierre y RC1 | Congelar funciones, revisar coherencia visual, DPI/resizing, accesibilidad básica, reduced motion, costo UI y pruebas de uso en DAW; publicar binarios trazables | Gates Windows/Linux, pluginval, sanitizers y regresiones aprobados; carga/reapertura de proyectos, automatización y MIDI comprobados en una matriz mínima de hosts documentada |
 
-El siguiente bloque ejecutable es **protección de compatibilidad + 0.20b.1**, empezando por un control representativo como Low Pass y la corrección del formateo de envolventes bajo distintos perfiles. Se extrae el componente necesario y se verifica antes de extender el patrón al resto; no se paraliza todo el producto para reorganizar carpetas.
+**Avance:** la base común de controles y fixtures de los encoders históricos ya está implementada; las sesiones DAW históricas reales siguen pendientes. Por solicitud del propietario se adelanta una entrega del punto 5: OLED contextual con OSC/ADSR del modelo. Master Output/MIDI, browser e Inspector conservan su alcance y deben continuar después; esta entrega no los sustituye.
 
 ### Decisiones que atraviesan todas las etapas
 

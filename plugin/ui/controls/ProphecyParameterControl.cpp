@@ -37,6 +37,7 @@ void ProphecyParameterControl::resetToInit()
 }
 void ProphecyParameterControl::mouseDown(const juce::MouseEvent& event)
 {
+    if(onSelected)onSelected();
     if(parameter_&&event.mods.isPopupMenu()){showContextMenu();return;}
     if(parameter_)setMouseDragSensitivity(event.mods.isShiftDown()?1500:250);
     juce::Slider::mouseDown(event);
@@ -90,4 +91,10 @@ void ProphecyParameterControl::showExactEditor(bool rawInput)
         if(result==1&&safe&&!safe->applyExactText(window->getTextEditorContents("value"),rawInput))
             juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,"Invalid value","Enter a finite value inside the parameter range. No value was changed.");
     }),true);
+}
+
+void ProphecyParameterControl::focusGained(juce::Component::FocusChangeType)
+{
+    if(onSelected)onSelected();
+    repaint();
 }

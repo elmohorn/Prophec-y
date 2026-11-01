@@ -114,6 +114,32 @@ int main(int argc,char** argv)
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         CHECK(screenshot(*editor,folder.getChildFile("module_tube.png")));
+        // Capture the actual contextual display and prove selection alone
+        // preserves both the canonical patch and complete wrapper state.
+        const auto oldA=p.parameters().getRawParameterValue("nrpn_0067")->load();
+        const auto oldD=p.parameters().getRawParameterValue("nrpn_0068")->load();
+        const auto oldS=p.parameters().getRawParameterValue("nrpn_0069")->load();
+        const auto oldR=p.parameters().getRawParameterValue("nrpn_0070")->load();
+        set(p,"nrpn_0067",80);set(p,"nrpn_0068",60);set(p,"nrpn_0069",80);set(p,"nrpn_0070",70);
+        juce::MemoryBlock selectionBefore;p.getStateInformation(selectionBefore);
+        ContextDisplay* display=nullptr;
+        for(auto* child:editor->getChildren())if(auto* candidate=dynamic_cast<ContextDisplay*>(child))display=candidate;
+        CHECK(display!=nullptr);
+        for(int nrpn:{3,67,78,45}) {
+            bool selected=false;
+            for(auto* child:editor->getChildren())
+                if(auto* control=dynamic_cast<ProphecyParameterControl*>(child);control&&control->hasDescriptor()&&control->parameterNrpn()==nrpn) {
+                    CHECK(static_cast<bool>(control->onSelected));control->onSelected();selected=true;break;
+                }
+            CHECK(selected);
+            CHECK(display->content().spec.kind==(nrpn==3?p6plugin::ui::PreviewKind::Oscillator:nrpn==45?p6plugin::ui::PreviewKind::Position:p6plugin::ui::PreviewKind::Envelope));
+            if(nrpn!=45)CHECK(display->curve().valid&&!display->curve().points.empty());
+            CHECK(screenshot(*display,folder.getChildFile("display_"+juce::String(nrpn)+".png")));
+            if(nrpn==67)CHECK(screenshot(*editor,folder.getChildFile("module_contextual.png")));
+        }
+        juce::MemoryBlock selectionAfter;p.getStateInformation(selectionAfter);CHECK(selectionAfter==selectionBefore);
+        set(p,"nrpn_0067",oldA);set(p,"nrpn_0068",oldD);set(p,"nrpn_0069",oldS);set(p,"nrpn_0070",oldR);
+
         int frame=0;
         float quietLevel=0.f,loudLevel=0.f;
         for(int volume:{0,12,24,64,100,127,100,64,24,12,0,0}) {

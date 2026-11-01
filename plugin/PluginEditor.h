@@ -1,6 +1,7 @@
 #pragma once
 #include "PluginProcessor.h"
 #include "ui/controls/ProphecyParameterControl.h"
+#include "ui/display/ContextDisplay.h"
 #include <memory>
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
@@ -31,10 +32,11 @@ private:
     void refreshVisibility();
     void setType(int);
     void paintSurface(juce::Graphics&);
-    void paintReadout(juce::Graphics&);
+    void refreshDisplay();
     void paintTube(juce::Graphics&);
     void section(juce::Graphics&,const juce::String&,float,float,float);
     P6AudioProcessor& processor_;
+    ContextDisplay display_;
     juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_;

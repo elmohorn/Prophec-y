@@ -46,17 +46,16 @@ For hardware diagnosis, the central display now temporarily shows incoming pitch
 
 This is specifically useful with the Roland FA-08: if the displayed RAW14 value itself returns toward 8192 mid-travel, the problem is upstream of the synth; if RAW14 remains monotonic while pitch returns, the bug is inside Prophec-y.
 
-## Central display — current limitation
+## Central display — first contextual models implemented
 
-Outside the live pitch-bend diagnostic, the central graph is still a control-position visualization and **must not be interpreted as measured waveform, spectrum or filter response**. Replacing it with a truthful context-sensitive display remains open work.
+The first Vital-inspired slice is implemented in native JUCE, without reusing Vital code. Selecting or keyboard-focusing an oscillator or envelope control changes the OLED without editing the patch.
 
-Recommended direction:
+- OSC 1/2: nominal cycle from the core shape/PW law and active calibration. This is before oscillator level, sync, modulation and anti-alias correction; it is not an oscilloscope.
+- Filter/amp envelope: isolated ADSR simulation using the core envelope and active mapped times, sustain, a labelled gate and time axis. This is before depth/velocity/modulation, not a live per-voice envelope.
+- Pitch bend retains its real incoming RAW14 diagnostic.
+- Other controls retain a labelled position bar. The decorative falling filter curve has been removed; an actual filter response, LFO/FX views and output meters remain pending.
 
-- oscillator focus -> waveform/morph preview from the actual control law,
-- filter focus -> response/control visualization,
-- envelope focus -> ADSR curve,
-- FX focus -> relevant effect/time/rate visualization,
-- performance/mixer -> truthful state or level indication.
+The extracted `ContextDisplay` caches model curves by parameter content. Curve work runs only on the UI side when model inputs change. Tests compare ADSR samples against the core at 48 kHz, preserve fast attack peaks, bound preview work and verify that selection/rendering does not modify plugin state. See [scope and validation](V0_20_CONTEXT_DISPLAY.md).
 
 ## Studio — current limitation
 

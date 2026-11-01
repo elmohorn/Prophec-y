@@ -137,7 +137,7 @@ add_executable(p6_dsp_fingerprint tools/dsp_fingerprint.cpp)
 target_link_libraries(p6_dsp_fingerprint PRIVATE p6core)
 
 # Parameter presentation remains independent of JUCE and audio-thread state.
-add_library(p6presentation plugin/ui/ParameterPresentation.cpp)
+add_library(p6presentation plugin/ui/ParameterPresentation.cpp plugin/ui/ContextPreview.cpp)
 target_include_directories(p6presentation PUBLIC plugin)
 target_link_libraries(p6presentation PUBLIC p6core)
 set_target_properties(p6presentation PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -149,6 +149,10 @@ target_include_directories(p6_state_compatibility_tests PRIVATE plugin)
 target_link_libraries(p6_state_compatibility_tests PRIVATE p6core)
 target_compile_definitions(p6_state_compatibility_tests PRIVATE P6_STATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/state_versions")
 add_test(NAME p6_state_compatibility_tests COMMAND p6_state_compatibility_tests)
+
+add_executable(p6_context_preview_tests tests/context_preview_test.cpp)
+target_link_libraries(p6_context_preview_tests PRIVATE p6presentation)
+add_test(NAME p6_context_preview_tests COMMAND p6_context_preview_tests)
 
 option(P6_BUILD_PLUGIN "Build the JUCE VST3/Standalone wrapper" OFF)
 option(P6_FETCH_JUCE "Fetch the pinned JUCE release if it is not otherwise available" ON)

@@ -30,6 +30,8 @@ target_sources(P6CorePlugin PRIVATE
     PluginEditor.h
     ui/controls/ProphecyParameterControl.cpp
     ui/controls/ProphecyParameterControl.h
+    ui/display/ContextDisplay.cpp
+    ui/display/ContextDisplay.h
     PluginStateCodec.cpp
     PluginStateCodec.h)
 
