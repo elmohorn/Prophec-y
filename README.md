@@ -6,10 +6,10 @@ Actualizado: 1 de noviembre de 2026.
 
 | Versión | Estado | Windows x64 VST3 | Linux x64 VST3 |
 |---|---|---|---|
-| [v0.20 preview 1](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.1) | Prototipo de interfaz Module/Studio + Tube | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.1/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.1/P6-Core-v0.20-prototype-Linux-VST3.zip) |
+| [v0.20 preview 260](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.260) | Prototipo de interfaz Module/Studio + Tube | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.260/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.260/P6-Core-v0.20-prototype-Linux-VST3.zip) |
 | [v0.19.0](https://github.com/elmohorn/Prophec-y/releases/tag/v0.19.0) | Checkpoint de ingeniería y calibración provisional; editor de diagnóstico | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Linux-VST3.zip) |
 
-**Para probar el avance visual, descarga v0.20 preview 1.** Es el último prototipo validado. La mayor fidelidad al render original y el acabado de la válvula reactiva solicitados después siguen pendientes; esta descarga no contiene una revisión final de esos cambios.
+**Para probar el avance actual, descarga v0.20 preview 260.** Incluye la revisión del panel y la válvula reactiva, selectores FX A/B, formato semántico, pitch bend RAW14 y diagnósticos de headroom. El acabado visual y la resolución del headroom siguen pendientes.
 
 Los binarios están publicados en Releases, junto con SHA256SUMS.txt. No necesitas compilar ni buscarlos entre los artefactos temporales de Actions. El repositorio es privado: debes iniciar sesión en GitHub con una cuenta que tenga acceso.
 
@@ -25,7 +25,7 @@ En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se inclu
 ### Qué contiene cada versión
 
 - **v0.19:** corrección de primera tecla Unison tras una cola Release, consistencia de dominios de parámetros y herramientas/comparaciones acústicas ampliadas. Default permanece congelado; no se declara paridad acústica completa con Prophet-6. [Cierre y límites](https://github.com/elmohorn/Prophec-y/blob/v0.19-sound-matching/docs/V0_19_CLOSEOUT.md).
-- **v0.20 preview 1:** panel nativo de aluminio, controles de síntesis, Studio de diagnóstico y primer insert Tube experimental con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Browser/flujo de presets, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
+- **v0.20 preview 260:** panel nativo de aluminio, controles de síntesis con valores semánticos, selectores FX A/B, diagnóstico RAW14 y Tube reactivo con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Browser/flujo de presets, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
 
 ### Código y validación
 
@@ -34,9 +34,11 @@ En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se inclu
 | Código | Commit del binario publicado | Validación |
 |---|---|---|
 | [v0.19-sound-matching](https://github.com/elmohorn/Prophec-y/tree/v0.19-sound-matching) | `3e148b6c9d1002178ca294fc4613943fa7533ee6` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41268532229) |
-| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `32f56fa4df9206a590ed49b045b8d795304ee56e` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41305501568) |
+| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `fa5fc6dca16d2f0e7d9c31df50d8e38344022911` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41323420337) |
 
 Windows/Linux VST3, tests automatizados, pluginval strictness 10, sanitizers Linux y guards de análisis aprobados en las ejecuciones indicadas. v0.20 también incluye smoke nativo de editor/audio. Las releases reutilizan exactamente esos ZIP validados y verifican procedencia, checksums e integridad antes de publicarlos. La matriz de pruebas manuales en distintos DAW sigue pendiente.
+
+[Estado actual de v0.20](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CURRENT_STATUS.md) · [Revisión de producto y próximos pasos](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRODUCT_REVIEW.md).
 
 La documentación técnica histórica de la base v0.18 continúa a continuación.
 
