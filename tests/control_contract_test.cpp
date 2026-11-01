@@ -177,8 +177,42 @@ void testMidiRouterPerformanceControllersStayOutOfPatch()
     P6_CHECK(engine.sustainedVoiceCount() == 0);
     P6_CHECK(std::abs(engine.midiVolume() - 1.0) < 1.0e-12);
     P6_CHECK(std::abs(engine.modWheel()) < 1.0e-12);
+    P6_CHECK(std::abs(engine.pitchBendSemitones()) < 1.0e-12);
 
     P6_CHECK(patch.rawPayload == payloadBefore);
+}
+
+void testPitchWheelUsesFull14BitTravelAndRecentersOnReset()
+{
+    p6::P6PatchState patch;
+    patch.rawPayload.fill(0);
+    patch.rawParameters.push_back(p6::RawParameter{31, 2, 0.0f, true});
+
+    p6::P6Engine engine;
+    engine.prepare(48000.0, 1);
+    p6::P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+    scheduler.loadPatch(patch);
+    p6::P6MidiRouter router;
+
+    P6_CHECK(std::abs(engine.pitchBendRangeSemitones() - 2.0) < 1.0e-12);
+
+    const std::array<std::uint8_t, 3> fullUp {0xE0, 0x7f, 0x7f};
+    P6_CHECK(router.process(fullUp, patch, scheduler).consumed);
+    P6_CHECK(std::abs(engine.pitchBendSemitones() - 2.0) < 1.0e-12);
+
+    const std::array<std::uint8_t, 3> center {0xE0, 0x00, 0x40};
+    P6_CHECK(router.process(center, patch, scheduler).consumed);
+    P6_CHECK(std::abs(engine.pitchBendSemitones()) < 1.0e-12);
+
+    const std::array<std::uint8_t, 3> fullDown {0xE0, 0x00, 0x00};
+    P6_CHECK(router.process(fullDown, patch, scheduler).consumed);
+    P6_CHECK(std::abs(engine.pitchBendSemitones() + 2.0) < 1.0e-12);
+
+    P6_CHECK(router.process(fullUp, patch, scheduler).consumed);
+    const std::array<std::uint8_t, 3> resetControllers {0xB0, 121, 0};
+    P6_CHECK(router.process(resetControllers, patch, scheduler).consumed);
+    P6_CHECK(std::abs(engine.pitchBendSemitones()) < 1.0e-12);
 }
 
 void testSustainThresholdIsExactly64()
@@ -332,6 +366,7 @@ int main()
     testSustainDoesNotExtendGeneratedNoteOwnership();
     testUnisonSustainReleasesAsOneStack();
     testMidiRouterPerformanceControllersStayOutOfPatch();
+    testPitchWheelUsesFull14BitTravelAndRecentersOnReset();
     testSustainThresholdIsExactly64();
     testAllNotesOffRespectsDamper();
     testAllSoundOffIsImmediateButDoesNotResetControllers();
