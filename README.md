@@ -1,4 +1,48 @@
-# P6 Core — phase 1 / v0.18
+# Prophec-y — estado y descargas
+
+Actualizado: 1 de noviembre de 2026.
+
+## Descargar y probar
+
+| Versión | Estado | Windows x64 VST3 | Linux x64 VST3 |
+|---|---|---|---|
+| [v0.20 preview 1](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.1) | Prototipo de interfaz Module/Studio + Tube | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.1/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.1/P6-Core-v0.20-prototype-Linux-VST3.zip) |
+| [v0.19.0](https://github.com/elmohorn/Prophec-y/releases/tag/v0.19.0) | Checkpoint de ingeniería y calibración provisional; editor de diagnóstico | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Linux-VST3.zip) |
+
+**Para probar el avance visual, descarga v0.20 preview 1.** Es el último prototipo validado. La mayor fidelidad al render original y el acabado de la válvula reactiva solicitados después siguen pendientes; esta descarga no contiene una revisión final de esos cambios.
+
+Los binarios están publicados en Releases, junto con SHA256SUMS.txt. No necesitas compilar ni buscarlos entre los artefactos temporales de Actions. El repositorio es privado: debes iniciar sesión en GitHub con una cuenta que tenga acceso.
+
+### Instalación en Windows
+
+1. Cierra tu DAW y descomprime el ZIP de Windows.
+2. Localiza la carpeta completa **P6 Core.vst3** dentro de las subcarpetas extraídas.
+3. Copia esa carpeta completa a `C:\Program Files\Common Files\VST3\`.
+4. Abre el DAW, vuelve a escanear plugins y carga **P6 Core** como instrumento VST3.
+
+En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se incluye aplicación standalone ni instalador. Ambas versiones usan la misma identidad de plugin: conserva una copia de la anterior fuera de la carpeta de plugins antes de reemplazarla. Factory SysEx y audios de terceros no se redistribuyen.
+
+### Qué contiene cada versión
+
+- **v0.19:** corrección de primera tecla Unison tras una cola Release, consistencia de dominios de parámetros y herramientas/comparaciones acústicas ampliadas. Default permanece congelado; no se declara paridad acústica completa con Prophet-6. [Cierre y límites](https://github.com/elmohorn/Prophec-y/blob/v0.19-sound-matching/docs/V0_19_CLOSEOUT.md).
+- **v0.20 preview 1:** panel nativo de aluminio, controles de síntesis, Studio de diagnóstico y primer insert Tube experimental con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Browser/flujo de presets, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
+
+### Código y validación
+
+`main` conserva la base de código v0.18; esta portada muestra el estado global y las descargas posteriores. El desarrollo no está integrado automáticamente en `main`.
+
+| Código | Commit del binario publicado | Validación |
+|---|---|---|
+| [v0.19-sound-matching](https://github.com/elmohorn/Prophec-y/tree/v0.19-sound-matching) | `3e148b6c9d1002178ca294fc4613943fa7533ee6` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41268532229) |
+| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `32f56fa4df9206a590ed49b045b8d795304ee56e` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41305501568) |
+
+Windows/Linux VST3, tests automatizados, pluginval strictness 10, sanitizers Linux y guards de análisis aprobados en las ejecuciones indicadas. v0.20 también incluye smoke nativo de editor/audio. Las releases reutilizan exactamente esos ZIP validados y verifican procedencia, checksums e integridad antes de publicarlos. La matriz de pruebas manuales en distintos DAW sigue pendiente.
+
+La documentación técnica histórica de la base v0.18 continúa a continuación.
+
+---
+
+## Base técnica — phase 1 / v0.18
 
 Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1024-byte hardware program state remains canonical and lossless; DSP/calibration layers are replaceable so measured sound matching can evolve without breaking SysEx/NRPN compatibility.
 
