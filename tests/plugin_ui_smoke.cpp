@@ -86,6 +86,17 @@ int main(int argc,char** argv)
     set(p,"nrpn_0078",previousAttack);set(p,"wrapper_calibration",0.f);
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
+    TubeChamber* chamber=nullptr;
+    juce::TextButton* fold=nullptr;
+    for(auto* child:editor->getChildren()) {
+        if(auto* device=dynamic_cast<TubeChamber*>(child))chamber=device;
+        if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getButtonText()=="HIDE")fold=button;
+    }
+    CHECK(chamber!=nullptr&&chamber->isVisible()&&fold!=nullptr);
+    juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
+    fold->onClick();CHECK(!chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
+    juce::MemoryBlock afterFold;p.getStateInformation(afterFold);CHECK(beforeFold==afterFold);
+    fold->onClick();CHECK(chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
     for(int width:{1240,1460,1780}) {
         editor->setSize(width,P6PluginEditor::expandedHeight);
         for(auto* child:editor->getChildren()) if(child->isVisible()) {

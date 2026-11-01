@@ -20,7 +20,7 @@ juce_add_plugin(P6CorePlugin
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE)
 
-juce_add_binary_data(P6PanelAssets SOURCES assets/tube_glass.png)
+juce_add_binary_data(P6PanelAssets SOURCES assets/tube_glass.png assets/tube_chamber.jpg)
 set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_sources(P6CorePlugin PRIVATE
@@ -30,6 +30,8 @@ target_sources(P6CorePlugin PRIVATE
     PluginEditor.h
     ui/controls/ProphecyParameterControl.cpp
     ui/controls/ProphecyParameterControl.h
+    ui/fx/TubeChamber.cpp
+    ui/fx/TubeChamber.h
     ui/display/ContextDisplay.cpp
     ui/display/ContextDisplay.h
     PluginStateCodec.cpp

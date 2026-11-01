@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 #include "ui/controls/ProphecyParameterControl.h"
 #include "ui/display/ContextDisplay.h"
+#include "ui/fx/TubeChamber.h"
 #include <memory>
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
@@ -26,17 +27,20 @@ private:
         void drawLinearSlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider::SliderStyle,juce::Slider&) override;
         void drawToggleButton(juce::Graphics&,juce::ToggleButton&,bool,bool) override;
         juce::Label* createComboBoxTextBox(juce::ComboBox&) override;
+        void drawComboBox(juce::Graphics&,int,int,bool,int,int,int,int,juce::ComboBox&) override;
     } look_;
     void makeKnob(Knob&,const juce::String&,const juce::String&,bool values=false);
     void timerCallback() override;
     void refreshVisibility();
     void setType(int);
+    void paintCharacterPanel(juce::Graphics&);
     void paintSurface(juce::Graphics&);
     void refreshDisplay();
     void paintTube(juce::Graphics&);
     void section(juce::Graphics&,const juce::String&,float,float,float);
     P6AudioProcessor& processor_;
     ContextDisplay display_;
+    TubeChamber chamber_;
     juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_;
@@ -46,7 +50,7 @@ private:
     std::array<Switch,18> switches_;
     std::array<Knob,7> tube_;
     std::unique_ptr<juce::GenericAudioProcessorEditor> diagnostic_;
-    juce::Image grain_,tubeGlass_;
+    juce::Image grain_;
     juce::String focusName_{"LOW PASS"},focusValue_{"100 %"},presetName_;
     int focusNrpn_{45};
     float focusPosition_{1.f},glow_{},characterGlow_{};

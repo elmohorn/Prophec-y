@@ -227,7 +227,13 @@ jobs:
         run: |
           set -euo pipefail
           cat > notes.md <<'EOF'
-          ## v0.20 — Contextual oscillator and ADSR display
+          ## v0.20 — Recessed Character valve panel
+          - Independent aluminum Character faceplate, beveled perimeter and hardware screws, following the approved design.
+          - Upright valve seated inside a dark recessed chamber, with embedded electronics background and separately rendered signal-driven warm lighting. Bypass removes illumination; Motion pauses it.
+          - Seven existing Tube controls, insertion, bypass and fold remain connected to the same host/state contract. Folding is tested to preserve complete plugin state.
+          - No DSP, parameter IDs, session format or SysEx changes.
+
+          ### Contextual oscillator and ADSR display
           - Select an oscillator control to see its nominal shape/PW cycle from the core model; level, sync, modulation and anti-alias correction are excluded.
           - Select a filter/amp envelope control to see its core ADSR model with labelled gate and time axis, before depth/velocity/modulation.
           - Curves are cached outside the audio thread. Selection does not edit the patch. The decorative filter curve is replaced by a labelled position bar; filter response, LFO, FX views and output meters remain pending.

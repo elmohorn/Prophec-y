@@ -81,6 +81,19 @@ juce::Label* P6PluginEditor::MetalLook::createComboBoxTextBox(juce::ComboBox& c)
     auto* label=juce::LookAndFeel_V4::createComboBoxTextBox(c);
     label->setColour(juce::Label::textColourId,ink);return label;
 }
+void P6PluginEditor::MetalLook::drawComboBox(juce::Graphics& g,int w,int h,bool down,int bx,int by,int bw,int bh,juce::ComboBox& box)
+{
+    if(!static_cast<bool>(box.getProperties().getWithDefault("characterPlate",false))) {
+        juce::LookAndFeel_V4::drawComboBox(g,w,h,down,bx,by,bw,bh,box);return;
+    }
+    const juce::Rectangle<float> plate(1,1,static_cast<float>(w-2),static_cast<float>(h-2));
+    g.setColour(juce::Colour{0xff5b6058});g.fillRoundedRectangle(plate,3);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffe2e0d5},0,0,juce::Colour{down?0xffa0a498:0xffb8bbb0},0,static_cast<float>(h),false));g.fillRoundedRectangle(plate.reduced(1),2);
+    g.setColour(juce::Colours::white.withAlpha(.55f));g.drawLine(3,2,static_cast<float>(w-3),2,1);
+    const float x=static_cast<float>(w-12),y=static_cast<float>(h)*.5f;
+    juce::Path arrow;arrow.startNewSubPath(x-3,y-1);arrow.lineTo(x,y+2);arrow.lineTo(x+3,y-1);
+    g.setColour(ink.withAlpha(box.isEnabled()?.7f:.25f));g.strokePath(arrow,juce::PathStrokeType(1));
+}
 P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),processor_(p)
 {
     look_.setColour(juce::ResizableWindow::backgroundColourId,silver);
@@ -96,12 +109,13 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     look_.setColour(juce::ComboBox::textColourId,ink);
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
-    addAndMakeVisible(display_);
+    addAndMakeVisible(display_);addChildComponent(chamber_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
     }
     for(auto* c:{&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) c->setColour(juce::ComboBox::textColourId,ink);
-    type_.addItem("None",1);type_.addItem("Tube",2);type_.setTitle("Prophec-y effect");
+    type_.addItem("NONE",1);type_.addItem("TUBE / 01",2);type_.setTitle("Prophec-y effect");
+    type_.getProperties().set("characterPlate",true);position_.getProperties().set("characterPlate",true);
     position_.addItem("START OF FX",1);position_.addItem("END OF FX",2);position_.setTitle("Effect position");
     keyTrack_.addItem("OFF",1);keyTrack_.addItem("HALF",2);keyTrack_.addItem("FULL",3);keyTrack_.setTitle("Low-pass keyboard tracking");
     fxAType_.addItemList(juce::StringArray{"A · OFF","A · BBD DELAY","A · DIGITAL DELAY","A · CHORUS","A · PHASER 1","A · PHASER 2"},1);
@@ -141,7 +155,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
         tube_[i].slider.valueFromTextFunction=[i](const juce::String& text){const auto v=text.getDoubleValue();return i==0?(v+12.)/48.:i==6?(v+24.)/36.:v/100.;};
         tube_[i].slider.updateText();
     }
-    tubeGlass_=juce::ImageCache::getFromMemory(BinaryData::tube_glass_png,BinaryData::tube_glass_pngSize);
+
     grain_=juce::Image(juce::Image::RGB,384,192,false);juce::Random random(643218);
     for(int y=0;y<grain_.getHeight();++y)for(int x=0;x<grain_.getWidth();++x) {
         const auto c=static_cast<juce::uint8>(196+random.nextInt(5)+(y%3==0?1:0));grain_.setPixelAt(x,y,juce::Colour(c,c,static_cast<juce::uint8>(c-2)));
@@ -153,6 +167,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     if(params.getRawParameterValue(p6plugin::kCharacterBypassID)->load()>=.5f)visual_.active=false;
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
+    chamber_.setIllumination(visual_.active,motion_.getToggleState(),glow_,characterGlow_);
     focusValue_=juce::String(p6plugin::ui::formatParameterValue(45,params.getRawParameterValue(hardwareID(45))->load(),p.parameterPresentationContext()));
     setResizable(true,false);setResizeLimits(1240,compactHeight,1920,1200);setSize(1460,compactHeight);
     refreshVisibility();refreshDisplay();startTimerHz(30);
@@ -219,6 +234,7 @@ void P6PluginEditor::timerCallback()
     // actual latency-aligned waveform change. Neither changes the audio.
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
+    chamber_.setIllumination(visual_.active,motion_.getToggleState(),glow_,characterGlow_);
     if(showTube_&&!collapsed_&&!studioView_)repaint(tubeArea_);
     refreshDisplay();
 }
@@ -230,6 +246,7 @@ void P6PluginEditor::refreshVisibility()
     fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
     for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_);k.label.setVisible(k.slider.isVisible());}
     diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
+    chamber_.setVisible(!studioView_&&showTube_&&!collapsed_);
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
     collapse_.setVisible(!studioView_&&showTube_);motion_.setVisible(!studioView_&&showTube_&&!collapsed_);
     position_.setEnabled(showTube_);bypass_.setEnabled(showTube_);previous_.setEnabled(showTube_);next_.setEnabled(!showTube_);
@@ -261,11 +278,15 @@ void P6PluginEditor::resized()
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
     fxAType_.setBounds(rect(916,590,100,18));fxBType_.setBounds(rect(916,611,100,18));
     keyTrack_.setBounds(rect(587,446,132,24));
-    previous_.setBounds(rect(304,644,27,24));type_.setBounds(rect(340,644,135,24));next_.setBounds(rect(484,644,27,24));
-    position_.setBounds(rect(551,644,151,24));bypass_.setBounds(rect(733,644,90,24));collapse_.setBounds(rect(1190,644,90,24));motion_.setBounds(rect(1301,644,91,24));
+    const bool expanded=showTube_&&!collapsed_;
+    previous_.setBounds(rect(66,expanded?689:652,25,23));type_.setBounds(rect(99,expanded?689:652,158,23));next_.setBounds(rect(265,expanded?689:652,25,23));
+    position_.setBounds(rect(1248,expanded?811:652,137,24));bypass_.setBounds(rect(1262,expanded?753:652,100,24));
+    if(!expanded){previous_.setBounds(rect(305,652,25,23));type_.setBounds(rect(338,652,155,23));next_.setBounds(rect(501,652,25,23));position_.setBounds(rect(550,652,145,24));bypass_.setBounds(rect(735,652,100,24));}
+    collapse_.setBounds(rect(1190,652,90,24));motion_.setBounds(rect(1301,652,91,24));
     knob(36,883,109,88,88);
-    displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,688,getWidth()-64,std::max(225,getHeight()-712)};
-    for(std::size_t i=0;i<tube_.size();++i){const float x=390+140.f*static_cast<float>(i);tube_[i].label.setBounds(rect(x,751,120,20));tube_[i].slider.setBounds(rect(x,774,120,108));}
+    displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
+    chamber_.setBounds(rect(65,720,320,180));
+    for(std::size_t i=0;i<tube_.size();++i){const float x=421+114.f*static_cast<float>(i);tube_[i].label.setBounds(rect(x,759,106,20));tube_[i].slider.setBounds(rect(x,782,106,106));}
 
 }
 void P6PluginEditor::section(juce::Graphics& g,const juce::String& text,float x,float y,float width)
@@ -324,48 +345,39 @@ void P6PluginEditor::refreshDisplay()
     }
     display_.setContent(std::move(content));
 }
+void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
+{
+    const float sx=static_cast<float>(getWidth())/designWidth;
+    const juce::Rectangle<float> panel(30*sx,638,getWidth()-60*sx,static_cast<float>(getHeight()-660));
+    g.setColour(juce::Colour{0xff343833});g.fillRoundedRectangle(panel.expanded(2),7);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd1cec5},panel.getX(),638,juce::Colour{0xffafafa7},panel.getRight(),panel.getBottom(),false));g.fillRoundedRectangle(panel,6);
+    g.setTiledImageFill(grain_,0,638,.1f);g.fillRoundedRectangle(panel,6);
+    g.setColour(juce::Colours::white.withAlpha(.8f));g.drawRoundedRectangle(panel.reduced(1),5,1);
+    for(float x:{44*sx,getWidth()-44*sx})for(float y:{650.f,panel.getBottom()-12}) {
+        g.setColour(juce::Colours::black.withAlpha(.35f));g.fillEllipse(x-5,y-4,11,11);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff5f1e4},x-4,y-4,juce::Colour{0xff676d63},x+4,y+4,false));g.fillEllipse(x-4,y-4,8,8);
+        g.setColour(juce::Colour{0xff34382f});g.drawLine(x-2,y+1,x+2,y-1,1.2f);
+    }
+}
 void P6PluginEditor::paintTube(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
-    g.setColour(muted.withAlpha(.3f));g.drawLine(52*sx,698,1408*sx,698,1.f);
-    section(g,"TUBE / 01",65,711,270);
-    g.setColour(muted);g.setFont(10.f);g.drawText("VALVE SATURATION",static_cast<int>(390*sx),710,400,18,juce::Justification::centredLeft);
-    // Fit the resource without distorting it at different editor widths.
-    const juce::Rectangle<float> bay(70*sx,739,260*sx,153);
-    g.setColour(juce::Colour{0xff7c7d75});g.fillRoundedRectangle(bay.expanded(2),9.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff0d1112},bay.getX(),bay.getY(),juce::Colour{0xff262b2a},bay.getRight(),bay.getBottom(),false));g.fillRoundedRectangle(bay,8.f);
-    g.setColour(juce::Colours::black.withAlpha(.55f));g.drawRoundedRectangle(bay.reduced(1),8.f,2.f);
-    const bool moving=motion_.getToggleState();
-    // Motion off uses steady low heater illumination; bypass always goes dark.
-    const float energy=visual_.active?(moving?glow_:.12f):0.f;
-    const float change=visual_.active&&moving?characterGlow_:0.f;
-    const auto tube=juce::RectanglePlacement(juce::RectanglePlacement::centred).appliedTo(juce::Rectangle<float>(0,0,384,576),bay.reduced(34*sx,3));
-    const float cx=tube.getCentreX(),cy=tube.getY()+tube.getHeight()*.64f;
-    auto halo=[&](float radius,float alpha){g.setGradientFill(juce::ColourGradient(amber.withAlpha(alpha),cx,cy,amber.withAlpha(0.f),cx+radius,cy,true));g.fillEllipse(cx-radius,cy-radius,radius*2,radius*2);};
-    halo(67.f,.04f+.28f*energy+.25f*change);
-    g.drawImage(tubeGlass_,tube);
-    if(energy>0.f) {
-        halo(25.f,.12f*energy+.32f*change);
-        // Two heaters align with the copper stems inside the glass asset.
-        for(float offset:{-.065f,.065f}) {
-            const float xx=cx+tube.getWidth()*offset;
-            const float yy=tube.getY()+tube.getHeight()*.59f;
-            g.setColour(amber.withAlpha(.22f+.7f*energy));g.drawLine(xx,yy,xx,yy+tube.getHeight()*.12f,2.7f);
-            g.setColour(juce::Colour{0xffffd1a0}.withAlpha(.25f+.65f*change));g.drawLine(xx,yy+3,xx,yy+tube.getHeight()*.09f,1.f);
-        }
-    }
-    g.setFont(9.f);g.setColour(juce::Colour{0xffadb6b1});
-    g.drawText(visual_.active?"SIGNAL / HEATER":"TUBE INACTIVE",bay.toNearestInt().removeFromBottom(16),juce::Justification::centred);
+    g.setColour(muted);g.setFont(juce::Font(10.f).boldened());
+    g.drawText("VALVE SATURATION",static_cast<int>(430*sx),696,static_cast<int>(240*sx),18,juce::Justification::centredLeft);
+    g.drawText("TONE",static_cast<int>(770*sx),696,static_cast<int>(200*sx),18,juce::Justification::centredLeft);
+    g.drawText("LEVEL",static_cast<int>(1085*sx),696,static_cast<int>(130*sx),18,juce::Justification::centredLeft);
+    g.drawText("INSERTION",static_cast<int>(1260*sx),789,static_cast<int>(120*sx),18,juce::Justification::centredLeft);
+    g.setColour(muted.withAlpha(.3f));g.drawLine(405*sx,691,405*sx,898,1);g.drawLine(1238*sx,731,1238*sx,893,1);
     // Signal-change meter deliberately is not labelled saturation or THD: EQ,
     // output gain, drive and wet/dry mix all contribute to this difference.
     const std::array<float,3> values{visual_.inputRms,visual_.outputRms,visual_.changeRms};
     const std::array<const char*,3> labels{"IN","OUT","CHANGE"};
     for(std::size_t i=0;i<3;++i) {
-        const float x=(390+330.f*static_cast<float>(i))*sx,y=741.f;
+        const float x=(430+270.f*static_cast<float>(i))*sx,y=741.f;
         g.setColour(muted);g.setFont(9.f);g.drawText(labels[i],static_cast<int>(x),static_cast<int>(y)-10,70,13,juce::Justification::centredLeft);
-        g.setColour(ink.withAlpha(.12f));g.fillRoundedRectangle(x+64,y-6,200*sx,4,2.f);
+        g.setColour(ink.withAlpha(.12f));g.fillRoundedRectangle(x+45*sx,y-6,180*sx,4,2.f);
         const float level=std::clamp((20.f*std::log10(std::max(values[i],.000001f))+60.f)/60.f,0.f,1.f);
-        g.setColour(amber.darker(.15f));g.fillRoundedRectangle(x+64,y-6,200*sx*level,4,2.f);
+        g.setColour(amber.darker(.15f));g.fillRoundedRectangle(x+45*sx,y-6,180*sx*level,4,2.f);
     }
 }
 void P6PluginEditor::paint(juce::Graphics& g)
@@ -380,7 +392,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
     g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
-    g.setColour(muted.withAlpha(.3f));g.drawLine(52*sx,633,1408*sx,633,1.f);
-    g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),644,static_cast<int>(240*sx),24,juce::Justification::centredLeft);
+    paintCharacterPanel(g);
+    g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),651,static_cast<int>(240*sx),24,juce::Justification::centredLeft);
     if(showTube_&&!collapsed_)paintTube(g);
 }

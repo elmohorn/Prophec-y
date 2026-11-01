@@ -17,6 +17,7 @@ Prophec-y v0.20 keeps the Prophet-6-compatible raw/SysEx state as the canonical 
   - FX B: the same plus Hall, Room, Plate and Spring.
   - The existing global `FX ON` control remains the standard-chain master bypass.
 - Character FX is a separate expandable/collapsible bay with Start/End insertion relative to the standard FX chain. The current implemented Character type is Tube; the architecture is intended for additional modules.
+- Character now has an independent aluminum faceplate and a [recessed dark valve chamber](V0_20_RECESSED_CHARACTER.md), following the approved design.
 - Tube graphics are driven by measured audio telemetry (input RMS, output RMS and latency-aligned waveform-change RMS), not random animation. The light display is cosmetic and does not alter DSP.
 - Human-readable control formatting has begun replacing raw 0–127 / 0–255 numbers on the main Module surface. Internal values and SysEx/NRPN domains remain unchanged.
 

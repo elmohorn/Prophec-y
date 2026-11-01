@@ -1,5 +1,7 @@
 # Prophec-y — v0.20 prototype
 
+**Diseño Character:** [panel independiente y válvula empotrada](docs/V0_20_RECESSED_CHARACTER.md).
+
 **Estado actual:** [checkpoint v0.20 de implementación, pitch bend y headroom](docs/V0_20_CURRENT_STATUS.md). [Descargas de previews Windows/Linux](https://github.com/elmohorn/Prophec-y/releases). Las nuevas previews de esta rama se publican únicamente después de aprobar toda la CI. El acabado visual, Studio personalizado, el flujo de presets y las siguientes vistas del display siguen en desarrollo. El OLED ya muestra [ciclos nominales de oscilador y envolventes ADSR del modelo](docs/V0_20_CONTEXT_DISPLAY.md).
 
 The native editor follows the aluminum desktop-module direction: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, performance controls, standard FX A/B selectors, plus the collapsible Prophec-y Character FX bay. The first Character module is the reactive Tube insert. Main Module controls now use human-readable values where mappings are known, while the canonical raw Prophet/SysEx state remains unchanged. The central display also exposes live 14-bit pitch-bend telemetry for hardware diagnosis. Studio still uses the complete generic diagnostic editor.
