@@ -29,6 +29,7 @@ jobs:
           python3 tests/reference_media_test.py
           python3 tests/selfosc_recording_test.py
           python3 tests/sync_stage_metrics_test.py
+          python3 tests/closeout_evidence_test.py
           python3 -m py_compile tools/inspect_reference_media.py
           python3 -m py_compile tools/analyze_selfosc_recording.py tools/prepare_independent_forum_suite.py
           python3 -m py_compile tools/analyze_sync_stages.py tools/probe_sync_ensemble.py
@@ -158,7 +159,7 @@ jobs:
       - name: Upload validated VST3
         uses: actions/upload-artifact@v4
         with:
-          name: P6-Core-v0.18-${{ runner.os }}-VST3
+          name: P6-Core-v0.19-${{ runner.os }}-VST3
           path: |
             build/**/P6 Core.vst3
           if-no-files-found: error
