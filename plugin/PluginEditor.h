@@ -3,6 +3,7 @@
 #include "ui/controls/ProphecyParameterControl.h"
 #include "ui/display/ContextDisplay.h"
 #include "ui/fx/TubeChamber.h"
+#include "ui/display/OutputMeter.h"
 #include <memory>
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
@@ -41,6 +42,13 @@ private:
     P6AudioProcessor& processor_;
     ContextDisplay display_;
     TubeChamber chamber_;
+    OutputMeter outputMeter_;
+    juce::Slider master_;
+    juce::Label masterLabel_;
+    juce::TextButton clearClips_{"RESET CLIP"};
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> masterBinding_;
+    unsigned lastOutputRevision_{};
+    int staleOutputTicks_{};
     juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_;

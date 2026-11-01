@@ -57,6 +57,8 @@ std::vector<std::uint8_t> encodeState(const WrapperState& state)
         const float v=state.character.tube[i];
         putU16(out,static_cast<std::uint16_t>(std::lround(1000.f*(std::isfinite(v)?std::clamp(v,0.f,1.f):kTubeDefaults[i]))));
     }
+    const float db=std::isfinite(state.masterOutputDb)?std::clamp(state.masterOutputDb,-60.f,0.f):0.f;
+    putU16(out,static_cast<std::uint16_t>(static_cast<std::int16_t>(std::lround(db*10.f))));
     return out;
 }
 
@@ -68,10 +70,12 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
 
     std::size_t offset = kStateMagic.size();
     const auto version=getU16(bytes, offset);
-    if ((version!=1 && version!=kStateVersion) || (version==kStateVersion && bytes.size()<kEncodedStateBytes))
+    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kEncodedStateBytes))
         return false;
 
     WrapperState decoded;
+    decoded.masterOutputDb=0.f; // v1/v2 must retain the historical unity output
+
     decoded.patch.bank = static_cast<std::int16_t>(getU16(bytes, offset));
     decoded.patch.program = static_cast<std::int16_t>(getU16(bytes, offset));
 
@@ -89,7 +93,7 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
     }
     for (auto& value : decoded.extras)
         value = bytes[offset++];
-    if(version==kStateVersion) {
+    if(version>=2) {
         decoded.character.type=bytes[offset++];
         decoded.character.position=bytes[offset++];
         const auto bypass=bytes[offset++];
@@ -102,8 +106,14 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
         }
     }
 
+    if(version>=3) {
+        const auto raw=static_cast<std::int16_t>(getU16(bytes,offset));
+        if(raw>0 || raw < -600)return false;
+        decoded.masterOutputDb=static_cast<float>(raw)/10.f;
+    }
     state = std::move(decoded);
     return true;
 }
 
 } // namespace p6plugin
+

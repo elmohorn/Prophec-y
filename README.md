@@ -1,12 +1,14 @@
 # Prophec-y — v0.20 prototype
 
+**Salida:** [Master Output y medidores estéreo](docs/V0_20_MASTER_OUTPUT.md): -18 dB en instancias nuevas; 0 dB al migrar sesiones anteriores.
+
 **Diseño Character:** [panel independiente y válvula empotrada](docs/V0_20_RECESSED_CHARACTER.md).
 
 **Estado actual:** [checkpoint v0.20 de implementación, pitch bend y headroom](docs/V0_20_CURRENT_STATUS.md). [Descargas de previews Windows/Linux](https://github.com/elmohorn/Prophec-y/releases). Las nuevas previews de esta rama se publican únicamente después de aprobar toda la CI. El acabado visual, Studio personalizado, el flujo de presets y las siguientes vistas del display siguen en desarrollo. El OLED ya muestra [ciclos nominales de oscilador y envolventes ADSR del modelo](docs/V0_20_CONTEXT_DISPLAY.md).
 
 The native editor follows the aluminum desktop-module direction: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, performance controls, standard FX A/B selectors, plus the collapsible Prophec-y Character FX bay. The first Character module is the reactive Tube insert. Main Module controls now use human-readable values where mappings are known, while the canonical raw Prophet/SysEx state remains unchanged. The central display also exposes live 14-bit pitch-bend telemetry for hardware diagnosis. Studio still uses the complete generic diagnostic editor.
 
-The current clipping/headroom issue has been measured rather than hidden with a limiter. A deterministic 1–6 voice poly/Unison probe is now part of the DSP fingerprint tooling and has a focused GitHub Actions workflow. Ordinary polyphony can exceed 0 dBFS as strongly as, or more strongly than, Unison; the preferred next step is a separate global Master Output/headroom stage rather than automatic voice-count normalization. See [current v0.20 status](docs/V0_20_CURRENT_STATUS.md).
+Master Output and stereo sample-peak/RMS/clip metering now follow the complete effect chain. New instances use -18 dB; legacy sessions retain unity gain. No limiter or voice normalization was added. A deterministic 1–6 voice poly/Unison probe is now part of the DSP fingerprint tooling and has a focused GitHub Actions workflow. Ordinary polyphony can exceed 0 dBFS as strongly as, or more strongly than, Unison; the new final Master provides explicit output attenuation without changing internal voice summing. See [current v0.20 status](docs/V0_20_CURRENT_STATUS.md).
 
 Unison correction checkpoint: [fixed first-key release-tail behavior and corrected calibration](docs/V0_19_UNISON_FIX_AND_RECALIBRATION.md). The fix restores a missing Solid Bass note; 360 corrected local-grid renders identify a balanced 12-octave audition profile. Earlier affected Unison calibration rows remain historical only.
 

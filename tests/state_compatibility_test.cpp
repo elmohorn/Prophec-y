@@ -12,7 +12,7 @@ int main()
         const auto path=std::string(P6_STATE_FIXTURE_DIR)+"/v0."+std::to_string(version)+".state";
         std::ifstream in(path,std::ios::binary);CHECK(in.good());
         const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>(in),std::istreambuf_iterator<char>()};
-        CHECK(bytes.size()==(version==20?p6plugin::kEncodedStateBytes:p6plugin::kV1StateBytes));
+        CHECK(bytes.size()==(version==20?p6plugin::kV2StateBytes:p6plugin::kV1StateBytes));
         p6plugin::WrapperState state;CHECK(p6plugin::decodeState(bytes,state));
         CHECK(state.patch.bank==version-18);CHECK(state.patch.program==version*7);
         const std::string name="Historical "+std::to_string(version);CHECK(state.patch.name==name);
@@ -29,6 +29,7 @@ int main()
             CHECK(state.character.type==1&&state.character.position==0&&state.character.bypass);
             CHECK(std::abs(state.character.tube[0]-.123f)<1.e-6f);
         }
+        CHECK(state.masterOutputDb==0.f);
         const auto upgraded=p6plugin::encodeState(state);
         p6plugin::WrapperState again;CHECK(p6plugin::decodeState(upgraded,again));
         CHECK(again.patch.rawPayload==state.patch.rawPayload);CHECK(again.extras==state.extras);

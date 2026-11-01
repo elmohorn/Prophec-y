@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <cstdlib>
 
 namespace {
 const juce::Colour ink{0xff252827},muted{0xff636a68},amber{0xffe68c40},silver{0xffd7d6d0};
@@ -122,6 +123,23 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     fxBType_.addItemList(juce::StringArray{"B · OFF","B · BBD DELAY","B · DIGITAL DELAY","B · CHORUS","B · PHASER 1","B · PHASER 2","B · HALL","B · ROOM","B · PLATE","B · SPRING"},1);
     fxAType_.setTitle("Standard FX A type");fxBType_.setTitle("Standard FX B type");
     auto& params=p.parameters();
+    master_.setLookAndFeel(&look_);master_.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    master_.setTextBoxStyle(juce::Slider::TextBoxBelow,false,95,18);master_.setTitle("Master Output");
+    master_.setDescription("Final output attenuation, separate from Prophet Program Volume. Minus 60 to zero dB.");
+    master_.setTooltip("Master Output after all effects. New instances: -18 dB; legacy sessions: 0 dB. Double-click resets to -18 dB.");
+    master_.setWantsKeyboardFocus(true);addAndMakeVisible(master_);addAndMakeVisible(outputMeter_);
+    masterBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,p6plugin::kMasterOutputID,master_);
+    master_.textFromValueFunction=[](double v){return juce::String(v,1)+" dB";};
+    master_.valueFromTextFunction=[this](const juce::String& text){
+        const auto clean=text.trim().replace("dB", "",true).trim();const auto utf8=clean.toStdString();char* end=nullptr;
+        const double value=std::strtod(utf8.c_str(),&end);
+        return end!=utf8.c_str()&&end&&*end=='\0'&&std::isfinite(value)&&value>=-60.&&value<=0.?value:master_.getValue();
+    };
+    master_.setDoubleClickReturnValue(true,p6plugin::kNewMasterDb);master_.updateText();
+    masterLabel_.setText("MASTER",juce::dontSendNotification);masterLabel_.setFont(juce::Font(10.f));masterLabel_.setJustificationType(juce::Justification::centred);addAndMakeVisible(masterLabel_);
+    clearClips_.setLookAndFeel(&look_);clearClips_.setTooltip("Clear latched output clip and pre-master over-zero indicators.");
+    clearClips_.onClick=[this]{processor_.resetOutputClips();outputMeter_.update(processor_.consumeOutputReadings());};addAndMakeVisible(clearClips_);
+    outputMeter_.update(processor_.consumeOutputReadings());lastOutputRevision_=processor_.outputRevision();
     typeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kCharacterTypeID,type_);
     positionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kCharacterPositionID,position_);
     keyBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(47),keyTrack_);
@@ -137,7 +155,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     fxAType_.setTooltip("Select standard Prophet-6 FX slot A. Use FX ON to enable the standard chain.");
     fxBType_.setTooltip("Select standard Prophet-6 FX slot B. Slot B also contains the reverbs.");
     constexpr std::array<int,37> ids{0,3,4,2,5,8,9,7,6,49,45,46,77,143,144,88,89,90,78,79,80,81,67,68,69,70,30,33,63,62,120,128,2,7,27,32,45};
-    constexpr std::array<const char*,37> labels{"FREQ","SHAPE","PULSE WIDTH","LEVEL","FREQ","SHAPE","PULSE WIDTH","LEVEL","FINE","HIGH PASS","LOW PASS","RESONANCE","ENV AMOUNT","FILTER ENV","OSC 2","RATE","INITIAL AMT","WAVEFORM","ATTACK","DECAY","SUSTAIN","RELEASE","ATTACK","DECAY","SUSTAIN","RELEASE","GLIDE","SLOP","PAN SPREAD","OUTPUT","MIX A","MIX B","OSC 1","OSC 2","SUB","NOISE","LOW PASS"};
+    constexpr std::array<const char*,37> labels{"FREQ","SHAPE","PULSE WIDTH","LEVEL","FREQ","SHAPE","PULSE WIDTH","LEVEL","FINE","HIGH PASS","LOW PASS","RESONANCE","ENV AMOUNT","FILTER ENV","OSC 2","RATE","INITIAL AMT","WAVEFORM","ATTACK","DECAY","SUSTAIN","RELEASE","ATTACK","DECAY","SUSTAIN","RELEASE","GLIDE","SLOP","PAN SPREAD","PROGRAM VOL","MIX A","MIX B","OSC 1","OSC 2","SUB","NOISE","LOW PASS"};
     for(std::size_t i=0;i<synth_.size();++i)makeKnob(synth_[i],hardwareID(ids[i]),labels[i]);
     for(std::size_t i=32;i<36;++i)synth_[i].slider.setSliderStyle(juce::Slider::LinearVertical);
     constexpr std::array<int,18> switchIds{1,10,11,156,29,48,135,91,145,146,147,148,149,93,94,95,97,98};
@@ -199,6 +217,12 @@ void P6PluginEditor::setType(int value)
 void P6PluginEditor::timerCallback()
 {
     if(!isShowing())return;
+    const auto outputRevision=processor_.outputRevision();
+    staleOutputTicks_=outputRevision==lastOutputRevision_?std::min(31,staleOutputTicks_+1):0;
+    lastOutputRevision_=outputRevision;
+    auto readings=processor_.consumeOutputReadings();
+    if(staleOutputTicks_>=30){readings.peak={};readings.rms={};readings.prePeak={};}
+    outputMeter_.update(readings);
     const bool selected=processor_.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()>=.5f;
     if(selected!=showTube_)refreshVisibility();
     const auto name=processor_.getProgramName(0);if(name!=presetName_){presetName_=name;repaint(displayArea_);}
@@ -260,6 +284,8 @@ void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
+    master_.setBounds(rect(602,12,100,67));masterLabel_.setBounds(rect(602,78,100,15));
+    outputMeter_.setBounds(rect(724,25,350,60));clearClips_.setBounds(rect(1085,49,105,24));
     module_.setBounds(rect(1210,36,84,25));studio_.setBounds(rect(1300,36,84,25));
     diagnostic_->setBounds(36,92,getWidth()-72,getHeight()-125);
     auto knob=[&](std::size_t i,float x,float y,float w=80,float h=72){synth_[i].slider.setBounds(rect(x,y,w,h));synth_[i].label.setBounds(rect(x-5,y+h+1,w+10,18));};

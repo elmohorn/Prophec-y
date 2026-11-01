@@ -85,6 +85,7 @@ P6AudioProcessor::P6AudioProcessor()
     initialiseBindings();
     for(std::size_t i=0;i<tubeParameters_.size();++i)
         tubeParameters_[i]=apvts_.getRawParameterValue(p6plugin::kTubeIDs[i]);
+    masterDb_=apvts_.getRawParameterValue(p6plugin::kMasterOutputID);
     characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
                           apvts_.getRawParameterValue(p6plugin::kCharacterPositionID),
                           apvts_.getRawParameterValue(p6plugin::kCharacterBypassID)};
@@ -248,6 +249,9 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{p6plugin::kTubeIDs[i],1},juce::String("Tube ")+p6plugin::kTubeNames[i],
             juce::NormalisableRange<float>{0.f,1.f,.001f},p6plugin::kTubeDefaults[i]));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{p6plugin::kMasterOutputID,1},"Master Output",
+        juce::NormalisableRange<float>{-60.f,0.f,.1f},p6plugin::kNewMasterDb));
     return layout;
 }
 
@@ -365,6 +369,10 @@ p6::MapperCalibration P6AudioProcessor::selectedCalibration() const
 
 void P6AudioProcessor::prepareToPlay (double sampleRate, int maximumExpectedSamplesPerBlock)
 {
+    output_.prepare(sampleRate,masterDb_->load(std::memory_order_relaxed));
+    outputClips_.store(0,std::memory_order_relaxed);
+    for(std::size_t c=0;c<2;++c){outputPeak_[c].store(0);preMasterPeak_[c].store(0);outputRms_[c].store(0);}
+
     juce::ignoreUnused (maximumExpectedSamplesPerBlock);
     sampleRate_ = sampleRate;
     oversampling_ = selectedOversampling();
@@ -591,6 +599,7 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
+    output_.setDecibels(masterDb_->load(std::memory_order_relaxed));output_.beginBlock();
 
     // Never block the realtime thread on preset/state edits. If another thread
     // owns patchLock_, this block simply renders the last coherent patch.
@@ -649,9 +658,16 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 return static_cast<p6plugin::CharacterFx*>(context)->process(x);
             },character_.beforeEffects());
         const auto out = scheduler_.process();
-        left[sample] = static_cast<float> (out.left)*character_.routeGain();
-        right[sample] = static_cast<float> (out.right)*character_.routeGain();
+        const auto final=output_.process(static_cast<float>(out.left)*character_.routeGain(),static_cast<float>(out.right)*character_.routeGain());
+        left[sample]=final[0];right[sample]=final[1];
     }
+    const auto readings=output_.readings();
+    for(std::size_t c=0;c<2;++c) {
+        auto retainMax=[](std::atomic<float>& slot,float value){auto old=slot.load(std::memory_order_relaxed);while(old<value&&!slot.compare_exchange_weak(old,value,std::memory_order_relaxed)){};};
+        retainMax(outputPeak_[c],readings.peak[c]);retainMax(preMasterPeak_[c],readings.prePeak[c]);
+        outputRms_[c].store(readings.rms[c],std::memory_order_relaxed);
+    }
+    outputClips_.fetch_or(readings.clips,std::memory_order_relaxed);outputRevision_.fetch_add(1,std::memory_order_relaxed);
     characterExcitation_.store(character_.excitation(),std::memory_order_relaxed);
     const auto visual=character_.telemetry();
     characterInputRms_.store(visual.inputRms,std::memory_order_relaxed);
@@ -659,6 +675,13 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     characterChangeRms_.store(visual.changeRms,std::memory_order_relaxed);
     characterActive_.store(visual.active,std::memory_order_relaxed);
     characterTelemetryRevision_.fetch_add(1,std::memory_order_relaxed);
+}
+
+p6plugin::OutputReadings P6AudioProcessor::consumeOutputReadings() noexcept
+{
+    p6plugin::OutputReadings r;
+    for(std::size_t c=0;c<2;++c){r.peak[c]=outputPeak_[c].exchange(0,std::memory_order_relaxed);r.prePeak[c]=preMasterPeak_[c].exchange(0,std::memory_order_relaxed);r.rms[c]=outputRms_[c].load(std::memory_order_relaxed);}
+    r.clips=outputClips_.load(std::memory_order_relaxed);return r;
 }
 
 juce::AudioProcessorEditor* P6AudioProcessor::createEditor()
@@ -731,6 +754,7 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.character.position=static_cast<int>(characterParameters_[1]->load());
     state.character.bypass=characterParameters_[2]->load()>=.5f;
     for(std::size_t i=0;i<tubeParameters_.size();++i) state.character.tube[i]=tubeParameters_[i]->load();
+    state.masterOutputDb=masterDb_->load(std::memory_order_relaxed);
     const auto bytes = p6plugin::encodeState (state);
     destData.replaceAll (bytes.data(), bytes.size());
 }
@@ -773,6 +797,8 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual(p6plugin::kCharacterBypassID,state.character.bypass?1:0);
     for(std::size_t i=0;i<p6plugin::kTubeIDs.size();++i)
         if(auto* p=apvts_.getParameter(p6plugin::kTubeIDs[i])) p->setValueNotifyingHost(state.character.tube[i]);
+    if(auto* master=apvts_.getParameter(p6plugin::kMasterOutputID))
+        master->setValueNotifyingHost(master->convertTo0to1(state.masterOutputDb));
     sequencePlay_.store (state.extras[7] != 0, std::memory_order_release);
     hostSequencePlayObserved_.store (state.extras[7] != 0 ? 1 : 0, std::memory_order_release);
 

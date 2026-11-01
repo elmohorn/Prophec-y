@@ -26,12 +26,15 @@ set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_sources(P6CorePlugin PRIVATE
     PluginProcessor.cpp
     PluginProcessor.h
+    OutputStage.h
     PluginEditor.cpp
     PluginEditor.h
     ui/controls/ProphecyParameterControl.cpp
     ui/controls/ProphecyParameterControl.h
     ui/fx/TubeChamber.cpp
     ui/fx/TubeChamber.h
+    ui/display/OutputMeter.cpp
+    ui/display/OutputMeter.h
     ui/display/ContextDisplay.cpp
     ui/display/ContextDisplay.h
     PluginStateCodec.cpp

@@ -9,6 +9,7 @@
 #include "p6/ParameterMapper.h"
 #include "p6/VersionedEditMailbox.h"
 #include "CharacterFx.h"
+#include "OutputStage.h"
 #include "ui/ParameterPresentation.h"
 
 #include <array>
@@ -68,6 +69,9 @@ public:
                 characterActive_.load(std::memory_order_relaxed)};
     }
     unsigned characterTelemetryRevision() const noexcept { return characterTelemetryRevision_.load(std::memory_order_relaxed); }
+    p6plugin::OutputReadings consumeOutputReadings() noexcept;
+    void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
+    unsigned outputRevision() const noexcept { return outputRevision_.load(std::memory_order_relaxed); }
     int midiPitchBendRaw14() const noexcept { return midiRouter_.pitchBendRaw14(); }
     unsigned midiPitchBendRevision() const noexcept { return midiRouter_.pitchBendRevision(); }
 
@@ -108,6 +112,10 @@ private:
     p6::P6PatchState audioPatch_;
     p6::P6Engine engine_;
     p6plugin::CharacterFx character_;
+    p6plugin::OutputStage output_;
+    std::atomic<float>* masterDb_{};
+    std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
+    std::atomic<unsigned> outputClips_{},outputRevision_{};
     std::atomic<float> characterExcitation_{};
     // Independent cosmetic readings; no lock or UI access on the audio thread.
     std::atomic<float> characterInputRms_{},characterOutputRms_{},characterChangeRms_{};

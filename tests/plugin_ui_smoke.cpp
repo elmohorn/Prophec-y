@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "PluginStateCodec.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <iostream>
@@ -27,6 +28,7 @@ int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
     P6AudioProcessor p;
+    CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
     p.prepareToPlay(48000,128);CHECK(p.getLatencySamples()==71);
     const auto sysex=p.exportEditBuffer();
     set(p,p6plugin::kCharacterTypeID,1.f);set(p,p6plugin::kTubeIDs[0],.612f);
@@ -36,9 +38,22 @@ int main(int argc,char** argv)
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()==1.f);
     CHECK(std::abs(restored.parameters().getRawParameterValue(p6plugin::kTubeIDs[0])->load()-.612f)<1e-5f);
     CHECK(restored.exportEditBuffer()==sysex);
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
+    // Loading a pre-master session must restore unity, regardless of the new
+    // instance default, while retaining its payload and Character settings.
+    std::vector<std::uint8_t> legacy(static_cast<const std::uint8_t*>(state.getData()),static_cast<const std::uint8_t*>(state.getData())+p6plugin::kV2StateBytes);
+    legacy[4]=2;legacy[5]=0;restored.setStateInformation(legacy.data(),static_cast<int>(legacy.size()));
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==0.f);
+    CHECK(restored.exportEditBuffer()==sysex);
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
     CHECK(editor!=nullptr);
     editor->setSize(1460,P6PluginEditor::expandedHeight);
+    bool foundMaster=false;
+    for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="Master Output") {
+        foundMaster=true;CHECK(slider->getTextFromValue(-18).contains("dB"));
+        CHECK(slider->getValueFromText("-24 dB")==-24.);CHECK(slider->getValueFromText("nan")==slider->getValue());CHECK(slider->getValueFromText("999")==slider->getValue());
+    }
+    CHECK(foundMaster);
     bool driveDisplayFormatted=false;
     for(auto* child:editor->getChildren())
         if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="Drive")
@@ -119,6 +134,14 @@ int main(int argc,char** argv)
         for(int c=0;c<2;++c)for(int n=0;n<128;++n){CHECK(std::isfinite(audio.getSample(c,n)));energy+=audio.getSample(c,n)*audio.getSample(c,n);}
     }
     CHECK(energy>0);
+    auto meters=p.consumeOutputReadings();CHECK(meters.prePeak[0]>0&&meters.peak[0]>0);
+    CHECK(std::abs(meters.peak[0]/meters.prePeak[0]-std::pow(10.f,-18.f/20.f))<.0001f);
+    CHECK(p.consumeOutputReadings().peak[0]==0); // UI consumption retains short peaks until read
+    set(p,p6plugin::kMasterOutputID,-24.f);
+    p.getStateInformation(state);restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==-24.f);
+    CHECK(p.exportEditBuffer()==sysex);set(p,p6plugin::kMasterOutputID,p6plugin::kNewMasterDb);
+    for(int block=0;block<8;++block)p.processBlock(audio,midi);
     // Reopen after live automation: attachments must reflect the current host
     // values without a timer turn or an audio restart.
     editor.reset();editor.reset(p.createEditor());editor->setSize(1460,P6PluginEditor::expandedHeight);

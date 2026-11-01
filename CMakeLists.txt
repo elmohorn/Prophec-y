@@ -154,6 +154,11 @@ add_executable(p6_context_preview_tests tests/context_preview_test.cpp)
 target_link_libraries(p6_context_preview_tests PRIVATE p6presentation)
 add_test(NAME p6_context_preview_tests COMMAND p6_context_preview_tests)
 
+add_executable(p6_output_stage_tests tests/output_stage_test.cpp plugin/PluginStateCodec.cpp)
+target_include_directories(p6_output_stage_tests PRIVATE plugin)
+target_link_libraries(p6_output_stage_tests PRIVATE p6core)
+add_test(NAME p6_output_stage_tests COMMAND p6_output_stage_tests)
+
 option(P6_BUILD_PLUGIN "Build the JUCE VST3/Standalone wrapper" OFF)
 option(P6_FETCH_JUCE "Fetch the pinned JUCE release if it is not otherwise available" ON)
 set(P6_JUCE_PATH "" CACHE PATH "Path to a JUCE source checkout (optional when JUCE is installed)")

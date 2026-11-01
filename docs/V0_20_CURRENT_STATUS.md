@@ -64,7 +64,7 @@ Studio still embeds JUCE `GenericAudioProcessorEditor`. It is intentionally reta
 
 ## Headroom / clipping diagnosis
 
-The current engine sums voice outputs directly into the stereo bus and then applies program/MIDI volume before distortion, standard FX and the optional Character insert. There is currently no dedicated final master-output gain stage, automatic voice-count normalization or safety limiter.
+The current engine sums voice outputs directly into the stereo bus and then applies program/MIDI volume before distortion, standard FX and the optional Character insert. A dedicated final Master Output stage is now implemented after the complete chain; no automatic voice-count normalization or safety limiter is used.
 
 A permanent deterministic headroom probe was added to `p6_dsp_fingerprint`. It renders controlled polyphonic and Unison stacks at 48 kHz / 2x oversampling and reports RMS, peak and peak dBFS.
 
@@ -100,16 +100,9 @@ These results confirm that the engine can legitimately exceed +/-1.0 before the 
 
 No limiter, hard clamp or `1/N` / `1/sqrt(N)` voice normalization has been added. Doing that at the voice-sum stage would alter the relative dynamics and could erase behavior that belongs to the instrument model.
 
-Current preferred architecture for the fix:
+Implemented: [Master Output and L/R peak/RMS/clip metering](V0_20_MASTER_OUTPUT.md). New instances use -18 dB; legacy v1/v2 wrapper sessions migrate at unity (0 dB). The canonical Program Volume, voice sum and effect gain laws are preserved. State codec v3 stores the appended global Master independently of SysEx.
 
-1. preserve internal voice summing and program-level behavior,
-2. add an explicit wrapper/global **Master Output** stage after the synth/FX chain,
-3. provide useful default digital headroom without changing the canonical Prophet program volume,
-4. add truthful peak/clip metering,
-5. keep 0 dB master available for deliberate hot/overdriven behavior,
-6. validate the chosen default against existing DSP fingerprints and listening tests before calling the clipping issue closed.
-
-The clipping/headroom issue is therefore **diagnosed and measured, not yet fixed**.
+The measured +16.91 dBFS no-FX peak becomes -1.09 dBFS at -18 dB. PRE and final clip indicators expose hotter cases; no limiter guarantees clipping prevention for arbitrary effect settings. Manual musical listening and DAW migration checks remain open.
 
 ## Permanent diagnostics added
 
@@ -120,8 +113,8 @@ The clipping/headroom issue is therefore **diagnosed and measured, not yet fixed
 
 ## Current unresolved v0.20 items
 
-1. Implement and validate the final Master Output/headroom design.
-2. Replace the misleading generic central control-position graph with truthful context-sensitive visualizations.
+1. MIDI input channel selection/monitor, plus manual headroom/listening checks of the implemented Master Output.
+2. Complete the remaining filter/LFO/FX/output contextual views; OSC/ADSR models and live pitch bend are already implemented.
 3. Replace the generic Studio editor with the custom Studio design.
 4. Continue semantic formatting/precise editing for controls that still expose raw-style values or ambiguous units.
 5. Expand standard FX editing beyond type/mix into clear effect-specific controls where the hardware semantics are verified.
