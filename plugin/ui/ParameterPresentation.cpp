@@ -104,6 +104,8 @@ std::optional<double> parseParameterValue(int nrpn,std::string_view text,const P
 std::string parameterHelp(int nrpn)
 {
     if(nrpn==45)return "Low-pass cutoff control. Percent is the hardware control position, not measured Hz. Keyboard tracking, Filter Envelope, LFO and Poly Mod may affect each voice. Shift-drag for finer adjustment; arrows edit one raw step. Double-click resets to Init.";
-    return "Values follow the selected software model/calibration. Raw Prophet values remain canonical.";
+    const auto* descriptor=p6::findProgramParameter(static_cast<std::uint16_t>(nrpn));
+    const std::string name=descriptor?std::string(descriptor->name):"Parameter";
+    return name+" (NRPN "+std::to_string(nrpn)+"). Values follow the selected software model/calibration; raw Prophet values remain canonical. Times are nominal segment settings, not total note duration. Shift-drag for fine editing, arrows for one raw step, Home or double-click to reset to Init.";
 }
 } // namespace p6plugin::ui

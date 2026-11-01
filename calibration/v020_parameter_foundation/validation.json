@@ -29,5 +29,7 @@
     "accessibility_metadata": true,
     "native_screen_reader_integration": "Not validated locally: no native peer. Manual host/reader testing remains open."
   },
-  "release_gate": "Full plugin-ci Windows/Linux, pluginval, sanitizers and analysis guards; see GitHub run for the implementation commit."
+  "release_gate": "Full plugin-ci Windows/Linux, pluginval, sanitizers and analysis guards; see GitHub run for the implementation commit.",
+  "hardware_control_instances": 37,
+  "distinct_hardware_parameter_ids": 34
 }

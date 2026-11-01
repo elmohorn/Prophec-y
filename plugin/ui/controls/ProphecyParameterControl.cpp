@@ -8,6 +8,13 @@ void ProphecyParameterControl::configure(juce::RangedAudioParameter& parameter,i
     setDescription(p6plugin::ui::parameterHelp(nrpn_));
     setTooltip(getTitle()+" — "+juce::String(p6plugin::ui::parameterHelp(nrpn_)));
     textFromValueFunction=[this](double raw){return juce::String(p6plugin::ui::formatParameterValue(nrpn_,raw,context_()));};
+    valueFromTextFunction=[this](const juce::String& text){
+        const auto context=context_();
+        const auto unit=p6plugin::ui::parameterValue(nrpn_,getValue(),context).unit;
+        const auto raw=p6plugin::ui::parseParameterValue(nrpn_,text.toStdString(),context,
+            unit==p6plugin::ui::ValueUnit::Raw||unit==p6plugin::ui::ValueUnit::Morph);
+        return raw.value_or(getValue());
+    };
     setDoubleClickReturnValue(true,parameter.convertFrom0to1(parameter.getDefaultValue()));
 }
 void ProphecyParameterControl::applyRaw(double raw)
@@ -70,8 +77,12 @@ void ProphecyParameterControl::showContextMenu()
 }
 void ProphecyParameterControl::showExactEditor(bool rawInput)
 {
-    auto* window=new juce::AlertWindow("Edit "+getTitle(),rawInput?"Enter an integer raw Prophet value (NRPN "+juce::String(nrpn_)+").":"Enter a cutoff control percentage, e.g. 50 %. Values snap to the nearest hardware step.",juce::MessageBoxIconType::NoIcon);
-    window->addTextEditor("value",rawInput?juce::String(getValue(),0):getTextFromValue(getValue()),rawInput?"Raw value":"Control position");
+    const auto unit=p6plugin::ui::parameterValue(nrpn_,getValue(),context_()).unit;
+    rawInput=rawInput||unit==p6plugin::ui::ValueUnit::Raw||unit==p6plugin::ui::ValueUnit::Morph;
+    const auto hint=rawInput?"Enter an integer raw Prophet value (NRPN "+juce::String(nrpn_)+").":
+        "Use the displayed unit (%, ms/s, Hz, st or cent). Values snap to the nearest hardware step under the active profile.";
+    auto* window=new juce::AlertWindow("Edit "+getTitle(),hint,juce::MessageBoxIconType::NoIcon);
+    window->addTextEditor("value",rawInput?juce::String(getValue(),0):getTextFromValue(getValue()),rawInput?"Raw value":"Value");
     window->addButton("Apply",1,juce::KeyPress(juce::KeyPress::returnKey));
     window->addButton("Cancel",0,juce::KeyPress(juce::KeyPress::escapeKey));
     const juce::Component::SafePointer<ProphecyParameterControl> safe(this);

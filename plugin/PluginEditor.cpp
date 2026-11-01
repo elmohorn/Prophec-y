@@ -171,7 +171,7 @@ void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String&
     k.attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor_.parameters(),id,k.slider);
     // Attach first: JUCE installs its own formatter during attachment setup.
     if(nrpn>=0)k.slider.textFromValueFunction=[this,nrpn](double raw){return juce::String(p6plugin::ui::formatParameterValue(nrpn,raw,processor_.parameterPresentationContext()));};
-    if(nrpn==45)k.slider.configure(*processor_.parameters().getParameter(id),nrpn,[this]{return processor_.parameterPresentationContext();});
+    if(nrpn>=0)k.slider.configure(*processor_.parameters().getParameter(id),nrpn,[this]{return processor_.parameterPresentationContext();});
     auto focus=[this,&k,name,nrpn]{focusNrpn_=nrpn;focusName_=name;focusValue_=k.slider.getTextFromValue(k.slider.getValue());focusPosition_=static_cast<float>(k.slider.valueToProportionOfLength(k.slider.getValue()));pitchDisplayTicks_=0;repaint(displayArea_);};
     k.slider.onDragStart=focus;k.slider.onValueChange=focus;
 }

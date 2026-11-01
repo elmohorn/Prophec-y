@@ -49,15 +49,17 @@ int main(int argc,char** argv)
     // The two cutoff knobs share one raw/host parameter and common control
     // contract. Invalid text must not produce an edit or a host gesture.
     ProphecyParameterControl* cutoff=nullptr;
-    int commonCutoffs=0;
+    int commonCutoffs=0,commonControls=0;
     for(auto* child:editor->getChildren())
         if(auto* control=dynamic_cast<ProphecyParameterControl*>(child);control&&control->hasDescriptor()) {
-            ++commonCutoffs;if(!cutoff)cutoff=control;
+            ++commonControls;
+            if(control->parameterNrpn()==45){++commonCutoffs;if(!cutoff)cutoff=control;}
         }
-    CHECK(commonCutoffs==2&&cutoff!=nullptr);
+    CHECK(commonCutoffs==2&&cutoff!=nullptr&&commonControls==37);
     auto* cutoffParameter=p.parameters().getParameter("nrpn_0045");
     GestureProbe gestures;cutoffParameter->addListener(&gestures);
     CHECK(cutoff->applyExactText("50 %"));
+    CHECK(cutoff->getValueFromText("50 %")==82.);
     CHECK(p.parameters().getRawParameterValue("nrpn_0045")->load()==82.f);
     CHECK(!cutoff->applyExactText("nan"));CHECK(!cutoff->applyExactText("999",true));
     CHECK(gestures.begins==1&&gestures.ends==1);

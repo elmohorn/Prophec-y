@@ -228,7 +228,7 @@ jobs:
           set -euo pipefail
           cat > notes.md <<'EOF'
           ## v0.20 — Parameter editing and state compatibility
-          - Low Pass: right-click/Shift+F10 for exact percentage or raw editing, Init reset, keyboard steps and fine drag.
+          - Hardware controls: right-click/Shift+F10 for exact value or raw editing, Init reset, keyboard steps and fine drag. Morph/synced-rate fields use raw input where a scalar semantic entry is not established.
           - Envelope values follow the active model/calibration; synced LFO rate is identified as raw until its division law is verified.
           - Historical-encoder state fixtures and presentation/model regression tests added; existing state formats and DSP fingerprints preserved.
 

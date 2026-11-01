@@ -13,9 +13,9 @@ Se inicia el bloque de protección + 0.20b.1 del plan integrado. No se declara c
 - El formateador se instala después del SliderAttachment, que durante su construcción reemplaza los callbacks del slider. La lectura enfocada se refresca si cambia el perfil sin mover el knob.
 - LFO sincronizado deja de mostrar su frecuencia libre como si fuera efectiva: indica SYNC RAW hasta disponer de una semántica de división verificada. Cutoff usa porcentaje de control, sin llamar OPEN al extremo alto de HPF ni inventar Hz medidos.
 
-## Primer control común: Low Pass
+## Control común: Low Pass y extensión al panel
 
-`ProphecyParameterControl` mantiene Slider/SliderAttachment como vía de edición del host. Ambos knobs LP están vinculados al mismo NRPN 45 e incorporan:
+`ProphecyParameterControl` mantiene Slider/SliderAttachment como vía de edición del host. Low Pass fue el primer caso validado: ambos knobs LP están vinculados al mismo NRPN 45. El patrón se extiende después a las 37 instancias de controles de síntesis del panel (34 IDs distintos, con controles duplicados que comparten parámetro). Incorporan:
 
 - clic derecho o Shift+F10: menú común;
 - edición exacta de porcentaje o edición raw independiente, con rechazo de valores inválidos y ajuste al paso hardware más próximo;
@@ -24,7 +24,7 @@ Se inicia el bloque de protección + 0.20b.1 del plan integrado. No se declara c
 - Shift al comenzar un drag: menor sensibilidad;
 - foco visible, nombre/descripción accesibles y ayuda con raw/NRPN.
 
-Las operaciones de menú/reset/teclado tienen gestos begin/end explícitos; una entrada inválida no cambia el valor ni emite un gesto. No se añaden parámetros ni se modifica el formato de estado. El resto de controles usa la presentación extraída, pero todavía no incorpora todo el contrato interactivo de Low Pass.
+Las operaciones de menú/reset/teclado tienen gestos begin/end explícitos; una entrada inválida no cambia el valor ni emite un gesto. No se añaden parámetros ni se modifica el formato de estado. Los controles propios de Tube conservan su edición especializada; switches y selectores conservan sus componentes JUCE. Esta entrega no completa todavía toda la cobertura de Inspector/ayuda específica por parámetro.
 
 ## Validación
 
@@ -37,4 +37,4 @@ Las operaciones de menú/reset/teclado tienen gestos begin/end explícitos; una 
 
 ## Siguiente trabajo
 
-Extender el contrato del control común por grupos después de validar este primer corte. Mantener la protección de estados en cada entrega. Master Output/MIDI por canal, browser, Inspector, visualizaciones de modelo, FX/secuencia y RC1 conservan su lugar en el plan; este cambio no los marca completados.
+Revisar el uso musical de estos controles comunes y ampliar la ayuda específica/Inspector sobre la misma base. Mantener la protección de estados en cada entrega. Master Output/MIDI por canal, browser, Inspector, visualizaciones de modelo, FX/secuencia y RC1 conservan su lugar en el plan; este cambio no los marca completados.

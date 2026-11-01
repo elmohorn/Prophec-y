@@ -147,4 +147,4 @@ The owner's comparison with Surge XT, Vital, Dexed, Gearmulator and Odin 2 has b
 
 ## Parameter foundation checkpoint
 
-The first compatibility/common-control slice is implemented in [V0_20_PARAMETER_FOUNDATION.md](V0_20_PARAMETER_FOUNDATION.md): historical-encoder fixtures, a JUCE-independent presentation model, effective-profile envelope formatting and the first common Low Pass control. Existing state formats and DSP fingerprints are preserved. The complete widget migration, Inspector and manual DAW/screen-reader checks remain pending.
+The first compatibility/common-control slice is implemented in [V0_20_PARAMETER_FOUNDATION.md](V0_20_PARAMETER_FOUNDATION.md): historical-encoder fixtures, a JUCE-independent presentation model, effective-profile envelope formatting and common hardware controls, validated first on Low Pass then extended to the 37 synthesis-control instances. Existing state formats and DSP fingerprints are preserved. The complete widget migration, Inspector and manual DAW/screen-reader checks remain pending.
