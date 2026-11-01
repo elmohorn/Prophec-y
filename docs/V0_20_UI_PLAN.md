@@ -1,7 +1,7 @@
 # v0.20 — Interfaz y flujo de presets
 
 Estado: **PROPUESTA PARA REVISIÓN**, 1 de noviembre de2026, Santiago.
-La elección visual final se hará con el usuario. Este documento inicia la planificación; no declara implementado el editor.
+Actualización acordada: vistas **Module + Studio**, con Performance para más adelante. El usuario favorece el módulo contemporáneo de aluminio del segundo mock. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por válvula; los efectos normales siguen convencionales. Ver `V0_20_CHARACTER_FX_RESEARCH.md` para la bahía ampliable y fuentes DSP. El diseño final de controles y la implementación todavía están pendientes.
 
 ## Dirección recomendada
 
@@ -20,26 +20,26 @@ La novedad propuesta es el **foco de sección**: seleccionar un módulo amplía 
 
 ## Lenguaje visual inicial
 
-- Panel grafito con capas de contraste sutil, texto marfil y acentos ámbar/cobre. Estados activos reconocibles por texto/forma además del color.
+- Dirección actual: panel continuo de aluminio mate claro, controles oscuros, serigrafía legible y luz cálida contenida. Las agrupaciones se construyen con alineación/espacio y jerarquía de controles; el mock grafito anterior queda como exploración histórica. Estados reconocibles por forma/texto además de color.
 - Perillas claras, marcas legibles y algo de relieve para transmitir manipulación. Textura y sombras discretas; sin necesidad de madera fotográfica.
 - Una tipografía de interfaz legible y números de ancho estable. Preset y valores deben poder leerse a tamaño normal.
 - Color por función con moderación: una indicación consistente de fuente/destino, no un tablero multicolor.
 - Envelope miniatures y previews de forma como ayudas de edición. Deben representar el modelo/control correspondiente y no presentarse como osciloscopios medidos.
-- Animaciones discretas, con modo de movimiento reducido y desactivación. Visuales físicos de FX quedan para exploración posterior, no condicionan la primera UI funcional.
+- Animaciones discretas, con modo de movimiento reducido y desactivación. La bahía Prophec-y debe prever varios dispositivos desde el diseño. Válvula será el primer prototipo de esta familia; los FX normales no necesitan una representación visual especial.
 
 ## Superficie y navegación
 
 Ventana inicial orientativa1280×820, redimensionable. Layout compacto alrededor de1040×720 mediante reorganización; mantener texto y áreas de interacción legibles en lugar de reducir una imagen completa.
 
 1. **Cabecera permanente:** nombre/número de preset, anterior/siguiente, browser, guardar/guardar como, Init, Compare, A/B, undo/redo y acceso a ajustes. Estado modificado visible.
-2. **Vista Synth:** Osc1/Osc2 y mixer a la izquierda; HP/LP y ADSR en el centro; Poly Mod/LFO a la derecha. Performance (Unison/key mode/glide/Slop/pan) en una franja clara. Las dos envolventes deben poder compararse visualmente.
-3. **Foco contextual:** valores ampliados, mapeo de fuentes/destinos y ayuda breve del módulo elegido, sin tapar el control activo. Preview de curvas estáticas y movimiento opcional sólo donde exista telemetría adecuada.
-4. **FX:** acceso directo a On/Off, tipos A/B y mixes desde Synth; panel ampliable con parámetros reales de cada tipo y orden A→B visible.
+2. **Vista Module:** Osc1/Osc2 y mixer a la izquierda; HP/LP y ADSR en el centro; Poly Mod/LFO a la derecha. Performance (Unison/key mode/glide/Slop/pan) en una franja clara. Las dos envolventes deben poder compararse visualmente.
+3. **Vista Studio / foco contextual:** valores ampliados, mapeo de fuentes/destinos y ayuda breve del módulo elegido, sin tapar el control activo. Preview de curvas estáticas y movimiento opcional sólo donde exista telemetría adecuada.
+4. **FX normales y Prophec-y:** acceso directo a On/Off, tipos A/B y mixes desde Module; edición convencional de los tipos normales. Bahía independiente y ampliable para dispositivos Prophec-y, con miniaturas/estados en Module y dispositivo seleccionado ampliado en Studio. No incrustar sólo la válvula como si fuera el único efecto futuro.
 5. **Browser:** búsqueda por nombre/número, bancos, favoritos y etiquetas propias. Metadatos del plugin separados del payload Prophet original. Import/export de programa y banco SysEx mediante las APIs existentes.
 6. **Sequence:** editor de las notas/velocidades verificadas. Bits opacos y modos no comprobados se conservan; no se inventan botones de tie ni semánticas de firmware. Arp con sus opciones funcionales ya establecidas.
 7. **Ajustes:** oversampling y su aplicación al preparar/reiniciar audio, clock source, perfil de calibración y modo Slop. No esconder controles musicales esenciales aquí.
 
-No es una colección de páginas aisladas: Synth mantiene una vista suficiente para programar sonido sin navegar continuamente. FX y Sequence usan espacio adicional porque lo necesitan.
+Module mantiene la lectura de instrumento; Studio abre edición completa del mismo estado, sin reiniciar el sonido al cambiar de vista. FX y Sequence usan espacio adicional cuando se editan en profundidad. Performance queda explícitamente fuera de la primera etapa.
 
 ## Contrato de controles
 
@@ -66,12 +66,12 @@ Editor nativo JUCE sobre el wrapper existente. No introducir un navegador embebi
 
 | Etapa | Entregable | Aceptación |
 |---|---|---|
-|0.20a — concepto | Dos propuestas del mismo panel y misma lista de controles, con opción clásica e híbrida | Elección visual con el usuario; claridad y densidad revisadas a tamaño real |
-|0.20b — editor Synth | Todos los controles de síntesis conectados; entrada precisa, gestos y estado coherente | Tocar/automatizar/restaurar sin discrepancia con el editor genérico |
+|0.20a — concepto | Module de aluminio + Studio y bahía de varios dispositivos, sobre un inventario común de controles | Densidad revisada a tamaño real y colección ampliable; sólo válvula será el primer efecto funcional |
+|0.20b — Module + Studio | Todos los controles de síntesis conectados; entrada precisa, gestos y estado coherente | Tocar/automatizar/restaurar sin discrepancia con el editor genérico |
 |0.20c — presets | Browser, SysEx, Init/Compare/A-B y undo/redo con alcance definido | Import/export lossless, guardar/reabrir y protección de cambios no guardados |
 |0.20d — FX y secuencia | Edición visible de funciones verificadas; conservación de metadatos opacos | Ningún control decorativo o semántica inventada; orden FX claro |
 |0.20e — accesibilidad y host | DPI, resizing, teclado, reduced motion y costo de UI medido | Sin regresión de audio/estado; gates Windows/Linux y pluginval |
 
 ## Fuera de alcance inicial
 
-No rediseñar DSP, ampliar polifonía, inventar una matriz de modulación, resolver por apariencia los modos de secuencia desconocidos ni implementar todos los conceptos de FX animados. La identidad puede ser fuerte con una superficie sobria y una buena interacción.
+No rediseñar el DSP Prophet validado, ampliar polifonía, inventar una matriz de modulación, resolver por apariencia los modos de secuencia desconocidos ni implementar todos los conceptos de FX animados. La colección propia será una extensión opcional separada, con bahía común y primer prototipo de válvula; su adopción DSP requiere la evaluación descrita en el informe de fuentes. La identidad puede ser fuerte con una superficie sobria y una buena interacción.
