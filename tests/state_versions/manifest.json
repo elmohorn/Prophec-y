@@ -1,0 +1,45 @@
+{
+  "provenance": "Synthetic states emitted by the unchanged historical encoders, not captured DAW sessions. P6 core headers/support symbols are supplied by the current checkout; encodeState only serializes the seeded fields.",
+  "fixtures": [
+    {
+      "file": "v0.17.state",
+      "source_ref": "v0.17.0",
+      "encoder_git_blob": "bb5ad2f57ccf59226de955ef3c9f8b1bb069efdb",
+      "encoder_sha256": "2122d33cc329d9b0f778d232053ec22f9afe76e65f12eb77fb5fda64db972c40",
+      "fixture_seed": 17,
+      "state_format_version": 1,
+      "size_bytes": 1050,
+      "sha256": "39bedf2adccbcc61d413aeef55413b34b17a0ab5943ac5396eee78084bc866ae"
+    },
+    {
+      "file": "v0.18.state",
+      "source_ref": "v0.18.0",
+      "encoder_git_blob": "bb5ad2f57ccf59226de955ef3c9f8b1bb069efdb",
+      "encoder_sha256": "2122d33cc329d9b0f778d232053ec22f9afe76e65f12eb77fb5fda64db972c40",
+      "fixture_seed": 18,
+      "state_format_version": 1,
+      "size_bytes": 1050,
+      "sha256": "28b448b209ac59e93c556b94e5e99834d1d3aa0fcdcf71dd352186f0e6a43d88"
+    },
+    {
+      "file": "v0.19.state",
+      "source_ref": "3e148b6c9d1002178ca294fc4613943fa7533ee6",
+      "encoder_git_blob": "bb5ad2f57ccf59226de955ef3c9f8b1bb069efdb",
+      "encoder_sha256": "2122d33cc329d9b0f778d232053ec22f9afe76e65f12eb77fb5fda64db972c40",
+      "fixture_seed": 19,
+      "state_format_version": 1,
+      "size_bytes": 1050,
+      "sha256": "e3a792d92f9a13d2de1ba8e81201bd4314aab112b465ee95e8b8e0de685eb462"
+    },
+    {
+      "file": "v0.20.state",
+      "source_ref": "16a419e3a072f3baf9beb50a1f96eb76c06d967b",
+      "encoder_git_blob": "4b86cc1db366a48470b1b9c8bf681a3c658e0759",
+      "encoder_sha256": "136c2eabcde262dcee7618a1bf16f7202222f49426c3e4f8e61de54913bdd5af",
+      "fixture_seed": 20,
+      "state_format_version": 2,
+      "size_bytes": 1067,
+      "sha256": "ea0eb9c4f902a35f9d5d4d97f8261e53fc33824625773c4ef4062f8f95f3d0ab"
+    }
+  ]
+}

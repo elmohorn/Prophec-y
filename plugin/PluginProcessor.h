@@ -9,6 +9,7 @@
 #include "p6/ParameterMapper.h"
 #include "p6/VersionedEditMailbox.h"
 #include "CharacterFx.h"
+#include "ui/ParameterPresentation.h"
 
 #include <array>
 #include <atomic>
@@ -54,6 +55,10 @@ public:
 
     juce::AudioProcessorValueTreeState& parameters() noexcept { return apvts_; }
     const p6::P6PatchState& canonicalPatchUnsafeForAudioThread() const noexcept { return patch_; }
+    p6plugin::ui::ParameterContext parameterPresentationContext() const
+    {
+        return {selectedCalibration(),apvts_.getRawParameterValue("nrpn_0091")->load()>=.5f};
+    }
     float characterExcitation() const noexcept { return characterExcitation_.load(std::memory_order_relaxed); }
     p6plugin::CharacterTelemetry characterTelemetry() const noexcept
     {

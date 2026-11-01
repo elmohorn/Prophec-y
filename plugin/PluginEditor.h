@@ -1,5 +1,6 @@
 #pragma once
 #include "PluginProcessor.h"
+#include "ui/controls/ProphecyParameterControl.h"
 #include <memory>
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
@@ -11,7 +12,7 @@ public:
     void resized() override;
 private:
     struct Knob {
-        juce::Slider slider;
+        ProphecyParameterControl slider;
         juce::Label label;
         std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
     };
@@ -45,6 +46,7 @@ private:
     std::unique_ptr<juce::GenericAudioProcessorEditor> diagnostic_;
     juce::Image grain_,tubeGlass_;
     juce::String focusName_{"LOW PASS"},focusValue_{"100 %"},presetName_;
+    int focusNrpn_{45};
     float focusPosition_{1.f},glow_{},characterGlow_{};
     p6plugin::CharacterTelemetry visual_{};
     unsigned lastVisualRevision_{},lastPitchBendRevision_{};

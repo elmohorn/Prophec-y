@@ -49,7 +49,7 @@ jobs:
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build sanitizer tests
-        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
+        run: cmake --build build-sanitize --target p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
       - name: Run sanitizer tests
         env:
           ASAN_OPTIONS: detect_leaks=1
@@ -110,7 +110,7 @@ jobs:
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3 P6UiSmoke
+          --target p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3 P6UiSmoke
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests
@@ -227,7 +227,12 @@ jobs:
         run: |
           set -euo pipefail
           cat > notes.md <<'EOF'
-          ## v0.20 — Native panel and reactive Tube revision
+          ## v0.20 — Parameter editing and state compatibility
+          - Low Pass: right-click/Shift+F10 for exact percentage or raw editing, Init reset, keyboard steps and fine drag.
+          - Envelope values follow the active model/calibration; synced LFO rate is identified as raw until its division law is verified.
+          - Historical-encoder state fixtures and presentation/model regression tests added; existing state formats and DSP fingerprints preserved.
+
+          ### Existing Module and Tube features
           - Panel proportions revised against the owner's original aluminum render.
           - Embedded glass-valve resource with signal-driven heater and waveform-change illumination.
           - Input/output RMS and latency-aligned waveform-change readings. These are not THD measurements.

@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-01",
+  "base_commit": "16a419e3a072f3baf9beb50a1f96eb76c06d967b",
+  "scope": "First historical-state / parameter-control foundation slice",
+  "local_ctest": {
+    "passed": 12,
+    "failed": 0
+  },
+  "envelope_mapper_cases": 1536,
+  "historical_encoder_fixtures": 4,
+  "historical_fixtures_are_captured_daw_sessions": false,
+  "fingerprint_before_sha256": "d91d8649fe2ea3302fa317b38f310551ffaaceb6272847f31e6f8091e8295a2f",
+  "fingerprint_after_sha256": "d91d8649fe2ea3302fa317b38f310551ffaaceb6272847f31e6f8091e8295a2f",
+  "native_smoke": {
+    "passed": true,
+    "covers": [
+      "exact percent/raw entry",
+      "invalid entry preserves value and emits no gesture",
+      "one-step keyboard edit",
+      "Init reset",
+      "balanced host gestures",
+      "effective-profile envelope text",
+      "SysEx preservation",
+      "state restore",
+      "three layout widths",
+      "live audio and routing",
+      "16 decodable PNG captures"
+    ],
+    "accessibility_metadata": true,
+    "native_screen_reader_integration": "Not validated locally: no native peer. Manual host/reader testing remains open."
+  },
+  "release_gate": "Full plugin-ci Windows/Linux, pluginval, sanitizers and analysis guards; see GitHub run for the implementation commit."
+}

@@ -10,6 +10,11 @@ static void set(P6AudioProcessor& p,const char* id,float v)
     auto* parameter=p.parameters().getParameter(id);
     parameter->beginChangeGesture();parameter->setValueNotifyingHost(parameter->convertTo0to1(v));parameter->endChangeGesture();
 }
+struct GestureProbe : juce::AudioProcessorParameter::Listener {
+    int begins{},ends{};
+    void parameterValueChanged(int,float) override {}
+    void parameterGestureChanged(int,bool starting) override {if(starting)++begins;else ++ends;}
+};
 static bool screenshot(juce::Component& c,const juce::File& file)
 {
     juce::Image image(juce::Image::ARGB,c.getWidth(),c.getHeight(),true);
@@ -40,6 +45,43 @@ int main(int argc,char** argv)
             for(auto* text:slider->getChildren())
                 if(auto* label=dynamic_cast<juce::Label*>(text);label&&label->getText().contains("dB"))driveDisplayFormatted=true;
     CHECK(driveDisplayFormatted);
+    CHECK(p.exportEditBuffer()==sysex);
+    // The two cutoff knobs share one raw/host parameter and common control
+    // contract. Invalid text must not produce an edit or a host gesture.
+    ProphecyParameterControl* cutoff=nullptr;
+    int commonCutoffs=0;
+    for(auto* child:editor->getChildren())
+        if(auto* control=dynamic_cast<ProphecyParameterControl*>(child);control&&control->hasDescriptor()) {
+            ++commonCutoffs;if(!cutoff)cutoff=control;
+        }
+    CHECK(commonCutoffs==2&&cutoff!=nullptr);
+    auto* cutoffParameter=p.parameters().getParameter("nrpn_0045");
+    GestureProbe gestures;cutoffParameter->addListener(&gestures);
+    CHECK(cutoff->applyExactText("50 %"));
+    CHECK(p.parameters().getRawParameterValue("nrpn_0045")->load()==82.f);
+    CHECK(!cutoff->applyExactText("nan"));CHECK(!cutoff->applyExactText("999",true));
+    CHECK(gestures.begins==1&&gestures.ends==1);
+    CHECK(cutoff->keyPressed(juce::KeyPress(juce::KeyPress::rightKey)));
+    CHECK(p.parameters().getRawParameterValue("nrpn_0045")->load()==83.f);
+    cutoff->resetToInit();CHECK(gestures.begins==3&&gestures.ends==3);
+    cutoffParameter->removeListener(&gestures);
+    CHECK(p.exportEditBuffer()==sysex);
+    CHECK(cutoff->getWantsKeyboardFocus());CHECK(cutoff->isAccessible());
+    CHECK(cutoff->getTitle().isNotEmpty()&&cutoff->getDescription().isNotEmpty());
+    // JUCE only creates an accessibility handler when a native peer exists.
+    editor->addToDesktop(0);editor->setVisible(true);
+    if(editor->getWindowHandle()!=nullptr)CHECK(cutoff->getAccessibilityHandler()!=nullptr);
+    else std::cout<<"Native peer unavailable locally; accessibility metadata checked, OS integration requires host testing\n";
+    editor->setVisible(false);editor->removeFromDesktop();
+    CHECK(cutoff->getTextFromValue(cutoff->getValue()).contains("%"));
+    const auto previousAttack=p.parameters().getRawParameterValue("nrpn_0078")->load();
+    set(p,"nrpn_0078",64.f);set(p,"wrapper_calibration",1.f);
+    bool effectiveEnvelopeText=false;
+    for(auto* child:editor->getChildren())
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="ATTACK"&&slider->getValue()==64.)
+            effectiveEnvelopeText=slider->getTextFromValue(slider->getValue())=="320 ms";
+    CHECK(effectiveEnvelopeText);
+    set(p,"nrpn_0078",previousAttack);set(p,"wrapper_calibration",0.f);
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
     for(int width:{1240,1460,1780}) {

@@ -97,6 +97,30 @@ double rawFilterCutoffHz(std::uint16_t raw, double sampleRate,
     return std::clamp(hz, 5.0, std::max(20.0, sampleRate * 0.45));
 }
 
+double mappedEnvelopeTime(std::uint16_t nrpn, std::uint16_t raw, const MapperCalibration& c)
+{
+    switch(nrpn) {
+    case 67: return rawEnvelopeTime(raw,c.ampAttackMaxSeconds,c.ampEnvelopeCurveExponent);
+    case 68: return rawEnvelopeTime(raw,c.ampDecayMaxSeconds,c.ampEnvelopeCurveExponent);
+    case 70: return rawEnvelopeTime(raw,c.ampReleaseMaxSeconds,c.ampEnvelopeCurveExponent);
+    case 78: return rawEnvelopeTime(raw,c.filterAttackMaxSeconds,c.filterEnvelopeCurveExponent);
+    case 79: return rawEnvelopeTime(raw,c.filterDecayMaxSeconds,c.filterEnvelopeCurveExponent);
+    case 81: return rawEnvelopeTime(raw,c.filterReleaseMaxSeconds,c.filterEnvelopeCurveExponent);
+    default: return 0.;
+    }
+}
+
+double rawGlideTime(std::uint16_t raw)
+{
+    const double t=std::clamp(static_cast<double>(raw)/127.,0.,1.);
+    return .001*std::pow(10000.,t);
+}
+
+double mappedPulseWidth(std::uint16_t raw, const MapperCalibration& c)
+{
+    return std::clamp(calibratedPulseWidth(raw,c.pulseWidthCurveExponent,c.pulseWidthEndInset),.04,.96);
+}
+
 double rawLfoHz(std::uint16_t raw)
 {
     constexpr double minHz = 0.03;
@@ -187,21 +211,20 @@ MappedPatch mapPatchToDSP(const P6PatchState& patch, const MapperCalibration& c)
     out.voice.glideMode = static_cast<std::uint8_t>(std::min<std::uint16_t>(rawByNrpn(patch, 28, 0), 3));
     out.voice.glideOn = rawByNrpn(patch, 29, 0) != 0;
     {
-        const double t = std::clamp(static_cast<double>(rawByNrpn(patch, 30, 0)) / 127.0, 0.0, 1.0);
-        out.voice.glideSeconds = 0.001 * std::pow(10000.0, t); // 1 ms .. 10 s, calibration candidate
+        out.voice.glideSeconds = rawGlideTime(rawByNrpn(patch, 30, 0)); // 1 ms .. 10 s, calibration candidate
     }
 
     out.voice.ampEnvAmount = unit(rawByNrpn(patch, 66, 127), 127.0);
     out.voice.ampVelocity = rawByNrpn(patch, 71, 0) != 0;
-    out.voice.ampAttack = rawEnvelopeTime(rawByNrpn(patch, 67, 0), c.ampAttackMaxSeconds, c.ampEnvelopeCurveExponent);
-    out.voice.ampDecay = rawEnvelopeTime(rawByNrpn(patch, 68, 0), c.ampDecayMaxSeconds, c.ampEnvelopeCurveExponent);
+    out.voice.ampAttack = mappedEnvelopeTime(67, rawByNrpn(patch, 67, 0), c);
+    out.voice.ampDecay = mappedEnvelopeTime(68, rawByNrpn(patch, 68, 0), c);
     out.voice.ampSustain = unit(rawByNrpn(patch, 69, 127), 127.0);
-    out.voice.ampRelease = rawEnvelopeTime(rawByNrpn(patch, 70, 0), c.ampReleaseMaxSeconds, c.ampEnvelopeCurveExponent);
+    out.voice.ampRelease = mappedEnvelopeTime(70, rawByNrpn(patch, 70, 0), c);
 
-    out.voice.filterAttack = rawEnvelopeTime(rawByNrpn(patch, 78, 0), c.filterAttackMaxSeconds, c.filterEnvelopeCurveExponent);
-    out.voice.filterDecay = rawEnvelopeTime(rawByNrpn(patch, 79, 0), c.filterDecayMaxSeconds, c.filterEnvelopeCurveExponent);
+    out.voice.filterAttack = mappedEnvelopeTime(78, rawByNrpn(patch, 78, 0), c);
+    out.voice.filterDecay = mappedEnvelopeTime(79, rawByNrpn(patch, 79, 0), c);
     out.voice.filterSustain = unit(rawByNrpn(patch, 80, 0), 127.0);
-    out.voice.filterRelease = rawEnvelopeTime(rawByNrpn(patch, 81, 0), c.filterReleaseMaxSeconds, c.filterEnvelopeCurveExponent);
+    out.voice.filterRelease = mappedEnvelopeTime(81, rawByNrpn(patch, 81, 0), c);
 
     out.voice.lowPass.cutoffControl = rawByNrpn(patch, 45, 164);
     out.voice.lowPass.resonance = std::clamp(unit(rawByNrpn(patch, 46, 0), 255.0) * c.lowPassResonanceScale, 0.0, 1.0);
@@ -282,3 +305,4 @@ MappedPatch mapPatchToDSP(const P6PatchState& patch, const MapperCalibration& c)
 }
 
 } // namespace p6
+

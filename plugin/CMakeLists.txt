@@ -28,6 +28,8 @@ target_sources(P6CorePlugin PRIVATE
     PluginProcessor.h
     PluginEditor.cpp
     PluginEditor.h
+    ui/controls/ProphecyParameterControl.cpp
+    ui/controls/ProphecyParameterControl.h
     PluginStateCodec.cpp
     PluginStateCodec.h)
 
@@ -43,6 +45,7 @@ target_link_libraries(P6CorePlugin
     PRIVATE
         p6core
         p6character
+        p6presentation
         P6PanelAssets
         juce::juce_audio_processors
     PUBLIC

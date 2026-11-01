@@ -12,6 +12,8 @@ Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1
 
 ## v0.20 — current engineering checkpoint
 
+New: [parameter foundation and historical state compatibility](docs/V0_20_PARAMETER_FOUNDATION.md). Low Pass now provides exact/raw editing, Init reset, fine drag, keyboard focus and host gestures. Envelope readouts follow the active calibration profile. The rest of the control migration remains in progress.
+
 See [current implementation status](docs/V0_20_CURRENT_STATUS.md), [UI plan](docs/V0_20_UI_PLAN.md), [aluminum panel revision](docs/V0_20_ALUMINUM_PANEL.md), [reactive Tube revision](docs/V0_20_REACTIVE_TUBE.md) and [Tube implementation/validation](docs/V0_20_TUBE_PROTOTYPE.md).
 
 Current implemented highlights:
