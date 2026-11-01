@@ -1,20 +1,37 @@
 # Prophec-y — v0.20 prototype
 
-[Revisión actual: panel y válvula reactiva](docs/V0_20_REACTIVE_TUBE.md). [Descargas de previews Windows/Linux](https://github.com/elmohorn/Prophec-y/releases). Las nuevas previews de esta rama se publican únicamente después de aprobar toda la CI. El acabado visual y el flujo de presets siguen en desarrollo.
+**Estado actual:** [checkpoint v0.20 de implementación, pitch bend y headroom](docs/V0_20_CURRENT_STATUS.md). [Descargas de previews Windows/Linux](https://github.com/elmohorn/Prophec-y/releases). Las nuevas previews de esta rama se publican únicamente después de aprobar toda la CI. El acabado visual, Studio personalizado, el display contextual y el flujo de presets siguen en desarrollo.
 
+The native editor follows the aluminum desktop-module direction: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, performance controls, standard FX A/B selectors, plus the collapsible Prophec-y Character FX bay. The first Character module is the reactive Tube insert. Main Module controls now use human-readable values where mappings are known, while the canonical raw Prophet/SysEx state remains unchanged. The central display also exposes live 14-bit pitch-bend telemetry for hardware diagnosis. Studio still uses the complete generic diagnostic editor.
 
-The native editor now follows the original aluminum desktop-module reference: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, plus the collapsible Tube bay. See [aluminum panel revision](docs/V0_20_ALUMINUM_PANEL.md). Module/Studio and the first DSPark tube insert remain an experimental prototype. See [implementation and validation](docs/V0_20_TUBE_PROTOTYPE.md). The wrapper reports a fixed 71-sample latency even with None; the standalone core retains its original no-insert behavior. Module is a focused first surface; Studio still uses the complete diagnostic editor.
+The current clipping/headroom issue has been measured rather than hidden with a limiter. A deterministic 1–6 voice poly/Unison probe is now part of the DSP fingerprint tooling and has a focused GitHub Actions workflow. Ordinary polyphony can exceed 0 dBFS as strongly as, or more strongly than, Unison; the preferred next step is a separate global Master Output/headroom stage rather than automatic voice-count normalization. See [current v0.20 status](docs/V0_20_CURRENT_STATUS.md).
 
 Unison correction checkpoint: [fixed first-key release-tail behavior and corrected calibration](docs/V0_19_UNISON_FIX_AND_RECALIBRATION.md). The fix restores a missing Solid Bass note; 360 corrected local-grid renders identify a balanced 12-octave audition profile. Earlier affected Unison calibration rows remain historical only.
 
-
 Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1024-byte hardware program state remains canonical and lossless; DSP/calibration layers are replaceable so measured sound matching can evolve without breaking SysEx/NRPN compatibility.
+
+## v0.20 — current engineering checkpoint
+
+See [current implementation status](docs/V0_20_CURRENT_STATUS.md), [UI plan](docs/V0_20_UI_PLAN.md), [aluminum panel revision](docs/V0_20_ALUMINUM_PANEL.md), [reactive Tube revision](docs/V0_20_REACTIVE_TUBE.md) and [Tube implementation/validation](docs/V0_20_TUBE_PROTOTYPE.md).
+
+Current implemented highlights:
+
+- custom aluminum Module editor with standard synthesis sections;
+- visible standard FX A/B type selection and global FX On/Off;
+- separate Character FX bay with Start/End routing and reactive Tube module;
+- semantic display values on the main Module without changing raw/SysEx domains;
+- full 14-bit pitch-wheel routing plus CC121 recenter regression coverage;
+- live `RAW14` pitch-bend diagnostics in the central display;
+- deterministic polyphonic/Unison headroom measurement in `p6_dsp_fingerprint`;
+- focused `headroom-probe` CI workflow.
+
+Open v0.20 work includes the Master Output/headroom implementation, truthful context-sensitive central visualizations, custom Studio UI, deeper effect-specific editing and preset/browser workflow.
 
 ## v0.19 — Final calibration and engineering closeout
 
 See [v0.19 closeout](docs/V0_19_CLOSEOUT.md) and [final static-filter/envelope evaluation](docs/V0_19_FINAL_CALIBRATION.md). Default remains frozen after 100 additional envelope renders and an identifiability review of eight hardware examples. Twenty previous baseline metric rows reproduce exactly. This is an engineering/research checkpoint with explicitly provisional acoustic laws, not a claim of complete Prophet-6 parity.
 
-The next milestone is [v0.20 UI and preset workflow](docs/V0_20_UI_PLAN.md): a contemporary instrument panel with classic synthesis organization, precise editing and a contextual section focus. The visual direction is proposed for user review.
+The v0.20 milestone is defined in [v0.20 UI and preset workflow](docs/V0_20_UI_PLAN.md) and its live state is tracked separately in [V0_20_CURRENT_STATUS.md](docs/V0_20_CURRENT_STATUS.md), so the original plan remains readable while implementation changes are recorded without rewriting history.
 
 ## Earlier v0.19 recovered-audio research checkpoint
 
@@ -129,6 +146,7 @@ The core remains JUCE-independent. JUCE 9.0.4 is an optional thin VST3 host adap
 - Post-sum analog-distortion candidate.
 - Standard Slop and Vintage variation modes.
 - Global serial FX A -> B subsystem from v0.18.
+- Optional Prophec-y Character insert before or after the standard FX chain.
 
 ## Stored sequencer layout
 
@@ -173,6 +191,8 @@ p6_dsp_fingerprint
 p6_perf_benchmark
 ```
 
+`p6_dsp_fingerprint` now also prints deterministic 1–6 voice polyphonic and Unison headroom tables for an Init-like case and a dual-oscillator maximum-level case.
+
 ## Build and test
 
 Core only:
@@ -191,18 +211,26 @@ cmake --build build-plugin --config Release --target P6CorePlugin_VST3 -j2
 ctest --test-dir build-plugin -C Release --output-on-failure
 ```
 
-The release CI builds Windows and Linux VST3 targets, runs core/state/control/realtime/v0.18 FX tests, emits DSP fingerprints and a Linux performance snapshot, runs Linux ASan+UBSan, validates the plug-in with `pluginval --strictness-level 10`, and uploads validated artifacts.
+Focused headroom diagnostic:
+
+```bash
+cmake -S . -B build-headroom -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=OFF
+cmake --build build-headroom --target p6_dsp_fingerprint -j2
+./build-headroom/p6_dsp_fingerprint
+```
+
+The release CI builds Windows and Linux VST3 targets, runs core/state/control/realtime/v0.18 FX tests, emits DSP fingerprints and a Linux performance snapshot, runs Linux ASan+UBSan, validates the plug-in with `pluginval --strictness-level 10`, and uploads validated artifacts. `headroom-probe.yml` provides a faster independent DSP headroom diagnostic but does not replace the complete release gate.
 
 ## Next priorities
 
-1. **v0.20:** custom JUCE editor, preset/bank browser, SysEx import/export, Init/Compare/A-B and sequence editing within verified semantics. Keep the Generic editor as a diagnostic fallback.
-2. Preserve the v0.19 DSP/raw-state contract during UI work. Acoustic limitations and rejected candidates stay in the closeout ledger; further sound matching requires a separately scoped evidence-led task.
-3. **v0.21:** multi-host project/automation tests, clock/voice-steal soak, dedicated-machine CPU/load tests and packaging.
-4. Later-OS FX selector encoding, exact LFO Sync divisions, CC4, swing ratio, chord-memory storage and opaque sequence semantics remain unguessed.
-5. Reactive FX visuals remain v0.20+ exploration after the UI language, accessibility and performance budget are established.
+1. **v0.20 headroom:** implement and validate a global Master Output stage and truthful peak/clip metering without changing canonical Prophet Program Volume or automatically normalizing polyphony/Unison.
+2. **v0.20 display:** replace the generic control-position curve with context-sensitive visualizations that represent the actual control/model being edited.
+3. **v0.20 Studio:** replace the generic diagnostic editor with the custom Studio surface while retaining raw/diagnostic access.
+4. **v0.20 presets/workflow:** browser, SysEx import/export, Init/Compare/A-B and sequence editing within verified semantics.
+5. Preserve the v0.19 DSP/raw-state contract during UI work. Further sound matching remains evidence-led and separately scoped.
+6. **v0.21:** multi-host project/automation tests, clock/voice-steal soak, dedicated-machine CPU/load tests and packaging.
+7. Later-OS FX selector encoding, exact LFO Sync divisions, CC4, swing ratio, chord-memory storage and opaque sequence semantics remain unguessed.
 
 ## Licensing
 
 The project uses/adapts MIT-licensed implementation ideas/code from `joshjetson/phosphor`; attribution is maintained in `THIRD_PARTY_NOTICES.md`. `ShmKnd/Patina` was reviewed as an MIT-licensed topology/architecture reference for additional effects. GPL/AGPL projects are reference-only unless explicitly documented otherwise. Factory SysEx and third-party reference audio are **not redistributed** by this source package.
-
-
