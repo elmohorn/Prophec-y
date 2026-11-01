@@ -1,0 +1,131 @@
+name: publish-validated-checkpoints
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-validated-checkpoints.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: publish-validated-checkpoints
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tag: v0.19.0
+            target: 3e148b6c9d1002178ca294fc4613943fa7533ee6
+            run: '41268532229'
+            version: v0.19
+            windows: '13068456135'
+            linux: '13068845196'
+            windows_sha: cbb2cff7baed51b2089a0bcb776ca1651045e2be2d5684b4d94f725bf58888d9
+            linux_sha: 32eded9b9e4fddfc76fbcfc7f4586f87ad9e1fb38f76d25ba85eed738a941f8f
+            prerelease: 'false'
+          - tag: v0.20.0-preview.1
+            target: 32f56fa4df9206a590ed49b045b8d795304ee56e
+            run: '41305501568'
+            version: v0.20-prototype
+            windows: '13083088212'
+            linux: '13082944832'
+            windows_sha: fb0c2624a59a7c8ef79cf979ba126d9ed304cb2bb58eb9b70fc3a2765edcb2a5
+            linux_sha: 9f02a71288ad2d74ed8bb92156ceaf9fe814fe4448480258064b86247b05117b
+            prerelease: 'true'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ matrix.tag }}
+      RELEASE_TARGET: ${{ matrix.target }}
+      VALIDATED_RUN: ${{ matrix.run }}
+      BUILD_VERSION: ${{ matrix.version }}
+      WINDOWS_ARTIFACT_ID: ${{ matrix.windows }}
+      LINUX_ARTIFACT_ID: ${{ matrix.linux }}
+      WINDOWS_SHA: ${{ matrix.windows_sha }}
+      LINUX_SHA: ${{ matrix.linux_sha }}
+      PRERELEASE: ${{ matrix.prerelease }}
+    steps:
+      - name: Verify successful run and exact artifact provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${VALIDATED_RUN}" > run.json
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${WINDOWS_ARTIFACT_ID}" > windows.json
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${LINUX_ARTIFACT_ID}" > linux.json
+          python3 - <<'PY'
+          import json, os
+          run = json.load(open("run.json"))
+          assert run["status"] == "completed" and run["conclusion"] == "success"
+          assert run["head_sha"] == os.environ["RELEASE_TARGET"]
+          for platform in ("Windows", "Linux"):
+              artifact = json.load(open(platform.lower() + ".json"))
+              assert not artifact["expired"]
+              assert artifact["name"] == "P6-Core-" + os.environ["BUILD_VERSION"] + "-" + platform + "-VST3"
+              assert artifact["workflow_run"]["id"] == int(os.environ["VALIDATED_RUN"])
+              assert artifact["workflow_run"]["head_sha"] == os.environ["RELEASE_TARGET"]
+              assert artifact["digest"] == "sha256:" + os.environ[platform.upper() + "_SHA"]
+          PY
+
+      - name: Download and checksum validated bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${WINDOWS_ARTIFACT_ID}/zip" > "P6-Core-${BUILD_VERSION}-Windows-VST3.zip"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${LINUX_ARTIFACT_ID}/zip" > "P6-Core-${BUILD_VERSION}-Linux-VST3.zip"
+          printf '%s  %s\n' "${WINDOWS_SHA}" "P6-Core-${BUILD_VERSION}-Windows-VST3.zip" "${LINUX_SHA}" "P6-Core-${BUILD_VERSION}-Linux-VST3.zip" > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+          unzip -t "P6-Core-${BUILD_VERSION}-Windows-VST3.zip"
+          unzip -t "P6-Core-${BUILD_VERSION}-Linux-VST3.zip"
+
+      - name: Write scope and installation notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${PRERELEASE}" = "true" ]; then
+            cat > release-notes.md <<'EOF'
+          ## v0.20 preview 1 — Module/Studio and Tube prototype
+          Native aluminum Module editor, synthesis controls, diagnostic Studio and the experimental DSPark Tube insert with position and bypass controls.
+          
+          This is the last validated prototype, NOT the final approved design. The requested closer match to the original render and improved signal-responsive valve visuals remain unfinished. Preset browser/workflow and manual DAW testing also remain pending. The wrapper reports a fixed 71-sample latency, including None.
+          EOF
+          else
+            cat > release-notes.md <<'EOF'
+          ## v0.19 — Engineering and sound-matching checkpoint
+          Includes the Unison first-key release-tail correction, parameter-domain consistency checks, expanded acoustic comparison tooling and the engineering closeout.
+          
+          Default sound remains frozen; acoustic calibration is provisional and complete Prophet-6 sound parity is not claimed. This version retains the diagnostic editor and does not include the v0.20 custom panel or Tube prototype. Manual multi-host/DAW testing remains pending.
+          EOF
+          fi
+          cat >> release-notes.md <<'EOF'
+
+          ## Installation
+          Download the Windows or Linux VST3 ZIP and extract it. Locate the complete **P6 Core.vst3** bundle inside the extracted folders.
+          - Windows x64: copy the whole bundle to `C:\Program Files\Common Files\VST3\`, then rescan plugins in your DAW.
+          - Linux x64: copy the whole bundle to `~/.vst3/`, then rescan plugins.
+          
+          Quit the DAW before replacing an existing P6 Core bundle and keep a backup if comparing versions. These versions share the same plugin identity; replacing the bundle switches the installed version. There is no standalone application or installer in these downloads. Factory SysEx and third-party reference audio are not included.
+          EOF
+          printf '\n## Build provenance\nCommit: `%s`\n\nValidated CI: https://github.com/%s/actions/runs/%s\n\nWindows/Linux Release VST3, automated tests, native editor/audio smoke where configured, pluginval strictness 10, Linux ASan+UBSan and reference guards passed. Existing validated ZIP bytes are reused without rebuilding; checksums are included.\n' "${RELEASE_TARGET}" "${GITHUB_REPOSITORY}" "${VALIDATED_RUN}" >> release-notes.md
+
+      - name: Publish checkpoint with binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release already exists; preserving it."
+            exit 0
+          fi
+          options=()
+          if [ "${PRERELEASE}" = "true" ]; then options+=(--prerelease --latest=false); fi
+          gh release create "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --target "${RELEASE_TARGET}" --title "Prophec-y ${RELEASE_TAG}" \
+            --notes-file release-notes.md "${options[@]}" \
+            "P6-Core-${BUILD_VERSION}-Windows-VST3.zip" \
+            "P6-Core-${BUILD_VERSION}-Linux-VST3.zip" SHA256SUMS.txt
