@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 from pathlib import Path
 import shutil
 import tempfile
@@ -31,6 +32,7 @@ class ReferenceMediaTests(unittest.TestCase):
                 f.writeframes(tone.tobytes())
             result = media.inspect(path, expected_duration=1, tolerance=.001)
             self.assertEqual(result['decoded_frames'], rate)
+            self.assertEqual(result['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
             self.assertEqual(result['integrity'], 'full-decode-passed')
             self.assertFalse(result['patch_identity_verified'])
             with self.assertRaisesRegex(ValueError, 'duration does not match'):

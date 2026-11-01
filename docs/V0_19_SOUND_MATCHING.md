@@ -5,6 +5,12 @@ Unison first-key/release-tail defect fixed in `23910ba4...`. See `V0_19_UNISON_F
 
 Status: **ACTIVE**
 
+## Pre-closeout checkpoint — 31 October 2026 (Santiago)
+
+See [V0_19_PLAN_REVIEW.md](V0_19_PLAN_REVIEW.md) for the reconciliation against the master matrix and completed reports. v0.19 remains open. The next agreed work is static LP/HP cutoff analysis on the simplest usable references, then envelope timing/contour with the static law frozen. Any unidentifiable law stays provisional. This does not complete the broader modulation/FX/performance scope by implication. The eight-program holdout remains unrun, and representative coverage must be accounted for before release. Controlled owner-provided hardware recordings remain optional under section 1.
+
+The last audit passed nine local CTest targets, but CI run41255778521 failed because its explicit build lists omitted the new audit executable and the media integrity utility used Python3.11-only hashing on Python3.10. The build lists and streaming hash have now been corrected; a successful full follow-up CI is still a release gate, not implied by local tests.
+
 Follow-on checkpoint: `V0_19_FILTER_AND_SYNC_RESULTS.md` documents 320
 filter-factorial real-reference renders and 480 synthetic Fourier-oracle
 comparisons. Two filter-envelope audition profiles remain unpromoted; the
@@ -313,4 +319,5 @@ GitHub-hosted CPU percentages remain directional only; they are not absolute pro
 8. Profile and integrate only fingerprint-safe performance improvements alongside sound matching.
 
 The custom/reactive FX visual concept remains **DEFERRED / UI** in the master matrix and is outside v0.19 sound-matching scope unless a later UI milestone deliberately pulls it forward.
+
 

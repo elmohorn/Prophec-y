@@ -48,7 +48,7 @@ jobs:
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build sanitizer tests
-        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_render_reference p6_generate_p0a_capture_pack --parallel 2
+        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
       - name: Run sanitizer tests
         env:
           ASAN_OPTIONS: detect_leaks=1
@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3
+          --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests

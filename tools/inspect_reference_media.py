@@ -63,8 +63,13 @@ def inspect(path, min_duration=0.1, expected_duration=None, tolerance=0.25):
         raise ValueError('decoded duration does not match expected source duration')
     if peak == 0:
         raise ValueError('decoded audio is silent')
+    # Python 3.10 (Ubuntu 22.04 CI) has no hashlib.file_digest. Keep the
+    # acquisition hash streaming and independent of that 3.11-only API.
+    source_digest = hashlib.sha256()
     with path.open('rb') as f:
-        source_hash = hashlib.file_digest(f, 'sha256').hexdigest()
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            source_digest.update(chunk)
+    source_hash = source_digest.hexdigest()
     return {'file': path.name, 'bytes': path.stat().st_size, 'sha256': source_hash,
         'codec': stream['codec_name'], 'sample_rate': rate, 'channels': channels,
         'decoded_frames': count // channels, 'decoded_duration_s': duration,

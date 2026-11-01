@@ -188,7 +188,7 @@ Architecture rule for this future work: visuals must consume low-cost telemetry 
 |---|---|---|---|---|
 | DSP fingerprints | VALIDATED | Dry, sync/poly, FX, 1x and nonzero-Pan deterministic snapshots | Expand around calibration changes | Ongoing |
 | Reference-A harness | FUNCTIONAL / PROVISIONAL | Spectral/envelope/stereo comparison suite | Compressed web source is not calibration truth | v0.19 |
-| Controlled real-hardware corpus | MISSING | Capture protocol defined | Obtain dry oscillator/filter/env/sync/FX sweeps | **v0.19 P0** |
+| Real Prophet-6 acoustic corpus | FUNCTIONAL / PROVISIONAL | Reference-A plus independent online captures; optional controlled-capture tools | Extend usable patch/event coverage; no requirement for owner-provided hardware | v0.19; see V0_19_SOUND_MATCHING.md |
 | Performance benchmark | VALIDATED infrastructure | 1/6 voices, FX off/on, 48/96 kHz, oversampling, avg/worst block | Add stable local-machine baselines | v0.19 |
 | Reverb coefficient cache | VALIDATED optimisation | Parameter-invariant math outside sample loop; sample-rate invalidation tested | Maintain fingerprint | Done |
 | Zero-history FIR skip | VALIDATED optimisation | Exact zero convolution shortcut; free-running state retained | Maintain fingerprint | Done |
@@ -231,7 +231,9 @@ See `V0_18_FX_AUDIT.md` and `V0_18_CLOSEOUT.md`.
 
 ## v0.19 — Sound matching and optimisation — **ACTIVE**
 
-- Controlled Prophet-6 hardware captures as primary evidence.
+Pre-closeout review: [V0_19_PLAN_REVIEW.md](V0_19_PLAN_REVIEW.md). The original representative acoustic-coverage exit criterion below is not yet established. The agreed next work is static cutoff identification, then envelopes with the static law frozen, followed by cross-domain regression and coverage review. CI must also pass on the final functional commit. This checkpoint does not mark remaining calibration rows complete or move them silently to v0.20.
+
+- Available real Prophet-6 recordings as primary evidence: Reference-A and independently sourced online audio. Controlled hardware captures are optional; the owner is not required to obtain a unit.
 - Oscillator/PW/mixer gain staging and hard-sync residual.
 - HPF/LPF cutoff/resonance/saturation/envelope behavior.
 - ADSR, glide, Slop/Vintage and analog distortion.
@@ -268,3 +270,4 @@ See `V0_18_FX_AUDIT.md` and `V0_18_CLOSEOUT.md`.
 There is one active milestone at a time. Work only enters it when it closes an assigned matrix row or fixes a release-blocking regression. Everything else remains backlog.
 
 **Active milestone after v0.18 closeout: v0.19 — Sound matching and optimisation.**
+
