@@ -156,8 +156,11 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
             scheduler.setSustainPedal(d2 >= 64);
         else if (d1 == 120)
             scheduler.midiAllSoundOff();
-        else if (d1 == 121)
+        else if (d1 == 121) {
             scheduler.resetMidiControllers();
+            pitchBendRaw14_.store(8192, std::memory_order_relaxed);
+            pitchBendRevision_.fetch_add(1, std::memory_order_relaxed);
+        }
         else if (d1 == 123)
             scheduler.midiAllNotesOff();
 
@@ -176,6 +179,8 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
         const double bipolar = raw14 >= 8192
             ? static_cast<double>(raw14 - 8192) / 8191.0
             : static_cast<double>(raw14 - 8192) / 8192.0;
+        pitchBendRaw14_.store(raw14, std::memory_order_relaxed);
+        pitchBendRevision_.fetch_add(1, std::memory_order_relaxed);
         scheduler.setPitchBend(bipolar);
         out.consumed = true;
         return out;
