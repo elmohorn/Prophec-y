@@ -1,0 +1,13 @@
+{
+  "sha256": {
+    "tools/analyze_closeout_evidence.py": "985a3207b285cd7956da5e232030a935cda09d389179a5d0698d6fc3bc3fd3c1",
+    "tools/compare_online_suite.py": "7157ceb959a3799992dd820b2d956c5f390195784ea8d70d2665c6eead9d2b1c",
+    "calibration/recovered_reference_suite_v019.csv": "bde2658ff26ac820bd8fb7c661ffea62f2b0b38610b0ca02e1402585d6fb6f0e",
+    "calibration/v019_closeout/frozen_envelope_profiles.json": "51f4f0287543f8ae3c6d696f8449eaa6cc5431c9c3728cec719e10d4570d8550",
+    "calibration/v019_closeout/hardware_manifest.json": "cb0ad79916510df2de31abcb1697eddecc6e7f047b1dc07c092b32d64726108a"
+  },
+  "new_renders": 100,
+  "source_audio_in_repository": false,
+  "raw_factory_sysex_in_repository": false,
+  "hardware_frame_traces": "private intermediate files; regenerate from hash-pinned sources"
+}

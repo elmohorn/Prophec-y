@@ -1,0 +1,173 @@
+{
+  "old_source": "calibration/v019_unison_recalibration/fixed_local_comparisons.csv",
+  "old_profile": "depth10.5833_res1",
+  "paired_cases": 20,
+  "max_absolute_deltas": {
+    "mr_log_spectral_mae_db": 0.0,
+    "log_band_shape_rmse_db": 0.0,
+    "envelope_mae": 0.0,
+    "input_candidate_rms": 0.0
+  },
+  "rows": [
+    {
+      "case_id": "RA000",
+      "pre_roll_s": 0.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA000",
+      "pre_roll_s": 0.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA000",
+      "pre_roll_s": 1.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA000",
+      "pre_roll_s": 3.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA024",
+      "pre_roll_s": 0.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA024",
+      "pre_roll_s": 0.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA024",
+      "pre_roll_s": 1.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA024",
+      "pre_roll_s": 3.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA067",
+      "pre_roll_s": 0.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA067",
+      "pre_roll_s": 0.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA067",
+      "pre_roll_s": 1.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA067",
+      "pre_roll_s": 3.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA266",
+      "pre_roll_s": 0.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA266",
+      "pre_roll_s": 0.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA266",
+      "pre_roll_s": 1.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA266",
+      "pre_roll_s": 3.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA099",
+      "pre_roll_s": 0.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA099",
+      "pre_roll_s": 0.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA099",
+      "pre_roll_s": 1.5,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    },
+    {
+      "case_id": "RA099",
+      "pre_roll_s": 3.0,
+      "mr_log_spectral_mae_db": 0.0,
+      "log_band_shape_rmse_db": 0.0,
+      "envelope_mae": 0.0,
+      "input_candidate_rms": 0.0
+    }
+  ]
+}

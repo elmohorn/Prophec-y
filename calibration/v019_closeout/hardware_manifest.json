@@ -1,0 +1,62 @@
+{
+  "publisher": "https://www.bonedo.de/artikel/dave-smith-instruments-sequential-prophet-6-test/",
+  "sources": [
+    {
+      "id": "HPF",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_HPF.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_HPF.mp3",
+      "sha256": "524e64b2048496b2f4597dbfa785fb79e41be22817b2718bbd35f0c88fd38641",
+      "known_raw_controls": false
+    },
+    {
+      "id": "LPF",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_LPF.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_LPF.mp3",
+      "sha256": "758fe404a4f9b8a06913295e6dbe6de11f2b58408c016a820f0e2e1d3823d171",
+      "known_raw_controls": false
+    },
+    {
+      "id": "Selfosc_1",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_Selfosc_1.wav",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Selfosc_1.wav",
+      "sha256": "6ceb14cfb0d704476151f89dbc61a880a0cbbd0d157a57d376e33588e37d1847",
+      "known_raw_controls": false
+    },
+    {
+      "id": "Reverbs",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_Reverbs.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Reverbs.mp3",
+      "sha256": "f1d007a5ad7fff46d1aa1eaac393628ebd60843fa7459a32c24df69599de0782",
+      "known_raw_controls": false
+    },
+    {
+      "id": "Chorus",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_Chorus.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Chorus.mp3",
+      "sha256": "4406ba2c0a3f6d69978a01e7dc1a5da5c98b26892fe59c4d41052d2c4622d78d",
+      "known_raw_controls": false
+    },
+    {
+      "id": "Distortion",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_Distortion.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Distortion.mp3",
+      "sha256": "43c223af59bce9aef0766146370b31af53a804b21a4bc61bf4bc9e21f3b18cd9",
+      "known_raw_controls": false
+    },
+    {
+      "id": "Unison_PWM_Bass",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_Unison_PWM_Bass.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Unison_PWM_Bass.mp3",
+      "sha256": "53da21f6292be00158cc23966e73625d891b7f8141c549cbe896c9d30dfd47b8",
+      "known_raw_controls": false
+    },
+    {
+      "id": "Polymod_Quasselpad",
+      "local_path": "reference_private/acquisition/Sequential_Prophet_6_Polymod_Quasselpad.mp3",
+      "source_url": "https://storage.googleapis.com/th-bonedo-av/wp-media-folder-bonedo/2015/08/Sequential_Prophet_6_Polymod_Quasselpad.mp3",
+      "sha256": "007a8afe1577215ceaee7cac3458a58485d6c9b204a4e0133cb173b04c113765",
+      "known_raw_controls": false
+    }
+  ],
+  "scope": "Observational output descriptors; no raw cutoff trajectory or note-off data supplied"
+}

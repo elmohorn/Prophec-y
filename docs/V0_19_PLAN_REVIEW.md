@@ -1,6 +1,8 @@
 # v0.19 — Revisión del plan antes del cierre
 
 Fecha: 31 de octubre de2026, Santiago. Estado: **ACTIVA; no cerrar todavía**.
+**Actualización del1de noviembre:** la fase final acordada ya fue ejecutada; ver `V0_19_FINAL_CALIBRATION.md` y la delimitación explícita del cierre en `V0_19_CLOSEOUT.md`. Lo que sigue conserva la revisión previa y sus pendientes, sin convertirlos retroactivamente en calibraciones completadas.
+
 Base revisada: `783856bb15d8cfd1d66f6fbc6fd1f7b34d7a686c`.
 
 ## Conclusión

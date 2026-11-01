@@ -3,9 +3,11 @@
 Unison first-key/release-tail defect fixed in `23910ba4...`. See `V0_19_UNISON_FIX_AND_RECALIBRATION.md` before using the older Solid Bass calibration rows. A fresh 360-render local grid and 48-render event sensitivity test use the corrected engine; filter defaults remain unchanged.
 
 
-Status: **ACTIVE**
+Status: **CLOSED AS ENGINEERING/RESEARCH CHECKPOINT**
 
-## Pre-closeout checkpoint — 31 October 2026 (Santiago)
+Final decision and explicit acoustic limitations: [V0_19_CLOSEOUT.md](V0_19_CLOSEOUT.md). [Final filter/envelope evaluation](V0_19_FINAL_CALIBRATION.md) freezes Default after 100 new renders. The sections below retain the historical plan and intermediate checkpoints; their open-work wording is superseded by the closeout ledger, not silently treated as completed hardware calibration.
+
+## Historical pre-closeout checkpoint — 31 October 2026 (Santiago)
 
 See [V0_19_PLAN_REVIEW.md](V0_19_PLAN_REVIEW.md) for the reconciliation against the master matrix and completed reports. v0.19 remains open. The next agreed work is static LP/HP cutoff analysis on the simplest usable references, then envelope timing/contour with the static law frozen. Any unidentifiable law stays provisional. This does not complete the broader modulation/FX/performance scope by implication. The eight-program holdout remains unrun, and representative coverage must be accounted for before release. Controlled owner-provided hardware recordings remain optional under section 1.
 

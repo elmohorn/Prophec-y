@@ -1,0 +1,66 @@
+{
+  "profiles": {
+    "current": {
+      "renderer_args": []
+    },
+    "filter_exp3_max10": {
+      "renderer_args": [
+        "--filter-env-exponent",
+        "3",
+        "--filter-env-max-seconds",
+        "10"
+      ]
+    },
+    "filter_exp3_max2p5": {
+      "renderer_args": [
+        "--filter-env-exponent",
+        "3",
+        "--filter-env-max-seconds",
+        "2.5"
+      ]
+    },
+    "amp_exp3_max10": {
+      "renderer_args": [
+        "--amp-env-exponent",
+        "3",
+        "--amp-env-max-seconds",
+        "10"
+      ]
+    },
+    "amp_exp3p5_max30": {
+      "renderer_args": [
+        "--amp-env-exponent",
+        "3.5",
+        "--amp-env-max-seconds",
+        "30"
+      ]
+    }
+  },
+  "frozen_static_filter": {
+    "base_hz": 8.1757989156,
+    "semitones_per_raw": 1,
+    "filter_env_depth_octaves": 10.5833333333,
+    "resonance_scale": 1,
+    "HP": "inherits Default exponential law"
+  },
+  "protocol": {
+    "prerolls": [
+      0,
+      0.5,
+      1.5,
+      3
+    ],
+    "oversampling": 2,
+    "primary_anchors": [
+      "RA000",
+      "RA024",
+      "RA067"
+    ],
+    "diagnostics": [
+      "RA266",
+      "RA099"
+    ],
+    "promotion": "No regression in MR spectrum, band shape or envelope MAE on any paired primary anchor/pre-roll, plus independent evidence before changing defaults. Exploratory existing corpus, not blind holdout."
+  },
+  "status": "profiles registered before closeout render scores"
+}

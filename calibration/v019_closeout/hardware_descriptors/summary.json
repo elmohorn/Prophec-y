@@ -1,0 +1,405 @@
+{
+  "sources": [
+    {
+      "id": "HPF",
+      "sha256": "524e64b2048496b2f4597dbfa785fb79e41be22817b2718bbd35f0c88fd38641",
+      "integrity": {
+        "file": "Sequential_Prophet_6_HPF.mp3",
+        "bytes": 1017734,
+        "sha256": "524e64b2048496b2f4597dbfa785fb79e41be22817b2718bbd35f0c88fd38641",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 1122040,
+        "decoded_duration_s": 25.443083900226757,
+        "pcm_f32le_sha256": "7ab703f9174ef7fa60c6dfe1e6ba4d477f26196448174dd8d5e0001cb022e7c9",
+        "peak": 0.9975579977035522,
+        "rms": 0.15750381437077704,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 2536,
+      "active_frames": 2327,
+      "dominant_line_frames": 0,
+      "centroid_hz_p05_p50_p95": [
+        372.1924687853325,
+        1168.3441415904044,
+        9716.360510866505
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        1183.59375,
+        3398.4375,
+        11882.8125
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        0.014798819026516334,
+        0.06481943356965339,
+        0.9834910198419211
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.0010173105760725909,
+        0.12117758855644678,
+        0.8430709752962761
+      ],
+      "dominant_line_hz_p05_p50_p95": null,
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "LPF",
+      "sha256": "758fe404a4f9b8a06913295e6dbe6de11f2b58408c016a820f0e2e1d3823d171",
+      "integrity": {
+        "file": "Sequential_Prophet_6_LPF.mp3",
+        "bytes": 1542970,
+        "sha256": "758fe404a4f9b8a06913295e6dbe6de11f2b58408c016a820f0e2e1d3823d171",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 1701858,
+        "decoded_duration_s": 38.590884353741494,
+        "pcm_f32le_sha256": "ed0aa14c4c24d19ff86d5144feff6046186fa801d45f17dad38ac127a932d6d8",
+        "peak": 1.0045831203460693,
+        "rms": 0.18620130799021853,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 3851,
+      "active_frames": 3178,
+      "dominant_line_frames": 505,
+      "centroid_hz_p05_p50_p95": [
+        128.657518125281,
+        389.5922801129026,
+        2064.8562755266485
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        140.625,
+        1300.78125,
+        4312.5
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        4.6057079181529334e-08,
+        0.015553085954703975,
+        0.19715587802969484
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.07543359888885989,
+        0.8371100228046016,
+        0.9999948883271379
+      ],
+      "dominant_line_hz_p05_p50_p95": [
+        102.58689296641487,
+        130.83411367162776,
+        133.8439432086074
+      ],
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "Selfosc_1",
+      "sha256": "6ceb14cfb0d704476151f89dbc61a880a0cbbd0d157a57d376e33588e37d1847",
+      "integrity": {
+        "file": "Sequential_Prophet_6_Selfosc_1.wav",
+        "bytes": 2488856,
+        "sha256": "6ceb14cfb0d704476151f89dbc61a880a0cbbd0d157a57d376e33588e37d1847",
+        "codec": "pcm_s16le",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 622050,
+        "decoded_duration_s": 14.105442176870747,
+        "pcm_f32le_sha256": "d00c8e231f2e6643c27e6f71eabd1e21a283dbebd7297779bb0b7d28420e42f8",
+        "peak": 0.999969482421875,
+        "rms": 0.27103644610288824,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 1403,
+      "active_frames": 1103,
+      "dominant_line_frames": 1023,
+      "centroid_hz_p05_p50_p95": [
+        67.65318655309107,
+        226.2574954746717,
+        1039.380613955856
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        82.03125,
+        246.09375,
+        1054.6875
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        3.7860855212951654e-08,
+        6.402670524068103e-08,
+        2.328241671794787e-05
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        1.082493519998944e-08,
+        0.9999865282814052,
+        0.9999998662744553
+      ],
+      "dominant_line_hz_p05_p50_p95": [
+        67.44535161255538,
+        180.25913007844375,
+        1039.2053143456853
+      ],
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "Reverbs",
+      "sha256": "f1d007a5ad7fff46d1aa1eaac393628ebd60843fa7459a32c24df69599de0782",
+      "integrity": {
+        "file": "Sequential_Prophet_6_Reverbs.mp3",
+        "bytes": 2965838,
+        "sha256": "f1d007a5ad7fff46d1aa1eaac393628ebd60843fa7459a32c24df69599de0782",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 3271128,
+        "decoded_duration_s": 74.1752380952381,
+        "pcm_f32le_sha256": "b13b86986b837251b4375136c06405e20a63259c9719d48b584aa2484c41d992",
+        "peak": 1.0003389120101929,
+        "rms": 0.1219793661702837,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 7409,
+      "active_frames": 6788,
+      "dominant_line_frames": 0,
+      "centroid_hz_p05_p50_p95": [
+        244.0267483961244,
+        354.77288872471246,
+        584.6271215276885
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        574.21875,
+        972.65625,
+        1558.59375
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        0.0002321877816832881,
+        0.0014792606038825195,
+        0.008534040580604304
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.5385548707420326,
+        0.8527393575243243,
+        0.9411638723304149
+      ],
+      "dominant_line_hz_p05_p50_p95": null,
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "Chorus",
+      "sha256": "4406ba2c0a3f6d69978a01e7dc1a5da5c98b26892fe59c4d41052d2c4622d78d",
+      "integrity": {
+        "file": "Sequential_Prophet_6_Chorus.mp3",
+        "bytes": 958226,
+        "sha256": "4406ba2c0a3f6d69978a01e7dc1a5da5c98b26892fe59c4d41052d2c4622d78d",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 1055877,
+        "decoded_duration_s": 23.94278911564626,
+        "pcm_f32le_sha256": "d61ad566a3c82161c2d60700d00d9fb325b6f586a747f62c7bfed269a2100c89",
+        "peak": 0.9944829344749451,
+        "rms": 0.2402551989884244,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 2386,
+      "active_frames": 2156,
+      "dominant_line_frames": 0,
+      "centroid_hz_p05_p50_p95": [
+        195.18174506053202,
+        247.23377690798202,
+        342.69927207166774
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        398.4375,
+        585.9375,
+        878.90625
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        8.331866309060421e-05,
+        0.00019586845683748725,
+        0.0015630861858163315
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.8117006436107057,
+        0.9210219729562485,
+        0.9615373439715251
+      ],
+      "dominant_line_hz_p05_p50_p95": null,
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "Distortion",
+      "sha256": "43c223af59bce9aef0766146370b31af53a804b21a4bc61bf4bc9e21f3b18cd9",
+      "integrity": {
+        "file": "Sequential_Prophet_6_Distortion.mp3",
+        "bytes": 1366430,
+        "sha256": "43c223af59bce9aef0766146370b31af53a804b21a4bc61bf4bc9e21f3b18cd9",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 1506279,
+        "decoded_duration_s": 34.15598639455782,
+        "pcm_f32le_sha256": "9dd189a34d6f061ee0d94ada1b32f9d2bcb528abff1a610a7e8b239858657ef0",
+        "peak": 1.073922872543335,
+        "rms": 0.3506743822491156,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 3408,
+      "active_frames": 3213,
+      "dominant_line_frames": 0,
+      "centroid_hz_p05_p50_p95": [
+        218.65030905655294,
+        373.2312758575807,
+        542.277938868912
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        644.53125,
+        972.65625,
+        1394.53125
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        0.0009294396609067597,
+        0.0019070622792600096,
+        0.00509824417314785
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.6298864661229839,
+        0.8660415357683654,
+        0.9277318320915591
+      ],
+      "dominant_line_hz_p05_p50_p95": null,
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "Unison_PWM_Bass",
+      "sha256": "53da21f6292be00158cc23966e73625d891b7f8141c549cbe896c9d30dfd47b8",
+      "integrity": {
+        "file": "Sequential_Prophet_6_Unison_PWM_Bass.mp3",
+        "bytes": 565682,
+        "sha256": "53da21f6292be00158cc23966e73625d891b7f8141c549cbe896c9d30dfd47b8",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 622754,
+        "decoded_duration_s": 14.121405895691609,
+        "pcm_f32le_sha256": "72150049f8b73c421f13e64eb1a7fba4e47163f8b1d0df1f6afe0f08b9cdad42",
+        "peak": 1.000180959701538,
+        "rms": 0.27450095608201613,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 1404,
+      "active_frames": 1268,
+      "dominant_line_frames": 0,
+      "centroid_hz_p05_p50_p95": [
+        123.13907572989807,
+        187.68755767539903,
+        281.07170480216223
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        304.6875,
+        539.0625,
+        863.0859374999984
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        2.1181332962950373e-05,
+        0.00017675988195776135,
+        0.0024519349555524564
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.8665833500821676,
+        0.9429954890823533,
+        0.9753657622331653
+      ],
+      "dominant_line_hz_p05_p50_p95": null,
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    },
+    {
+      "id": "Polymod_Quasselpad",
+      "sha256": "007a8afe1577215ceaee7cac3458a58485d6c9b204a4e0133cb173b04c113765",
+      "integrity": {
+        "file": "Sequential_Prophet_6_Polymod_Quasselpad.mp3",
+        "bytes": 1151366,
+        "sha256": "007a8afe1577215ceaee7cac3458a58485d6c9b204a4e0133cb173b04c113765",
+        "codec": "mp3",
+        "sample_rate": 44100,
+        "channels": 2,
+        "decoded_frames": 1269236,
+        "decoded_duration_s": 28.780861678004534,
+        "pcm_f32le_sha256": "025b7e35d5892105c8509885b56e0567da9a3977f9076501193ef283c6ffaf64",
+        "peak": 1.0006686449050903,
+        "rms": 0.13602903489041704,
+        "integrity": "full-decode-passed",
+        "patch_identity_verified": false
+      },
+      "frame_count": 2870,
+      "active_frames": 2619,
+      "dominant_line_frames": 0,
+      "centroid_hz_p05_p50_p95": [
+        191.21016470607267,
+        340.13399324736355,
+        472.74616417125026
+      ],
+      "rolloff95_hz_p05_p50_p95": [
+        398.4375,
+        785.15625,
+        1171.875
+      ],
+      "high_3k_12k_fraction_p05_p50_p95": [
+        3.332778604103608e-05,
+        0.00015153965029535325,
+        0.0006596436352699334
+      ],
+      "low_40_500_fraction_p05_p50_p95": [
+        0.6504299082220866,
+        0.8655429127911904,
+        0.9759454955049824
+      ],
+      "dominant_line_hz_p05_p50_p95": null,
+      "known_raw_controls": false,
+      "known_note_offs": false,
+      "cutoff_hz_per_raw_identifiable": false,
+      "envelope_raw_to_seconds_identifiable": false
+    }
+  ],
+  "protocol": {
+    "sample_rate": 48000,
+    "nfft": 4096,
+    "hop": 480,
+    "analysis_band_hz": [
+      40,
+      12000
+    ],
+    "active_relative_power_floor_db": -40,
+    "dominant_three_bin_share": 0.85
+  },
+  "limitations": [
+    "Output descriptors are not cutoff estimates, ADSR times or instrument fidelity scores.",
+    "Unknown input waveform, resonance, key tracking, gates and raw controls prevent absolute law identification.",
+    "Dominant line may be a harmonic or a played note; do not convert it to a cutoff code.",
+    "No fitted knob trajectory, model selection or DSP change."
+  ]
+}

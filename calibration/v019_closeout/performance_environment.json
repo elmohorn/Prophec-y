@@ -1,0 +1,7 @@
+{
+  "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "build_type": "Release",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "note": "Shared cloud executor; two sequential runs after reference-render workers completed, plus retained concurrent pilot. Not user-PC CPU, standalone realtime guarantee or optimization claim."
+}

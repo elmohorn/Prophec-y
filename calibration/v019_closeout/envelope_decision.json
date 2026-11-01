@@ -1,0 +1,46 @@
+{
+  "static_law_frozen": "Default",
+  "candidates": [
+    {
+      "profile": "filter_exp3_max10",
+      "primary_paired_cases": 12,
+      "regressions": {
+        "mr_log_spectral_mae_db": 4,
+        "log_band_shape_rmse_db": 0,
+        "envelope_mae": 8
+      },
+      "promoted": false
+    },
+    {
+      "profile": "filter_exp3_max2p5",
+      "primary_paired_cases": 12,
+      "regressions": {
+        "mr_log_spectral_mae_db": 11,
+        "log_band_shape_rmse_db": 12,
+        "envelope_mae": 6
+      },
+      "promoted": false
+    },
+    {
+      "profile": "amp_exp3_max10",
+      "primary_paired_cases": 12,
+      "regressions": {
+        "mr_log_spectral_mae_db": 8,
+        "log_band_shape_rmse_db": 10,
+        "envelope_mae": 7
+      },
+      "promoted": false
+    },
+    {
+      "profile": "amp_exp3p5_max30",
+      "primary_paired_cases": 12,
+      "regressions": {
+        "mr_log_spectral_mae_db": 8,
+        "log_band_shape_rmse_db": 10,
+        "envelope_mae": 7
+      },
+      "promoted": false
+    }
+  ],
+  "decision": "Keep Default timing; no global promotion. Existing inferred MIDI and compressed references do not identify hardware timing constants."
+}

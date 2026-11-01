@@ -1,11 +1,17 @@
-# P6 Core — phase 1 / v0.18
+# P6 Core — phase 1 / v0.19.0
 
 Unison correction checkpoint: [fixed first-key release-tail behavior and corrected calibration](docs/V0_19_UNISON_FIX_AND_RECALIBRATION.md). The fix restores a missing Solid Bass note; 360 corrected local-grid renders identify a balanced 12-octave audition profile. Earlier affected Unison calibration rows remain historical only.
 
 
 Compatibility-first C++20 core for a Prophet-6-style software synthesizer. The 1024-byte hardware program state remains canonical and lossless; DSP/calibration layers are replaceable so measured sound matching can evolve without breaking SysEx/NRPN compatibility.
 
-## v0.19 recovered-audio research checkpoint — active branch
+## v0.19 — Final calibration and engineering closeout
+
+See [v0.19 closeout](docs/V0_19_CLOSEOUT.md) and [final static-filter/envelope evaluation](docs/V0_19_FINAL_CALIBRATION.md). Default remains frozen after 100 additional envelope renders and an identifiability review of eight hardware examples. Twenty previous baseline metric rows reproduce exactly. This is an engineering/research checkpoint with explicitly provisional acoustic laws, not a claim of complete Prophet-6 parity.
+
+The next milestone is [v0.20 UI and preset workflow](docs/V0_20_UI_PLAN.md): a contemporary instrument panel with classic synthesis organization, precise editing and a contextual section focus. The visual direction is proposed for user review.
+
+## Earlier v0.19 recovered-audio research checkpoint
 
 The [next filter/sync experiment](docs/V0_19_FILTER_AND_SYNC_RESULTS.md) adds
 320 isolated-filter-factor renders and 480 independent Fourier-oracle probe
@@ -134,7 +140,7 @@ track 6: notes 768..831, velocity/flags 832..895
 
 ## Reference-A calibration harness
 
-The `analysis/` directory contains the reference index/comparator, patch-aware inference and suite automation. The comparison intentionally reports separate spectral, envelope, timing, crest and stereo metrics rather than a misleading single “accuracy percentage”. Reference-A is useful diagnostic evidence, but controlled dry Prophet-6 captures remain the required calibration truth for v0.19.
+The `analysis/` directory contains the reference index/comparator, patch-aware inference and suite automation. The comparison intentionally reports separate spectral, envelope, timing, crest and stereo metrics rather than a misleading single “accuracy percentage”. Reference-A and independent online Prophet-6 recordings provide acoustic evidence with explicit patch/event confidence. Controlled captures are useful optional evidence; the owner is not required to obtain hardware. Unknown raw trajectories are not treated as measured knob laws.
 
 Representative tools:
 
@@ -182,14 +188,13 @@ ctest --test-dir build-plugin -C Release --output-on-failure
 
 The release CI builds Windows and Linux VST3 targets, runs core/state/control/realtime/v0.18 FX tests, emits DSP fingerprints and a Linux performance snapshot, runs Linux ASan+UBSan, validates the plug-in with `pluginval --strictness-level 10`, and uploads validated artifacts.
 
-## Priorities after v0.18
+## Next priorities
 
-1. **v0.19 sound matching:** obtain controlled Prophet-6 hardware captures and use them as primary calibration evidence.
-2. Calibrate oscillators/PW/mixer, hard sync, HPF/LPF, ADSRs, glide, Slop/Vintage, distortion, modulation depths and the v0.18 FX candidates.
-3. Continue CPU optimisation only from profiling data and protect every material change with DSP fingerprints and Reference-A/hardware comparisons.
-4. Keep later-OS FX selector encoding, exact LFO Sync divisions, CC4, swing ratio, chord-memory storage and sequence opaque semantics unguessed until stronger evidence exists.
-5. Keep the Generic JUCE editor as a diagnostic fallback. Bespoke UI/preset workflow is v0.20 work.
-6. The proposed reactive/character FX visuals — glowing tube, plasma discharge, vibrating springs, tape reels, optical lamp, ring-mod scope, ferrofluid and shimmer particles — are recorded in the parity matrix as **deferred UI exploration for v0.20+**, after the visual language and UI performance/accessibility contract are defined.
+1. **v0.20:** custom JUCE editor, preset/bank browser, SysEx import/export, Init/Compare/A-B and sequence editing within verified semantics. Keep the Generic editor as a diagnostic fallback.
+2. Preserve the v0.19 DSP/raw-state contract during UI work. Acoustic limitations and rejected candidates stay in the closeout ledger; further sound matching requires a separately scoped evidence-led task.
+3. **v0.21:** multi-host project/automation tests, clock/voice-steal soak, dedicated-machine CPU/load tests and packaging.
+4. Later-OS FX selector encoding, exact LFO Sync divisions, CC4, swing ratio, chord-memory storage and opaque sequence semantics remain unguessed.
+5. Reactive FX visuals remain v0.20+ exploration after the UI language, accessibility and performance budget are established.
 
 ## Licensing
 
