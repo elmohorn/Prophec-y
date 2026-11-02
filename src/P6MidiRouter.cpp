@@ -130,8 +130,9 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
         out.consumed = true;
         return out;
     case 0xB0: {
+        auto& decoder=nrpn_[status & 0x0Fu];
         if (d1 == 96 || d1 == 97) {
-            const auto selected = nrpn_.selectedParameter();
+            const auto selected = decoder.selectedParameter();
             if (!selected) {
                 out.consumed = true;
                 return out;
@@ -145,7 +146,7 @@ MidiRouteResult P6MidiRouter::process(std::span<const std::uint8_t> message,
                              { *selected, static_cast<std::uint16_t>(next) });
         }
 
-        if (const auto update = nrpn_.processCC(d1, d2))
+        if (const auto update = decoder.processCC(d1, d2))
             return applyNrpn(patch, scheduler, calibration, *update);
 
         if (d1 == 1)

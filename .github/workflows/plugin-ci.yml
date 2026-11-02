@@ -110,7 +110,7 @@ jobs:
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3 P6UiSmoke
+          --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark p6_character_benchmark P6CorePlugin_VST3 P6UiSmoke
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests
@@ -138,7 +138,8 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             ./build/Release/p6_dsp_fingerprint.exe
           else
-            ./build/p6_dsp_fingerprint
+            ./build/p6_dsp_fingerprint | tee dsp-fingerprint.csv
+            python3 tools/check_dsp_fingerprint.py tests/reference/dsp_metrics_v020.csv dsp-fingerprint.csv
           fi
 
       - name: Hard-sync harmonic snapshot
@@ -149,7 +150,9 @@ jobs:
       - name: Performance snapshot
         if: runner.os == 'Linux'
         shell: bash
-        run: ./build/p6_perf_benchmark
+        run: |
+          ./build/p6_perf_benchmark
+          ./build/p6_character_benchmark
 
       - name: Download pluginval 1.0.4
         shell: bash
@@ -227,7 +230,13 @@ jobs:
         run: |
           set -euo pipefail
           cat > notes.md <<'EOF'
-          ## v0.20 — Four custom Character devices
+          ## v0.20 — Audit stabilization
+          - Neon asymmetry is continuous around zero with Bias and Symmetry combined; Plasma/Ferrofluid timing follows sample rate.
+          - NRPN selection is isolated per MIDI channel. Omni remains the performance policy; channel selection and note ownership are not implemented yet.
+          - Linux CI compares core render metrics with a versioned reference and records a six-voice Character benchmark. An independent historic v3 state fixture covers Tube and Master.
+          - Further acoustic/aliasing evaluation, DAW migration, CPU validation and transactional session restore remain open.
+
+          ### Four custom Character devices
           - Plasma: stateful ignition, hysteresis/hold, conduction distortion and tone.
           - Optical Spring: dispersive spring FDN with three internal pickups and stereo blend.
           - Ferrofluid: resonant envelope-following filter, bipolar sensitivity and response control.

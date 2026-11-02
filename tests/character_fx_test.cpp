@@ -1,4 +1,5 @@
 #include "CharacterFx.h"
+#include "CustomCharacter.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -108,6 +109,14 @@ int main()
         for(int n=0;n<144000;++n){const auto y=spring.process({n==0?1.:0.,0});if(n>1000&&n<20000)early+=y.left*y.left;if(n>120000)late+=y.left*y.left;}
         CHECK(early>1.e-5);CHECK(late<early*.001);
     }
+    // Bias and asymmetric gain must remain continuous around zero.
+    for(float drive:{0.f,.42f,1.f})for(float folds:{0.f,.42f,1.f})
+        for(float symmetry:{0.f,.42f,1.f})for(float bias:{0.f,.42f,1.f}) {
+            auto v=p6plugin::kCustomDefaults[3];v[0]=drive;v[1]=folds;v[2]=symmetry;v[3]=bias;
+            const auto a=p6plugin::CustomCharacter::neonTransfer(-1.e-7f,v);
+            const auto b=p6plugin::CustomCharacter::neonTransfer(1.e-7f,v);
+            CHECK(std::abs(a-b)<.0001f);
+        }
     // The unchanged engine and the None wrapper must null after exactly the
     // declared delay; do not compare only RMS/spectrum.
     p6::P6Engine a,b;a.prepare(48000,1);b.prepare(48000,1);

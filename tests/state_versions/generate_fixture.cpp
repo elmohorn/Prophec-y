@@ -15,6 +15,9 @@ int main(int argc,char** argv)
 #ifdef P6_FIXTURE_CHARACTER
     s.character.type=1;s.character.position=0;s.character.bypass=true;s.character.tube={.123f,.456f,.789f,.1f,.2f,.3f,.9f};
 #endif
+#ifdef P6_FIXTURE_MASTER
+    s.masterOutputDb=-23.4f;
+#endif
     const auto bytes=p6plugin::encodeState(s);
     std::ofstream out(argv[1],std::ios::binary);out.write(reinterpret_cast<const char*>(bytes.data()),static_cast<std::streamsize>(bytes.size()));
     return out.good()?0:2;

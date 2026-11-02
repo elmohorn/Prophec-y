@@ -215,6 +215,20 @@ void testPitchWheelUsesFull14BitTravelAndRecentersOnReset()
     P6_CHECK(std::abs(engine.pitchBendSemitones()) < 1.0e-12);
 }
 
+void testNrpnSelectionIsPerChannel()
+{
+    p6::P6PatchState patch; p6::P6Engine engine;engine.prepare(48000.,1);
+    p6::P6PerformanceScheduler scheduler(engine);scheduler.prepare(48000.);p6::P6MidiRouter router;
+    auto send=[&](int channel,int cc,int value){const std::array<std::uint8_t,3> m{static_cast<std::uint8_t>(0xB0+channel),static_cast<std::uint8_t>(cc),static_cast<std::uint8_t>(value)};return router.process(m,patch,scheduler);};
+    send(0,99,0);send(0,98,45); // CH1 selects cutoff
+    send(1,99,0);send(1,98,46); // CH2 selects resonance
+    send(0,6,0);send(1,6,0);
+    const auto a=send(0,38,70);const auto b=send(1,38,80);
+    P6_CHECK(a.nrpnUpdate && a.nrpnUpdate->parameter==45);
+    P6_CHECK(b.nrpnUpdate && b.nrpnUpdate->parameter==46);
+    router.reset();P6_CHECK(!send(0,6,70).nrpnUpdate);
+}
+
 void testSustainThresholdIsExactly64()
 {
     p6::P6PatchState patch;
@@ -367,6 +381,7 @@ int main()
     testUnisonSustainReleasesAsOneStack();
     testMidiRouterPerformanceControllersStayOutOfPatch();
     testPitchWheelUsesFull14BitTravelAndRecentersOnReset();
+    testNrpnSelectionIsPerChannel();
     testSustainThresholdIsExactly64();
     testAllNotesOffRespectsDamper();
     testAllSoundOffIsImmediateButDoesNotResetControllers();

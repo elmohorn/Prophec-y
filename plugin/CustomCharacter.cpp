@@ -24,7 +24,7 @@ struct CustomCharacter::Impl {
     std::array<Channel,2> channels;
     std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{};std::uint32_t tick{},scopeTick{};
     std::array<float,7> current{};bool first{true};double rate{48000},highRate{96000};
-    float springDecay{},springDamping{};
+    float springDecay{},springDamping{},plasmaAttack{},ferroAttack{};
     float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},folds{},symmetry{},bias{},responseAlpha{};
     std::array<double,3> tapPower{};
     float conductionMean{},foldMean{},actualCutoff{};
@@ -35,7 +35,10 @@ CustomCharacter::~CustomCharacter()=default;
 void CustomCharacter::prepare(double rate,int latency)
 {
     auto& p=*p_;p.rate=std::max(rate,8000.);p.highRate=p.rate*2.;p.os.prepare({p.rate,1,2});p.spring.prepare(p.highRate);
-    p.delay=std::max(0,latency-p.os.getLatency());p.parameterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));p.meterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));reset();
+    p.delay=std::max(0,latency-p.os.getLatency());
+    p.plasmaAttack=1.f-std::exp(static_cast<float>(std::log(.96)*96000./p.highRate));
+    p.ferroAttack=1.f-std::exp(static_cast<float>(std::log(.99)*96000./p.highRate));
+    p.parameterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));p.meterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));reset();
 }
 void CustomCharacter::reset() noexcept
 {
@@ -45,8 +48,9 @@ void CustomCharacter::reset() noexcept
 float CustomCharacter::neonTransfer(float x,const std::array<float,7>& v) noexcept
 {
     daisysp::Wavefolder folder;folder.Init();const float asym=(v[2]*2.f-1.f)*.7f;
-    folder.SetGain(gain(24.f*v[0])*(1.f+7.f*v[1])*(x>=0?1.f+asym:1.f-asym));folder.SetOffset((v[3]*2.f-1.f)*.35f);
-    return folder.Process(std::clamp(x,-32.f,32.f));
+    folder.SetGain(gain(24.f*v[0])*(1.f+7.f*v[1]));folder.SetOffset((v[3]*2.f-1.f)*.35f);
+    x=std::clamp(x,-32.f,32.f);
+    return folder.Process(x*(x>=0?1.f+asym:1.f-asym));
 }
 p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const std::array<float,7>& values) noexcept
 {
@@ -81,22 +85,22 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
                 const float voltage=x*p.drive;
                 if(std::abs(voltage)>p.threshold){channel.lit=true;channel.hold=p.holdSamples;}
                 else if(std::abs(voltage)<p.threshold*.65f){channel.hold=std::max(0.f,channel.hold-1.f);if(channel.hold==0)channel.lit=false;}
-                const float target=channel.lit?1.f:0.f;channel.conduction+=.04f*(target-channel.conduction);
+                const float target=channel.lit?1.f:0.f;channel.conduction+=p.plasmaAttack*(target-channel.conduction);
                 const float character=v[3],offset=(character-.5f)*.2f;
                 y=channel.conduction*(std::tanh((2.f+8.f*character)*(voltage+offset))-std::tanh((2.f+8.f*character)*offset));
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
                 if(c==0)p.conductionMean+=p.meterAlpha*(target-p.conductionMean);
             } else if(type==4) {
-                const float a=std::abs(x)>channel.envelope?.01f:p.responseAlpha;channel.envelope+=a*(std::abs(x)-channel.envelope);
+                const float a=std::abs(x)>channel.envelope?p.ferroAttack:p.responseAlpha;channel.envelope+=a*(std::abs(x)-channel.envelope);
                 if(p.tick%16==1) {
                     const float base=20.f*std::pow(900.f,v[0]);const float cutoff=std::clamp(base*std::pow(2.f,6.f*v[2]*(2.f*v[4]-1.f)*std::min(channel.envelope*4.f,1.f)),20.f,std::min(18000.f,static_cast<float>(p.highRate/3.)));
                     channel.filter.SetFreq(cutoff);if(c==0)p.actualCutoff=cutoff;
                 }
                 channel.filter.Process(std::tanh(1.5f*x));y=channel.dc.Process(channel.filter.Low())*p.output;
             } else if(type==5) {
-                const float g=p.drive*p.folds*(x>=0?1.f+p.symmetry:1.f-p.symmetry);
-                channel.folder.SetGain(g);channel.folder.SetOffset(p.bias);y=channel.folder.Process(x);
-                if(c==0){const float folding=std::abs((x+p.bias)*g)>1.f?1.f:0.f;p.foldMean+=p.meterAlpha*(folding-p.foldMean);}
+                const float g=p.drive*p.folds;const float shaped=x*(x>=0?1.f+p.symmetry:1.f-p.symmetry);
+                channel.folder.SetGain(g);channel.folder.SetOffset(p.bias);y=channel.folder.Process(shaped);
+                if(c==0){const float folding=std::abs((shaped+p.bias)*g)>1.f?1.f:0.f;p.foldMean+=p.meterAlpha*(folding-p.foldMean);}
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
             }
             samples[c]=std::isfinite(y)?y:0.f;

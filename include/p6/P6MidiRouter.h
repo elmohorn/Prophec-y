@@ -6,6 +6,7 @@
 #include "p6/ParameterMapper.h"
 
 #include <atomic>
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -32,7 +33,7 @@ class P6MidiRouter {
 public:
     void reset() noexcept
     {
-        nrpn_.reset();
+        for (auto& decoder : nrpn_) decoder.reset();
         pitchBendRaw14_.store(8192, std::memory_order_relaxed);
         pitchBendRevision_.fetch_add(1, std::memory_order_relaxed);
     }
@@ -62,7 +63,7 @@ private:
                               const MapperCalibration& calibration,
                               NrpnUpdate update);
 
-    NrpnDecoder nrpn_{};
+    std::array<NrpnDecoder,16> nrpn_{};
     std::atomic<int> pitchBendRaw14_{8192};
     std::atomic<unsigned> pitchBendRevision_{};
 };

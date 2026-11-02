@@ -104,6 +104,9 @@ add_executable(p6_character_tests tests/character_fx_test.cpp)
 target_link_libraries(p6_character_tests PRIVATE p6character)
 add_test(NAME p6_character_tests COMMAND p6_character_tests)
 
+add_executable(p6_character_benchmark tools/character_benchmark.cpp)
+target_link_libraries(p6_character_benchmark PRIVATE p6character)
+
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
 add_executable(p6_inspect tools/inspect_sysex.cpp)

@@ -40,6 +40,17 @@
       "state_format_version": 2,
       "size_bytes": 1067,
       "sha256": "ea0eb9c4f902a35f9d5d4d97f8261e53fc33824625773c4ef4062f8f95f3d0ab"
+    },
+    {
+      "file": "v020_codec3.state",
+      "source_ref": "9556ac7f64838daffbab0cf59e0092644195798e",
+      "encoder_git_blob": "868b21d977f34549f920722f227a3f3e32fbf19e",
+      "encoder_sha256": "873e88c32f6542fadef04bc4a5136190f7e488a55ca50997a0d2fbf6b66eab0e",
+      "fixture_seed": 21,
+      "state_format_version": 3,
+      "master_output_db": -23.4,
+      "size_bytes": 1069,
+      "sha256": "0f1952185f8c32d9f8623f88549bf1309e5524de5b91d0d6479c3d772d7d76f9"
     }
   ]
 }
