@@ -10,4 +10,5 @@ public:
 private:
     int type_{2};std::array<float,7> parameters_{};
     p6plugin::CharacterTelemetry reading_{};
+    float animationPhase_{};
 };
