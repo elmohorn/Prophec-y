@@ -35,3 +35,33 @@ No es una prueba de la cadena completa. Con señal estacionaria de 997 Hz, la
 energía fuera de armónicos fue -40.98/-65.70 dB (actual/elíptico) para sierra,
 -35.09/-62.90 para pulso al 10% y -42.89/-68.14 para morph 0.75 y ancho 20%.
 Se mantienen las limitaciones de la métrica, del prototipo y de la fase.
+
+## Barrido adicional de estabilidad de sync
+
+`python3 experiments/elliptic_blep/sync_stress.py` prueba 165 combinaciones por
+método, 48 kHz, forma 0/.25/.5/.75/1, PW .04/.5/.96, 110/997/8000 Hz y
+relaciones 0.5/1/2.1/4 cuando el master no supera .45 del sample rate. Señala
+salida absoluta mayor que 100, umbral de detección de explosión, no criterio de
+calidad sonora. Inicio de fase slave .25, master 0, prueba aislada 1.5 s.
+En esta ejecución el actual falló 6/165 y el prototipo 18/165. Por ejemplo,
+el actual dio 55555.6 en pulso 50%, 8000 Hz y relación 1; el prototipo dio
+-331897 con sierra 8000 Hz y relación 0.5. Son eventos de la prueba aislada;
+no se debe culpar a Signalsmith como biblioteca por los errores del adaptador.
+
+En un probe separado se ensayó P6Voice con salida diagnóstica Osc1Only y filtros
+omitidos, 20 semillas, notas MIDI 45/119, ratios por 0/-12 semitonos y 1×/2×,
+0.25 s, sin rebase de los umbrales >10 en dry o >100 en preFilter. En 2×,
+preFilter sólo registra la última submuestra de cada par. Son condiciones y
+fases distintas a la prueba aislada; esta observación no demuestra que la ruta
+real sea inmune. Falta confirmar causas y alcance, probar más fases, automatizar
+el regresor y resolver el fallo sin cambiar el sonido por defecto a ciegas.
+
+Un microbenchmark de 1 millón de muestras con forma fija a 997 Hz se incluye
+como `bench.cpp`; no incluye wrapper, voz, UI ni modulación y la medición no
+controla frecuencia de CPU. Una pasada mostró resultados variables entre
+formas; no permite estimar coste en un DAW ni elegir por rendimiento.
+
+La recomendación actual es no integrar el prototipo elíptico. No significa que
+se haya cerrado la comparación: falta un candidato estable y equivalente para
+sync, FM, PWM, morph y Poly Mod, así como la cadena real y referencia mejor
+validada. La inspección de los picos del oscilador actual es un trabajo separado.

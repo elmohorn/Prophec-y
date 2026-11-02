@@ -1,0 +1,8 @@
+os 1 note 45 semi 0 failures 0 peak 1 pre 1
+os 1 note 45 semi -12 failures 0 peak 1 pre 1
+os 1 note 119 semi 0 failures 0 peak 1 pre 1
+os 1 note 119 semi -12 failures 0 peak 1 pre 1
+os 2 note 45 semi 0 failures 0 peak 1.13135 pre 1
+os 2 note 45 semi -12 failures 0 peak 1.13325 pre 1
+os 2 note 119 semi 0 failures 0 peak 1.08426 pre 1
+os 2 note 119 semi -12 failures 0 peak 1.08416 pre 1
