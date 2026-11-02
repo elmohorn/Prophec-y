@@ -229,6 +229,43 @@ void testNrpnSelectionIsPerChannel()
     router.reset();P6_CHECK(!send(0,6,70).nrpnUpdate);
 }
 
+void testMidiInputChannelFilter()
+{
+    p6::P6PatchState patch;p6::P6Engine engine;engine.prepare(48000.,1);
+    p6::P6PerformanceScheduler scheduler(engine);scheduler.prepare(48000.);p6::P6MidiRouter router;
+    const std::array<std::uint8_t,3> ch1Note{0x90,60,100},ch2Note{0x91,64,100};
+    const std::array<std::uint8_t,3> ch1Bend{0xE0,127,127},ch2Bend{0xE1,127,127};
+    const std::array<std::uint8_t,1> clock{0xF8};
+    router.setInputChannel(2,scheduler);P6_CHECK(router.inputChannel()==2);
+    P6_CHECK(!router.process(ch1Note,patch,scheduler).consumed);P6_CHECK(engine.activeVoiceCount()==0);
+    P6_CHECK(router.process(ch2Note,patch,scheduler).consumed);P6_CHECK(engine.activeVoiceCount()>0);
+    P6_CHECK(!router.process(ch1Bend,patch,scheduler).consumed);P6_CHECK(router.pitchBendRaw14()==8192);
+    P6_CHECK(router.process(ch2Bend,patch,scheduler).consumed);P6_CHECK(router.pitchBendRaw14()==16383);
+    const auto events=router.recentMidiEvents();
+    P6_CHECK(events[0].valid&&events[0].pitchBend&&events[0].channel==2&&events[0].value==16383&&!events[0].filtered);
+    P6_CHECK(events[1].valid&&events[1].pitchBend&&events[1].channel==1&&events[1].value==16383&&events[1].filtered);
+    P6_CHECK(router.process(clock,patch,scheduler).consumed);
+    router.setInputChannel(1,scheduler);P6_CHECK(engine.activeVoiceCount()==0);P6_CHECK(router.pitchBendRaw14()==8192);
+    P6_CHECK(!router.process(ch2Note,patch,scheduler).consumed);P6_CHECK(router.process(ch1Note,patch,scheduler).consumed);
+    router.setInputChannel(0,scheduler);P6_CHECK(router.process(ch2Note,patch,scheduler).consumed);
+}
+
+void testOmniNoteOwnership()
+{
+    p6::P6PatchState patch;p6::P6Engine engine;engine.prepare(48000.,1);
+    p6::P6PerformanceScheduler scheduler(engine);scheduler.prepare(48000.);p6::P6MidiRouter router;
+    const std::array<std::uint8_t,3> on1{0x90,60,100},on2{0x91,60,80},off1{0x80,60,0},off2{0x81,60,0},off3{0x82,60,0};
+    router.process(on1,patch,scheduler);router.process(on2,patch,scheduler);
+    P6_CHECK(engine.activeVoiceCount()==1);P6_CHECK(engine.captureChordMemoryFromHeld());
+    router.process(off3,patch,scheduler);P6_CHECK(engine.captureChordMemoryFromHeld());
+    router.reset(); // Program reload resets NRPN but must retain held ownership.
+    router.process(off1,patch,scheduler);P6_CHECK(engine.captureChordMemoryFromHeld());
+    router.process(off2,patch,scheduler);P6_CHECK(!engine.captureChordMemoryFromHeld());
+    router.process(on1,patch,scheduler);
+    const std::array<std::uint8_t,3> panic{0xB0,120,0};router.process(panic,patch,scheduler);
+    router.process(on2,patch,scheduler);P6_CHECK(engine.activeVoiceCount()==1);
+}
+
 void testSustainThresholdIsExactly64()
 {
     p6::P6PatchState patch;
@@ -382,6 +419,8 @@ int main()
     testMidiRouterPerformanceControllersStayOutOfPatch();
     testPitchWheelUsesFull14BitTravelAndRecentersOnReset();
     testNrpnSelectionIsPerChannel();
+    testMidiInputChannelFilter();
+    testOmniNoteOwnership();
     testSustainThresholdIsExactly64();
     testAllNotesOffRespectsDamper();
     testAllSoundOffIsImmediateButDoesNotResetControllers();

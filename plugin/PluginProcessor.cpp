@@ -72,6 +72,21 @@ void copyPatchIntoRealtimeStorage (p6::P6PatchState& dst, const p6::P6PatchState
 
 } // namespace
 
+P6AudioProcessor::StateUpdateGuard::StateUpdateGuard(P6AudioProcessor& processor)
+    : owner(processor),writer(processor.stateWriterMutex_)
+{
+    if(owner.stateUpdateDepth_++==0) {
+        owner.stateUpdateInProgress_.store(true,std::memory_order_release);
+        // Wait for a control snapshot already in progress before publishing
+        // partial APVTS changes. This wait is on the state writer, never audio.
+        const juce::SpinLock::ScopedLockType barrier(owner.stateUpdateGate_);
+    }
+}
+P6AudioProcessor::StateUpdateGuard::~StateUpdateGuard()
+{
+    if(--owner.stateUpdateDepth_==0)owner.stateUpdateInProgress_.store(false,std::memory_order_release);
+}
+
 P6AudioProcessor::P6AudioProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       patch_ (makeInitPatch()),
@@ -86,6 +101,7 @@ P6AudioProcessor::P6AudioProcessor()
     for(std::size_t i=0;i<tubeParameters_.size();++i)
         tubeParameters_[i]=apvts_.getRawParameterValue(p6plugin::kTubeIDs[i]);
     masterDb_=apvts_.getRawParameterValue(p6plugin::kMasterOutputID);
+    midiInputChannel_=apvts_.getRawParameterValue(p6plugin::kMidiInputChannelID);
     customType_=apvts_.getRawParameterValue(p6plugin::kCustomTypeID);
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)customParameters_[d][i]=apvts_.getRawParameterValue(p6plugin::kCustomIDs[d][i]);
     characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
@@ -261,6 +277,8 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{p6plugin::kCustomIDs[d][i],1},
             juce::String(p6plugin::kCharacterNames[d+2])+" "+p6plugin::kCustomNames[d][i],juce::NormalisableRange<float>{0.f,1.f,.001f},p6plugin::kCustomDefaults[d][i]));
+    juce::StringArray midiChannels{"Omni"};for(int channel=1;channel<=16;++channel)midiChannels.add(juce::String(channel));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{p6plugin::kMidiInputChannelID,1},"MIDI Input Channel",midiChannels,0));
     return layout;
 }
 
@@ -396,8 +414,9 @@ void P6AudioProcessor::prepareToPlay (double sampleRate, int maximumExpectedSamp
     const juce::SpinLock::ScopedLockType lock (patchLock_);
     reserveRealtimePatchStorage (audioPatch_);
     copyPatchIntoRealtimeStorage (audioPatch_, patch_);
-    midiRouter_.reset();
-    scheduler_.loadPatch (audioPatch_, selectedCalibration());
+    midiRouter_.reset();midiRouter_.clearNoteOwnership();
+    audioCalibration_=selectedCalibration();
+    scheduler_.loadPatch (audioPatch_, audioCalibration_);
     prepared_ = true;
     fullPatchLoadPending_.store (false, std::memory_order_release);
     applyRuntimeControls (true);
@@ -558,6 +577,9 @@ void P6AudioProcessor::drainPendingNrpnToCanonical (bool mirrorHost)
 
 void P6AudioProcessor::timerCallback()
 {
+    // Do not replay a queued MIDI mirror into a partially restored state.
+    std::unique_lock<std::recursive_mutex> stateLock(stateWriterMutex_,std::try_to_lock);
+    if(!stateLock.owns_lock()||stateUpdateInProgress_.load(std::memory_order_acquire))return;
     // Message-thread-only host/UI mirror. The audio callback only performs
     // atomic stores into the versioned mailbox and never posts OS messages.
     drainPendingNrpnToCanonical (true);
@@ -587,7 +609,7 @@ void P6AudioProcessor::handleMidiMessage (const juce::MidiMessageMetadata& metad
 
     const auto result = midiRouter_.process (
         std::span<const std::uint8_t> (metadata.data, static_cast<std::size_t> (metadata.numBytes)),
-        audioPatch_, scheduler_, selectedCalibration());
+        audioPatch_, scheduler_, audioCalibration_);
 
     if (result.nrpnUpdate && result.nrpnUpdate->parameter < 1024)
         queueNrpnMirror (*result.nrpnUpdate);
@@ -608,42 +630,33 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
-    output_.setDecibels(masterDb_->load(std::memory_order_relaxed));output_.beginBlock();
-
-    // Never block the realtime thread on preset/state edits. If another thread
-    // owns patchLock_, this block simply renders the last coherent patch.
-    if (patchLock_.tryEnter())
-    {
-        const bool fullLoad = fullPatchLoadPending_.exchange (false, std::memory_order_acq_rel);
-        const bool hardwareChanged = applyHostParameterChangesToPatch (patch_, true, &audioPatch_);
-
-        if (fullLoad)
-        {
-            copyPatchIntoRealtimeStorage (audioPatch_, patch_);
-            midiRouter_.reset();
-            scheduler_.loadPatch (audioPatch_, selectedCalibration());
+    // No waiting in processBlock: a restore writer first raises the flag and
+    // waits for this short gate before updating any host-facing parameters.
+    if(!stateUpdateInProgress_.load(std::memory_order_acquire) && stateUpdateGate_.tryEnter()) {
+        if(!stateUpdateInProgress_.load(std::memory_order_acquire) && patchLock_.tryEnter()) {
+            midiRouter_.setInputChannel(static_cast<int>(midiInputChannel_->load(std::memory_order_relaxed)),scheduler_);
+            output_.setDecibels(masterDb_->load(std::memory_order_relaxed));
+            audioCalibration_=selectedCalibration();
+            const bool fullLoad=fullPatchLoadPending_.exchange(false,std::memory_order_acq_rel);
+            const bool hardwareChanged=applyHostParameterChangesToPatch(patch_,true,&audioPatch_);
+            if(fullLoad) {
+                copyPatchIntoRealtimeStorage(audioPatch_,patch_);midiRouter_.reset();
+                scheduler_.loadPatch(audioPatch_,audioCalibration_);
+            } else if(hardwareChanged) scheduler_.updatePatch(audioPatch_,audioCalibration_);
+            applyRuntimeControls(false);
+            p6plugin::CharacterState characterState;
+            characterState.type=selectedCharacterType();
+            characterState.position=static_cast<int>(characterParameters_[1]->load());
+            characterState.bypass=characterParameters_[2]->load()>=.5f;
+            for(std::size_t i=0;i<tubeParameters_.size();++i)characterState.tube[i]=tubeParameters_[i]->load();
+            for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)characterState.custom[d][i]=customParameters_[d][i]->load();
+            character_.setState(characterState);
+            patchLock_.exit();
         }
-        else if (hardwareChanged)
-        {
-            // applyHostParameterChangesToPatch() already mirrored each changed
-            // NRPN into audioPatch_. Do not replace the whole audio patch here:
-            // doing so could erase a newer sample-accurate MIDI NRPN that has
-            // not yet been mirrored back to canonical patch_ by the UI timer.
-            scheduler_.updatePatch (audioPatch_, selectedCalibration());
-        }
-
-        applyRuntimeControls (false);
-        patchLock_.exit();
+        stateUpdateGate_.exit();
     }
-
+    output_.beginBlock();
     applyHostTransport();
-    p6plugin::CharacterState characterState;
-    characterState.type=selectedCharacterType();
-    characterState.position=static_cast<int>(characterParameters_[1]->load());
-    characterState.bypass=characterParameters_[2]->load()>=.5f;
-    for(std::size_t i=0;i<tubeParameters_.size();++i) characterState.tube[i]=tubeParameters_[i]->load();
-    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)characterState.custom[d][i]=customParameters_[d][i]->load();
-    character_.setState(characterState);
     engine_.setCharacterInsert(&character_, [](void* context,p6::StereoSample x) noexcept {
         return static_cast<p6plugin::CharacterFx*>(context)->process(x);
     },character_.beforeEffects());
@@ -710,6 +723,7 @@ const juce::String P6AudioProcessor::getProgramName (int)
 
 void P6AudioProcessor::changeProgramName (int, const juce::String& newName)
 {
+    const std::lock_guard<std::recursive_mutex> stateWriteLock(stateWriterMutex_);
     const juce::SpinLock::ScopedLockType lock (patchLock_);
     auto ascii = newName.substring (0, static_cast<int> (p6::SysexCodec::kPatchNameLength));
     for (std::size_t i = 0; i < p6::SysexCodec::kPatchNameLength; ++i)
@@ -723,6 +737,7 @@ void P6AudioProcessor::changeProgramName (int, const juce::String& newName)
 
 void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
+    const std::lock_guard<std::recursive_mutex> stateReadLock(stateWriterMutex_);
     // State save may occur before the message-thread mirror callback. Flush any
     // causally valid pending MIDI NRPN edits first so the saved payload is current.
     drainPendingNrpnToCanonical (false);
@@ -770,6 +785,7 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     for(std::size_t i=0;i<tubeParameters_.size();++i) state.character.tube[i]=tubeParameters_[i]->load();
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)state.character.custom[d][i]=customParameters_[d][i]->load();
     state.masterOutputDb=masterDb_->load(std::memory_order_relaxed);
+    state.midiInputChannel=static_cast<std::uint8_t>(midiInputChannel_->load(std::memory_order_relaxed));
     const auto bytes = p6plugin::encodeState (state);
     destData.replaceAll (bytes.data(), bytes.size());
 }
@@ -785,6 +801,7 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
                                            static_cast<std::size_t> (sizeInBytes)), state))
         return;
 
+    StateUpdateGuard update(*this);
     clearPendingNrpn();
     p6::P6PatchState hostSnapshot;
     {
@@ -807,6 +824,7 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual (kSlopModeID, state.extras[5] != 0);
     setActual (kCalibrationID, std::clamp<int> (state.extras[6], 0, 1));
     setActual (kSequencePlayID, state.extras[7] != 0);
+    setActual(p6plugin::kMidiInputChannelID,state.midiInputChannel);
     setActual(p6plugin::kCharacterTypeID,state.character.type<2?state.character.type:state.character.legacyType);
     setActual(p6plugin::kCustomTypeID,state.character.type>=2?state.character.type-1:0);
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)
@@ -860,6 +878,7 @@ bool P6AudioProcessor::loadSysex (std::span<const std::uint8_t> bytes, juce::Str
         return false;
     }
 
+    StateUpdateGuard update(*this);
     clearPendingNrpn();
     p6::P6PatchState hostSnapshot;
     {
@@ -881,6 +900,7 @@ bool P6AudioProcessor::loadSysex (std::span<const std::uint8_t> bytes, juce::Str
 
 std::vector<std::uint8_t> P6AudioProcessor::exportEditBuffer()
 {
+    const std::lock_guard<std::recursive_mutex> stateReadLock(stateWriterMutex_);
     drainPendingNrpnToCanonical (false);
     const juce::SpinLock::ScopedLockType lock (patchLock_);
     auto snapshot = patch_;

@@ -25,6 +25,11 @@ struct MidiRouteResult {
     std::optional<bool> sequencePlay;
 };
 
+struct MidiMonitorEvent {
+    bool valid{}, filtered{}, pitchBend{};
+    int channel{}, controller{}, value{};
+};
+
 // JUCE/VST-independent MIDI input router. Keeping message semantics here makes
 // the plug-in wrapper a transport adapter rather than a second performance
 // implementation. SysEx is only identified here; parsing remains explicitly
@@ -37,6 +42,15 @@ public:
         pitchBendRaw14_.store(8192, std::memory_order_relaxed);
         pitchBendRevision_.fetch_add(1, std::memory_order_relaxed);
     }
+
+    // Channel 0 is Omni; changing channel silences held notes and clears
+    // controller/NRPN state so filtered note-offs cannot leave stuck voices.
+    void setInputChannel(int channel, P6PerformanceScheduler& scheduler) noexcept;
+    [[nodiscard]] int inputChannel() const noexcept { return inputChannel_; }
+    // Call when the engine is prepared/cleared. reset() deliberately preserves
+    // held-note ownership during a program reload.
+    void clearNoteOwnership() noexcept { noteChannels_.fill(0); }
+    [[nodiscard]] std::array<MidiMonitorEvent,2> recentMidiEvents() const noexcept;
 
     MidiRouteResult process(std::span<const std::uint8_t> message,
                             P6PatchState& patch,
@@ -64,6 +78,10 @@ private:
                               NrpnUpdate update);
 
     std::array<NrpnDecoder,16> nrpn_{};
+    std::array<std::uint16_t,128> noteChannels_{};
+    int inputChannel_{};
+    std::array<std::atomic<std::uint32_t>,4> monitorEvents_{};
+    std::atomic<unsigned> monitorRevision_{};
     std::atomic<int> pitchBendRaw14_{8192};
     std::atomic<unsigned> pitchBendRevision_{};
 };

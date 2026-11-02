@@ -104,6 +104,9 @@ add_executable(p6_character_tests tests/character_fx_test.cpp)
 target_link_libraries(p6_character_tests PRIVATE p6character)
 add_test(NAME p6_character_tests COMMAND p6_character_tests)
 
+add_executable(p6_neon_rate_probe tools/neon_rate_probe.cpp)
+target_link_libraries(p6_neon_rate_probe PRIVATE p6character)
+
 add_executable(p6_character_benchmark tools/character_benchmark.cpp)
 target_link_libraries(p6_character_benchmark PRIVATE p6character)
 

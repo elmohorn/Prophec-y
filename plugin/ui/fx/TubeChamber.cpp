@@ -12,8 +12,8 @@ TubeChamber::TubeChamber()
 }
 void TubeChamber::setIllumination(bool active,bool motion,float inputEnergy,float changeEnergy)
 {
-    const float energy=active?(motion?std::clamp(inputEnergy,0.f,1.f):.12f):0.f;
-    const float change=active&&motion?std::clamp(changeEnergy,0.f,1.f):0.f;
+    const float energy=active?(motion?std::clamp(inputEnergy,0.f,1.f):(active_?energy_:0.f)):0.f;
+    const float change=active?(motion?std::clamp(changeEnergy,0.f,1.f):(active_?change_:0.f)):0.f;
     if(active_==active&&motion_==motion&&energy_==energy&&change_==change)return;
     active_=active;motion_=motion;energy_=energy;change_=change;repaint();
 }

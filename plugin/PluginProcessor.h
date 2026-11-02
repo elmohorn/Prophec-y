@@ -15,6 +15,7 @@
 
 #include <array>
 #include <atomic>
+#include <mutex>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -88,10 +89,18 @@ public:
     p6plugin::OutputReadings consumeOutputReadings() noexcept;
     void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
     unsigned outputRevision() const noexcept { return outputRevision_.load(std::memory_order_relaxed); }
+    std::array<p6::MidiMonitorEvent,2> recentMidiEvents() const noexcept { return midiRouter_.recentMidiEvents(); }
     int midiPitchBendRaw14() const noexcept { return midiRouter_.pitchBendRaw14(); }
     unsigned midiPitchBendRevision() const noexcept { return midiRouter_.pitchBendRevision(); }
 
 private:
+    struct StateUpdateGuard {
+        explicit StateUpdateGuard(P6AudioProcessor&);
+        ~StateUpdateGuard();
+        P6AudioProcessor& owner;
+        std::unique_lock<std::recursive_mutex> writer;
+    };
+
     struct HostBinding
     {
         std::uint16_t nrpn{};
@@ -127,9 +136,11 @@ private:
     p6::P6PatchState patch_;
     p6::P6PatchState audioPatch_;
     p6::P6Engine engine_;
+    p6::MapperCalibration audioCalibration_{};
     p6plugin::CharacterFx character_;
     p6plugin::OutputStage output_;
     std::atomic<float>* masterDb_{};
+    std::atomic<float>* midiInputChannel_{};
     std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
     std::atomic<unsigned> outputClips_{},outputRevision_{};
     std::atomic<float> characterExcitation_{};
@@ -160,6 +171,13 @@ private:
     p6::VersionedEditMailbox<1> sequencePlayMailbox_{};
     std::atomic<int> hostSequencePlayObserved_ {0};
 
+    // Writers may notify the host without holding the audio gate. The audio
+    // thread only tries the gate and retains its previous coherent snapshot
+    // while a restore/import is in progress.
+    std::recursive_mutex stateWriterMutex_;
+    unsigned stateUpdateDepth_{};
+    std::atomic<bool> stateUpdateInProgress_{};
+    juce::SpinLock stateUpdateGate_;
     mutable juce::SpinLock patchLock_;
     std::atomic<bool> fullPatchLoadPending_ { true };
     bool prepared_{};

@@ -54,15 +54,15 @@ private:
     int boundType_{-1};
     OutputMeter outputMeter_;
     juce::Slider master_;
-    juce::Label masterLabel_;
+    juce::Label masterLabel_,midiMonitor_;
     juce::TextButton clearClips_{"RESET CLIP"};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> masterBinding_;
     unsigned lastOutputRevision_{};
     int staleOutputTicks_{};
     juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
-    juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> positionBinding_,keyBinding_,fxATypeBinding_,fxBTypeBinding_;
+    juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_,midiInputChannel_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> midiChannelBinding_,positionBinding_,keyBinding_,fxATypeBinding_,fxBTypeBinding_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassBinding_;
     std::array<Knob,37> synth_;
     std::array<Switch,18> switches_;

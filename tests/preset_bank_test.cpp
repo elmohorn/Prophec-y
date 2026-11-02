@@ -16,7 +16,7 @@ int main()
     CHECK(programs[0].state.patch.rawPayload==state.patch.rawPayload);
     CHECK(programs[1].state.patch.bank==3&&programs[1].state.patch.program==5);
     const auto baseline=musicalPresetBytes(state);
-    auto globals=state;globals.extras={3,2,1,1,1,1,1,1};globals.masterOutputDb=-60;
+    auto globals=state;globals.extras={3,2,1,1,1,1,1,1};globals.masterOutputDb=-60;globals.midiInputChannel=7;
     CHECK(musicalPresetBytes(globals)==baseline);
     globals.character.tube[0]=.123f;CHECK(musicalPresetBytes(globals)!=baseline);
     globals=state;globals.patch.rawPayload[1023]^=1;CHECK(musicalPresetBytes(globals)!=baseline);

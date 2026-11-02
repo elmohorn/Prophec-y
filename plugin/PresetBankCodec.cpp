@@ -33,7 +33,7 @@ std::vector<std::uint8_t> musicalPresetBytes(WrapperState state)
 {
     // Globals and runtime playback must never produce a spurious unsaved mark
     // or get replaced by browsing a musical patch.
-    state.extras={};state.masterOutputDb=0;
+    state.extras={};state.masterOutputDb=0;state.midiInputChannel=0;
     return encodeState(state);
 }
 } // namespace p6plugin

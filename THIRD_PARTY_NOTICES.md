@@ -66,7 +66,7 @@ unmodified in `third_party/DSPark` from CristianMoresi/DSPark commit
 `0a66a4dd1a4e114d3020ccedd454c4d2e0202560` (MIT, copyright 2026 Cristian Moresi).
 The complete license is retained at `third_party/DSPark/LICENSE` and original
 header notices remain intact. TubePreamp uses this selection; custom Character devices also reuse its
-2x high-quality oversampler.
+2x High and 4x Medium oversampling configurations.
 
 
 ## DaisySP — v0.20 custom Character devices

@@ -1,0 +1,4 @@
+frequency_hz,reference_rms,raw_difference_db,best_lag_samples,aligned_difference_db
+251,0.277975,-18.77,-0.172,-35.19
+997,0.188025,-10.10,-0.189,-14.87
+4001,0.079475,6.89,-0.177,6.83

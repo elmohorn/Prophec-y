@@ -41,14 +41,16 @@ static int presetLibraryChecks(const juce::File& captureFolder)
     p6plugin::PresetLibrary reopened(root,factory);CHECK(reopened.find(importedId)->favorite);CHECK(reopened.find("factory-init")->favorite);
     CHECK(reopened.exportBank(bankKey)==bank);CHECK(reopened.find(importedId)->state.patch.rawPayload[1023]==217);
     auto broken=bank;broken.push_back(0x55);CHECK(reopened.importSysex(broken,"bad",imported).failed());CHECK(imported==0);CHECK(reopened.entries().size()==3);
-    P6AudioProcessor target;set(target,p6plugin::kMasterOutputID,-24);set(target,"wrapper_clock_source",2);set(target,"wrapper_calibration",1);
+    P6AudioProcessor target;set(target,p6plugin::kMasterOutputID,-24);set(target,"wrapper_clock_source",2);set(target,"wrapper_calibration",1);set(target,p6plugin::kMidiInputChannelID,7);
     auto user=target.presetSnapshot();user.character.type=1;user.character.tube[0]=.73f;
     juce::String userId;CHECK(reopened.saveUser({},user,"User test patch","Tests",0,0,userId).wasOk());
     CHECK(reopened.saveUser({},user,"Duplicate slot","",0,0,userId).failed());
     const auto stored=*reopened.find(userId);target.loadMusicalPreset(stored.state,stored.id,stored.name);
     CHECK(!target.presetDirty());CHECK(target.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==-24.f);
+    CHECK(target.parameters().getRawParameterValue(p6plugin::kMidiInputChannelID)->load()==7.f);
     CHECK(target.parameters().getRawParameterValue("wrapper_clock_source")->load()==2.f);CHECK(target.parameters().getRawParameterValue("wrapper_calibration")->load()==1.f);
     CHECK(std::abs(target.parameters().getRawParameterValue(p6plugin::kTubeIDs[0])->load()-.73f)<1.e-5f);
+    set(target,p6plugin::kMidiInputChannelID,3);CHECK(!target.presetDirty());
     set(target,p6plugin::kMasterOutputID,-30);CHECK(!target.presetDirty());set(target,p6plugin::kTubeIDs[0],.5f);CHECK(target.presetDirty());
     target.loadMusicalPreset(stored.state,stored.id,stored.name);CHECK(!target.presetDirty());
     auto fresh=target.presetSnapshot();fresh.character.tube[1]=.6f;CHECK(reopened.saveUser(userId,fresh,stored.name,stored.category,0,0,userId).wasOk());
@@ -85,15 +87,27 @@ static int presetLibraryChecks(const juce::File& captureFolder)
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    // Motion pauses the current heater frame; bypass extinguishes it.
+    TubeChamber motionTestChamber;motionTestChamber.setSize(320,184);motionTestChamber.setIllumination(true,true,.8f,.5f);
+    const auto lit=motionTestChamber.createComponentSnapshot(motionTestChamber.getLocalBounds());
+    motionTestChamber.setIllumination(true,false,.05f,.05f);
+    const auto frozen=motionTestChamber.createComponentSnapshot(motionTestChamber.getLocalBounds());
+    bool equal=true;for(int y=0;y<184;++y)for(int x=0;x<320;++x)equal=equal&&(lit.getPixelAt(x,y)==frozen.getPixelAt(x,y));
+    CHECK(equal);motionTestChamber.setIllumination(false,false,0,0);
+    const auto off=motionTestChamber.createComponentSnapshot(motionTestChamber.getLocalBounds());
+    bool differs=false;for(int y=0;y<184;++y)for(int x=0;x<320;++x)differs=differs||(lit.getPixelAt(x,y)!=off.getPixelAt(x,y));
+    CHECK(differs);
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
     p.prepareToPlay(48000,128);CHECK(p.getLatencySamples()==71);
     const auto sysex=p.exportEditBuffer();
+    set(p,p6plugin::kMidiInputChannelID,7);
     set(p,p6plugin::kCharacterTypeID,1.f);set(p,p6plugin::kTubeIDs[0],.612f);
     set(p,p6plugin::kCharacterPositionID,0.f);
     juce::MemoryBlock state;p.getStateInformation(state);
     P6AudioProcessor restored;restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kMidiInputChannelID)->load()==7.f);
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()==1.f);
     CHECK(std::abs(restored.parameters().getRawParameterValue(p6plugin::kTubeIDs[0])->load()-.612f)<1e-5f);
     CHECK(restored.exportEditBuffer()==sysex);
@@ -103,9 +117,21 @@ int main(int argc,char** argv)
     std::vector<std::uint8_t> legacy(static_cast<const std::uint8_t*>(state.getData()),static_cast<const std::uint8_t*>(state.getData())+p6plugin::kV2StateBytes);
     legacy[4]=2;legacy[5]=0;restored.setStateInformation(legacy.data(),static_cast<int>(legacy.size()));
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==0.f);
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kMidiInputChannelID)->load()==0.f);
+    set(p,p6plugin::kMidiInputChannelID,0);
     CHECK(restored.exportEditBuffer()==sysex);
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
     CHECK(editor!=nullptr);
+    bool foundMidiSelector=false,foundMidiMonitor=false;
+    for(auto* child:editor->getChildren()) {
+        if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="MIDI input channel") {
+            foundMidiSelector=true;CHECK(box->getNumItems()==17);box->setSelectedId(4,juce::sendNotificationSync);
+            CHECK(p.parameters().getRawParameterValue(p6plugin::kMidiInputChannelID)->load()==3.f);
+            box->setSelectedId(1,juce::sendNotificationSync);
+        }
+        if(child->getTitle()=="Recent MIDI input")foundMidiMonitor=true;
+    }
+    CHECK(foundMidiSelector&&foundMidiMonitor);
     editor->setSize(1460,P6PluginEditor::expandedHeight);
     bool foundMaster=false;
     for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="Master Output") {

@@ -15,6 +15,9 @@ float bounded(double x){return std::isfinite(x)?static_cast<float>(32.*std::tanh
 }
 struct CustomCharacter::Impl {
     dspark::Oversampling<float,2> os{2,dspark::Oversampling<float,2>::Quality::High};
+    // 4x medium has 48 samples of round-trip delay, leaving room to align
+    // Neon to the established 71-sample wrapper latency.
+    dspark::Oversampling<float,2> neonOs{4,dspark::Oversampling<float,2>::Quality::Medium};
     p6::P6ReverbEffects spring;
     struct Channel {
         daisysp::Svf filter;daisysp::DcBlock dc;daisysp::Wavefolder folder;
@@ -22,27 +25,28 @@ struct CustomCharacter::Impl {
         float envelope{},conduction{},tone{},hold{};bool lit{};
     };
     std::array<Channel,2> channels;
-    std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{};std::uint32_t tick{},scopeTick{};
+    std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{},neonDelay{};std::uint32_t tick{},scopeTick{};
     std::array<float,7> current{};bool first{true};double rate{48000},highRate{96000};
     float springDecay{},springDamping{},plasmaAttack{},ferroAttack{};
     float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},folds{},symmetry{},bias{},responseAlpha{};
     std::array<double,3> tapPower{};
-    float conductionMean{},foldMean{},actualCutoff{};
+    float conductionMean{},foldMean{},scopeAlpha{};
+    std::array<float,2> actualCutoff{},scopePower{};int scopeChannel{};
     std::array<float,32> input{},wet{};std::size_t scope{};
 };
 CustomCharacter::CustomCharacter():p_(std::make_unique<Impl>()){}
 CustomCharacter::~CustomCharacter()=default;
 void CustomCharacter::prepare(double rate,int latency)
 {
-    auto& p=*p_;p.rate=std::max(rate,8000.);p.highRate=p.rate*2.;p.os.prepare({p.rate,1,2});p.spring.prepare(p.highRate);
-    p.delay=std::max(0,latency-p.os.getLatency());
+    auto& p=*p_;p.rate=std::max(rate,8000.);p.highRate=p.rate*2.;p.os.prepare({p.rate,1,2});p.neonOs.prepare({p.rate,1,2});p.spring.prepare(p.highRate);
+    p.delay=std::max(0,latency-p.os.getLatency());p.neonDelay=std::max(0,latency-p.neonOs.getLatency());p.scopeAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.rate)));
     p.plasmaAttack=1.f-std::exp(static_cast<float>(std::log(.96)*96000./p.highRate));
     p.ferroAttack=1.f-std::exp(static_cast<float>(std::log(.99)*96000./p.highRate));
     p.parameterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));p.meterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));reset();
 }
 void CustomCharacter::reset() noexcept
 {
-    auto& p=*p_;p.os.reset();p.spring.invalidateRealtimeState();p.pad.fill({});p.write=0;p.tick=0;p.scopeTick=0;p.first=true;p.tapPower={};p.conductionMean=p.foldMean=p.actualCutoff=0;p.input={};p.wet={};p.scope=0;
+    auto& p=*p_;p.highRate=p.rate*2.;p.os.reset();p.neonOs.reset();p.spring.invalidateRealtimeState();p.pad.fill({});p.write=0;p.tick=0;p.scopeTick=0;p.first=true;p.tapPower={};p.conductionMean=p.foldMean=0;p.actualCutoff={};p.scopePower={};p.scopeChannel=0;p.input={};p.wet={};p.scope=0;
     for(auto& c:p.channels){c.filter.Init(static_cast<float>(p.highRate));c.filter.SetDrive(.25f);c.dc.Init(static_cast<float>(p.highRate));c.folder.Init();c.dispersion={};c.envelope=c.conduction=c.tone=c.hold=0;c.lit=false;}
 }
 float CustomCharacter::neonTransfer(float x,const std::array<float,7>& v) noexcept
@@ -54,9 +58,17 @@ float CustomCharacter::neonTransfer(float x,const std::array<float,7>& v) noexce
 }
 p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const std::array<float,7>& values) noexcept
 {
-    auto& p=*p_;if(p.first){p.current=values;p.first=false;}
-    float left=bounded(input.left),right=bounded(input.right);float* pointers[]{&left,&right};
-    dspark::AudioBufferView<float> block(pointers,2,1);auto up=p.os.upsample(block);
+    auto& p=*p_;
+    if(p.first){
+        p.current=values;p.first=false;p.highRate=p.rate*(type==5?4.:2.);
+        p.parameterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));
+        p.meterAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.highRate)));
+        if(type==5)for(auto& c:p.channels)c.dc.Init(static_cast<float>(p.highRate));
+    }
+    auto& oversampler=type==5?p.neonOs:p.os;
+    float left=bounded(input.left),right=bounded(input.right);
+    const std::array<float,2> inputChannels{left,right};float* pointers[]{&left,&right};
+    dspark::AudioBufferView<float> block(pointers,2,1);auto up=oversampler.upsample(block);
     for(int n=0;n<up.getNumSamples();++n) {
         for(std::size_t i=0;i<7;++i)p.current[i]+=p.parameterAlpha*(values[i]-p.current[i]);
         const auto& v=p.current;
@@ -70,6 +82,7 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
             if(type==4)for(auto& c:p.channels)c.filter.SetRes(.1f+.8f*v[1]);
         }
         std::array<float,2> samples{up.getChannel(0)[n],up.getChannel(1)[n]};
+        float conductionTarget=0.f,foldTarget=0.f;
         if(type==3) {
             // Existing spring FDN plus a six-stage dispersive input network.
             // Three real internal delay-line taps become optical pickups.
@@ -89,35 +102,41 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
                 const float character=v[3],offset=(character-.5f)*.2f;
                 y=channel.conduction*(std::tanh((2.f+8.f*character)*(voltage+offset))-std::tanh((2.f+8.f*character)*offset));
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
-                if(c==0)p.conductionMean+=p.meterAlpha*(target-p.conductionMean);
+                conductionTarget=std::max(conductionTarget,target);
             } else if(type==4) {
                 const float a=std::abs(x)>channel.envelope?p.ferroAttack:p.responseAlpha;channel.envelope+=a*(std::abs(x)-channel.envelope);
                 if(p.tick%16==1) {
                     const float base=20.f*std::pow(900.f,v[0]);const float cutoff=std::clamp(base*std::pow(2.f,6.f*v[2]*(2.f*v[4]-1.f)*std::min(channel.envelope*4.f,1.f)),20.f,std::min(18000.f,static_cast<float>(p.highRate/3.)));
-                    channel.filter.SetFreq(cutoff);if(c==0)p.actualCutoff=cutoff;
+                    channel.filter.SetFreq(cutoff);p.actualCutoff[c]=cutoff;
                 }
                 channel.filter.Process(std::tanh(1.5f*x));y=channel.dc.Process(channel.filter.Low())*p.output;
             } else if(type==5) {
                 const float g=p.drive*p.folds;const float shaped=x*(x>=0?1.f+p.symmetry:1.f-p.symmetry);
                 channel.folder.SetGain(g);channel.folder.SetOffset(p.bias);y=channel.folder.Process(shaped);
-                if(c==0){const float folding=std::abs((shaped+p.bias)*g)>1.f?1.f:0.f;p.foldMean+=p.meterAlpha*(folding-p.foldMean);}
+                foldTarget=std::max(foldTarget,std::abs((shaped+p.bias)*g)>1.f?1.f:0.f);
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
             }
             samples[c]=std::isfinite(y)?y:0.f;
         }
+        if(type==2)p.conductionMean+=p.meterAlpha*(conductionTarget-p.conductionMean);
+        if(type==5)p.foldMean+=p.meterAlpha*(foldTarget-p.foldMean);
         up.getChannel(0)[n]=samples[0];up.getChannel(1)[n]=samples[1];
     }
-    p.os.downsample(block);
-    const auto index=(p.write+p.pad.size()-static_cast<std::size_t>(p.delay))%p.pad.size();
-    const auto out=p.delay>0?p.pad[index]:p6::StereoSample{left,right};p.pad[p.write]={left,right};p.write=(p.write+1)%p.pad.size();
+    oversampler.downsample(block);
+    const int delay=type==5?p.neonDelay:p.delay;
+    const auto index=(p.write+p.pad.size()-static_cast<std::size_t>(delay))%p.pad.size();
+    const auto out=delay>0?p.pad[index]:p6::StereoSample{left,right};p.pad[p.write]={left,right};p.write=(p.write+1)%p.pad.size();
     // Decimate only the UI history: 32 points span 248 base-rate samples.
-    if(p.scopeTick++%8==0){p.input[p.scope]=static_cast<float>(input.left);p.wet[p.scope]=static_cast<float>(out.left);p.scope=(p.scope+1)%p.input.size();}
+    for(std::size_t c=0;c<2;++c)p.scopePower[c]+=p.scopeAlpha*(inputChannels[c]*inputChannels[c]-p.scopePower[c]);
+    const int other=1-p.scopeChannel;
+    if(p.scopePower[static_cast<std::size_t>(other)]>1.2f*p.scopePower[static_cast<std::size_t>(p.scopeChannel)]+1.e-12f)p.scopeChannel=other;
+    if(p.scopeTick++%8==0){p.input[p.scope]=inputChannels[static_cast<std::size_t>(p.scopeChannel)];p.wet[p.scope]=static_cast<float>(p.scopeChannel==0?out.left:out.right);p.scope=(p.scope+1)%p.input.size();}
     return out;
 }
 DeviceTelemetry CustomCharacter::telemetry() const noexcept
 {
     const auto& p=*p_;DeviceTelemetry t;
-    t.values={p.conductionMean,p.threshold,static_cast<float>(std::sqrt(p.tapPower[0])),static_cast<float>(std::sqrt(p.tapPower[1])),static_cast<float>(std::sqrt(p.tapPower[2])),p.actualCutoff,p.channels[0].envelope,p.foldMean};
+    t.values={p.conductionMean,p.threshold,static_cast<float>(std::sqrt(p.tapPower[0])),static_cast<float>(std::sqrt(p.tapPower[1])),static_cast<float>(std::sqrt(p.tapPower[2])),p.actualCutoff[static_cast<std::size_t>(p.scopeChannel)],p.channels[static_cast<std::size_t>(p.scopeChannel)].envelope,p.foldMean};
     for(std::size_t i=0;i<32;++i){const auto k=(p.scope+i)%32;t.input[i]=p.input[k];t.wet[i]=p.wet[k];}return t;
 }
 }

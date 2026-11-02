@@ -1,5 +1,7 @@
 # Prophec-y — v0.20 prototype
 
+**MIDI:** selector Omni/1–16 y monitor de CC/pitch bend; [comportamiento y migración de estado](docs/V0_20_MIDI_NEON_STABILIZATION.md).
+
 **Character FX:** [Plasma, Optical Spring, Ferrofluid y Neon Wavefolder](docs/V0_20_CUSTOM_CHARACTER.md) se suman a Tube, con audio real, controles independientes y ventanas nativas reactivas.
 
 **Presets:** [browser local nativo](docs/V0_20_PRESET_BROWSER.md), búsqueda/favoritos, Save/Save As e import/export de programa y banco SysEx. Factory incluye nuestro Init; los bancos de Sequential no se redistribuyen.

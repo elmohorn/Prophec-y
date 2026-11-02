@@ -53,6 +53,7 @@ int main()
 
     a.sequenceControls = { 1, 37, 2, 3 };
     a.extras = { 3, 2, 1, 1, 0, 1, 1, 1 };
+    a.midiInputChannel=16;
     a.character.type=1;a.character.position=0;a.character.bypass=true;
     a.character.tube={.123f,.456f,.789f,.1f,.2f,.3f,.9f};
 
@@ -67,6 +68,7 @@ int main()
     P6_CHECK(b.patch.name == "State Roundtrip");
     P6_CHECK(b.sequenceControls == a.sequenceControls);
     P6_CHECK(b.extras == a.extras);
+    P6_CHECK(b.midiInputChannel==16);
     P6_CHECK(b.character.type==1 && b.character.position==0 && b.character.bypass);
     for(std::size_t i=0;i<a.character.tube.size();++i)
         P6_CHECK(std::abs(b.character.tube[i]-a.character.tube[i])<.00001f);
@@ -86,3 +88,4 @@ int main()
     std::cout << "p6 wrapper state/layout v0.16 tests passed\n";
     return 0;
 }
+

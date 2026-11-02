@@ -8,11 +8,11 @@
 #define CHECK(x) do{if(!(x)){std::cerr<<"failed: " #x <<" line "<<__LINE__<<'\n';return 1;}}while(false)
 int main()
 {
-    for(int version:{17,18,19,20,21}) {
-        const auto path=std::string(P6_STATE_FIXTURE_DIR)+(version==21?"/v020_codec3.state":"/v0."+std::to_string(version)+".state");
+    for(int version:{17,18,19,20,21,22}) {
+        const auto path=std::string(P6_STATE_FIXTURE_DIR)+(version==22?"/v020_codec4.state":version==21?"/v020_codec3.state":"/v0."+std::to_string(version)+".state");
         std::ifstream in(path,std::ios::binary);CHECK(in.good());
         const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>(in),std::istreambuf_iterator<char>()};
-        CHECK(bytes.size()==(version==21?p6plugin::kV3StateBytes:version==20?p6plugin::kV2StateBytes:p6plugin::kV1StateBytes));
+        CHECK(bytes.size()==(version==22?p6plugin::kV4StateBytes:version==21?p6plugin::kV3StateBytes:version==20?p6plugin::kV2StateBytes:p6plugin::kV1StateBytes));
         p6plugin::WrapperState state;CHECK(p6plugin::decodeState(bytes,state));
         CHECK(state.patch.bank==version-18);CHECK(state.patch.program==version*7);
         const std::string name="Historical "+std::to_string(version);CHECK(state.patch.name==name);
@@ -29,7 +29,8 @@ int main()
             CHECK(state.character.type==1&&state.character.position==0&&state.character.bypass);
             CHECK(std::abs(state.character.tube[0]-.123f)<1.e-6f);
         }
-        CHECK(version==21?std::abs(state.masterOutputDb+23.4f)<.001f:state.masterOutputDb==0.f);
+        CHECK(version>=21?std::abs(state.masterOutputDb+23.4f)<.001f:state.masterOutputDb==0.f);
+        CHECK(state.midiInputChannel==0); // v1-v4 migrate to Omni
         const auto upgraded=p6plugin::encodeState(state);
         p6plugin::WrapperState again;CHECK(p6plugin::decodeState(upgraded,again));
         CHECK(again.patch.rawPayload==state.patch.rawPayload);CHECK(again.extras==state.extras);

@@ -85,6 +85,11 @@ add_custom_command(TARGET P6CorePlugin_VST3 POST_BUILD
 
 option(P6_BUILD_UI_SMOKE "Build the native editor/state smoke executable" OFF)
 if(P6_BUILD_UI_SMOKE)
+    add_executable(P6RestoreProbe ../tests/restore_interleaving_probe.cpp)
+    set_target_properties(P6RestoreProbe PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/P6RestoreProbe_artefacts/$<CONFIG>")
+    target_include_directories(P6RestoreProbe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(P6RestoreProbe PRIVATE P6CorePlugin p6character juce::juce_audio_processors)
     add_executable(P6UiSmoke ../tests/plugin_ui_smoke.cpp)
     set_target_properties(P6UiSmoke PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/P6UiSmoke_artefacts/$<CONFIG>")

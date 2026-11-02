@@ -117,6 +117,40 @@ int main()
             const auto b=p6plugin::CustomCharacter::neonTransfer(1.e-7f,v);
             CHECK(std::abs(a-b)<.0001f);
         }
+    // Measure a physical 10%-to-90% envelope rise after the real
+    // oversampler, at the same step level and duration for every rate.
+    for(double sr:{44100.,48000.,96000.,192000.}) {
+        p6plugin::CustomCharacter filter;filter.prepare(sr,71);
+        const auto controls=p6plugin::kCustomDefaults[2];int lo=-1,hi=-1;
+        for(int n=0;n<static_cast<int>(sr*.02);++n) {
+            filter.process({.25,.25},4,controls);const auto e=filter.telemetry().values[6];
+            if(lo<0&&e>=.025f)lo=n;
+            if(hi<0&&e>=.225f)hi=n;
+        }
+        CHECK(lo>=0&&hi>lo);
+        const double riseMs=1000.*(hi-lo)/sr;
+        CHECK(riseMs>2.15&&riseMs<2.4);
+    }
+    // The 4x Neon path has 48 samples of FIR latency plus 23 samples
+    // alignment. Its low-level impulse must arrive at the declared latency
+    // (one extra sample is allowed for its intentional tone filter).
+    for(double sr:{44100.,48000.,96000.,192000.}) {
+        p6plugin::CustomCharacter neon;neon.prepare(sr,71);
+        auto v=p6plugin::kCustomDefaults[3];v[0]=v[1]=0.f;v[2]=v[3]=.5f;v[4]=1.f;
+        double peak=0.;int peakAt=-1;
+        for(int n=0;n<300;++n){const auto y=neon.process({n==0?.001:0.,0.},5,v);if(std::abs(y.left)>peak){peak=std::abs(y.left);peakAt=n;}}
+        CHECK(peak>1.e-6);CHECK(peakAt>=71&&peakAt<=72);
+    }
+    // Visual telemetry must respond to right-only input, not just channel L.
+    for(int type:{2,4,5}) {
+        p6plugin::CustomCharacter device;device.prepare(48000,71);
+        const auto controls=p6plugin::kCustomDefaults[static_cast<std::size_t>(type-2)];
+        for(int n=0;n<4800;++n)device.process({0.,.3*std::sin(n*.1)},type,controls);
+        const auto t=device.telemetry();double scopeEnergy=0;for(float v:t.wet)scopeEnergy+=v*v;
+        CHECK(scopeEnergy>1.e-8);
+        if(type==2)CHECK(t.values[0]>.01f);
+        if(type==4){CHECK(t.values[5]>20.f);CHECK(t.values[6]>.01f);}
+    }
     // The unchanged engine and the None wrapper must null after exactly the
     // declared delay; do not compare only RMS/spectrum.
     p6::P6Engine a,b;a.prepare(48000,1);b.prepare(48000,1);

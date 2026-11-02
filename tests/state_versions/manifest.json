@@ -51,6 +51,17 @@
       "master_output_db": -23.4,
       "size_bytes": 1069,
       "sha256": "0f1952185f8c32d9f8623f88549bf1309e5524de5b91d0d6479c3d772d7d76f9"
+    },
+    {
+      "file": "v020_codec4.state",
+      "source_ref": "77e549f31d31cd93c702f862cfb7d0426f60db73",
+      "encoder_git_blob": "d1f4483395b297c18092a261111414719c6ab29b",
+      "encoder_sha256": "9274cfa6a02bcdc9564e250493626cdfc523ac4f743eccb05c4ab989fbadf521",
+      "fixture_seed": 22,
+      "state_format_version": 4,
+      "master_output_db": -23.4,
+      "size_bytes": 1126,
+      "sha256": "87389dce520847c8c737d567f536573332a7ffa551b047362c835de69f63c46a"
     }
   ]
 }

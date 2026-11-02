@@ -163,7 +163,7 @@ aprobado visualmente. El plan inicial no debe confundirse con estado vivo.
 
 Esta auditoría no cambia DSP, parámetros, presets ni la release publicada.
 
-## Avance local de estabilización
+## Primer bloque publicado en preview 280
 
 - A01: Neon usa una asimetría continua antes del bias; cobertura de cruces
   por cero con combinaciones de controles. Quedan medición de aliasing y escucha.
@@ -207,3 +207,64 @@ histórico de preview 275 verificado por Git blob `868b21d...`, con Master
 -23.4 dB y Tube activo. El test lo lee desde disco, comprueba payload, wrapper,
 Master y truncamientos. Proveniencia y SHA-256 en el manifiesto. Es sintético:
 no sustituye la recuperación de proyectos reales en DAW.
+
+
+### Medición y candidato 4x para Neon — bloque posterior a preview 280
+
+El probe `p6_neon_rate_probe` genera senos de 251, 997 y 4001 Hz con Drive y
+Folds al 80 %, Bias/Symmetry al 42 %, Tone al máximo, durante un segundo a
+48 y 192 kHz. `tools/analyze_neon_rates.py` baja la referencia de 192 kHz con
+filtro polifásico, descarta el arranque y minimiza un desplazamiento fraccional
+entre -2 y +2 muestras. Es una diferencia total de forma de onda; incluye
+aliasing, filtros, discretización y remuestreo, y no es una medición aislada de
+aliasing ni una validación auditiva. Requiere numpy y scipy.
+
+Comparación con la misma referencia de 192 kHz / 4x Medium. El código 2x corresponde al commit `d9c72ca0b1b6f02fbb29ea2be7f9e46bd350441d`; los datos están en [2x](measurements/neon_2x_vs_4x_reference.csv) y [4x](measurements/neon_4x_vs_4x_reference.csv):
+
+| Entrada | 2x High anterior | 4x Medium candidato |
+|---|---:|---:|
+| 251 Hz | -35.19 dB | -43.18 dB |
+| 997 Hz | -14.87 dB | -22.81 dB |
+| 4001 Hz | +6.83 dB | -15.52 dB |
+
+El candidato reduce la diferencia medida; aún puede haber aliasing audible.
+Usa 48 muestras de retardo del FIR más 23 de alineación, para conservar 71.
+Un microbenchmark aislado del efecto sobre 10 segundos de audio tardó 0.244 s
+con 2x High y 0.383 s con 4x Medium en este entorno compartido: ≈1.57 veces el
+coste de ese efecto, no una medición del plugin completo ni del PC del usuario.
+Los resultados son exploratorios; faltan escucha, CPU en DAW y comparación
+espectral independiente. El cambio modifica el sonido de presets Neon previos
+en esta etapa de preview; el estado y los IDs de parámetros se conservan. Se añadió una prueba de llegada del impulso y una
+prueba del tiempo de ataque de Ferrofluid a cuatro sample rates.
+
+### MIDI: canal y diagnóstico — bloque posterior a preview 280
+
+Selector Omni/1–16 y monitor de dos eventos CC/PB; los mensajes filtrados se
+marcan. Cambiar canal silencia notas, vacía colas estándar y reinicia controles.
+Se conserva el reloj de sistema y los presets no alteran este ajuste global.
+Codec v5 migra v1–v4 a Omni, con una nueva fixture independiente v4 emitida
+por la preview 278. En Omni, las notas de igual tono se agrupan y se liberan al salir el último
+canal; CC120/CC123 y performance controllers siguen siendo globales. No hay
+MPE ni sustain independiente por canal. Falta probar con el FA-08 y en DAW.
+
+
+### Telemetría estéreo y Motion — bloque posterior a preview 280
+
+Las trazas y medición de filtro seleccionan el canal de entrada dominante con
+promedio e histéresis; Plasma y Neon registran actividad en ambos canales.
+Pruebas de señal exclusiva por R cubren Plasma, Ferrofluid y Neon. Motion off
+congela la iluminación de Tube; bypass la apaga. La representación sigue siendo
+una metáfora y el historial decimado no sustituye un osciloscopio completo.
+
+### Restore concurrente — bloque posterior a preview 280
+
+Se reprodujo el intercalado: Character nuevo y Master anterior mientras el
+escritor estaba detenido. La corrección protege la aplicación de controles por
+bloque con un gate de intento no bloqueante y una bandera de publicación. El
+escritor espera a que termine una captura ya iniciada y luego notifica al host
+sin mantener el gate de audio. Restore/import y lecturas de estado/SysEx se
+serializan en el lado no realtime. El probe comprueba el caso provocado, un
+save concurrente y 24 rondas de dos escritores con audio en marcha. Un NRPN
+recibido durante la pausa utiliza la calibración previamente aplicada. Es evidencia
+limitada al alcance del probe, no una certificación de todos los hosts ni de
+reentradas arbitrarias; faltan estrés prolongado y pruebas reales en DAW.

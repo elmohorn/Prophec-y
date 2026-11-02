@@ -122,7 +122,16 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     fxAType_.addItemList(juce::StringArray{"A · OFF","A · BBD DELAY","A · DIGITAL DELAY","A · CHORUS","A · PHASER 1","A · PHASER 2"},1);
     fxBType_.addItemList(juce::StringArray{"B · OFF","B · BBD DELAY","B · DIGITAL DELAY","B · CHORUS","B · PHASER 1","B · PHASER 2","B · HALL","B · ROOM","B · PLATE","B · SPRING"},1);
     fxAType_.setTitle("Standard FX A type");fxBType_.setTitle("Standard FX B type");
+    midiInputChannel_.setLookAndFeel(&look_);midiInputChannel_.setTitle("MIDI input channel");
+    midiInputChannel_.setTooltip("MIDI input: Omni or channel 1–16. Changing channel silences notes, clears standard FX tails and resets controllers.");
+    midiInputChannel_.addItem("MIDI: OMNI",1);for(int channel=1;channel<=16;++channel)midiInputChannel_.addItem("MIDI: "+juce::String(channel),channel+1);
+    addAndMakeVisible(midiInputChannel_);
+    midiMonitor_.setTitle("Recent MIDI input");midiMonitor_.setFont(juce::Font(11.f));
+    midiMonitor_.setColour(juce::Label::textColourId,muted);
+    midiMonitor_.setTooltip("Recent pitch bend and CC input. * marks a message filtered by the selected MIDI channel.");
+    midiMonitor_.setText("MIDI: awaiting input",juce::dontSendNotification);addAndMakeVisible(midiMonitor_);
     auto& params=p.parameters();
+    midiChannelBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kMidiInputChannelID,midiInputChannel_);
     master_.setLookAndFeel(&look_);master_.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     master_.setTextBoxStyle(juce::Slider::TextBoxBelow,false,95,18);master_.setTitle("Master Output");
     master_.setDescription("Final output attenuation, separate from Prophet Program Volume. Minus 60 to zero dB.");
@@ -222,6 +231,12 @@ void P6PluginEditor::setType(int value)
 void P6PluginEditor::timerCallback()
 {
     if(!isShowing())return;
+    const auto events=processor_.recentMidiEvents();juce::String monitor;
+    for(const auto& event:events)if(event.valid) {
+        if(monitor.isNotEmpty())monitor+="\n";
+        monitor+="CH "+juce::String(event.channel)+(event.pitchBend?" PB ":" CC "+juce::String(event.controller)+" ")+juce::String(event.value)+(event.filtered?" *":"");
+    }
+    if(monitor.isNotEmpty())midiMonitor_.setText(monitor,juce::dontSendNotification);
     const auto outputRevision=processor_.outputRevision();
     staleOutputTicks_=outputRevision==lastOutputRevision_?std::min(31,staleOutputTicks_+1):0;
     lastOutputRevision_=outputRevision;
@@ -299,6 +314,7 @@ void P6PluginEditor::resized()
     if(browser_)browser_->setBounds(55,98,getWidth()-110,450);
     master_.setBounds(rect(602,12,100,67));masterLabel_.setBounds(rect(602,78,100,15));
     outputMeter_.setBounds(rect(724,25,350,60));clearClips_.setBounds(rect(1085,49,105,24));
+    midiInputChannel_.setBounds(rect(1085,16,105,24));midiMonitor_.setBounds(rect(350,62,146,26));
     module_.setBounds(rect(1210,36,84,25));studio_.setBounds(rect(1300,36,84,25));
     diagnostic_->setBounds(36,92,getWidth()-72,getHeight()-125);
     auto knob=[&](std::size_t i,float x,float y,float w=80,float h=72){synth_[i].slider.setBounds(rect(x,y,w,h));synth_[i].label.setBounds(rect(x-5,y+h+1,w+10,18));};

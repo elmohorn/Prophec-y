@@ -11,7 +11,7 @@ void CharacterDeviceView::update(int type,const std::array<float,7>& parameters,
     type_=type;parameters_=parameters;
     if(motion)reading_=reading;
     if(!reading.active){reading_.active=false;reading_.device={};}
-    setDescription(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(type)])+": measured audio activity. Motion pauses live visualization.");repaint();
+    setDescription(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(type)])+": measured audio activity on the dominant input channel. Motion pauses live visualization.");repaint();
 }
 void CharacterDeviceView::paint(juce::Graphics& g)
 {
