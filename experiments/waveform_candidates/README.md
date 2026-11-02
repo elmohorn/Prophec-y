@@ -54,3 +54,14 @@ plugins completos, visuales o sonoras en DAW; no prueban el coste gráfico en el
 PC del usuario. La vista del modelo y una futura traza real deben etiquetarse
 por separado; inactividad, polifonía, publicación sin bloqueos y cierre del
 editor necesitan pruebas específicas antes de integrar en producción.
+
+### Comprobación adicional del build WaveForge
+
+El árbol de WaveForge fijado arriba se configuró y compiló como aplicación
+Standalone Linux usando la copia local de JUCE de Prophec-Y. La compilación
+terminó correctamente. El intento de abrirla con Xvfb no pudo iniciar su servidor
+X por falta de sockets locales en este entorno: no se hizo una ejecución ni
+inspección visual del programa completo. FigBug y Simple Oscilloscope tampoco
+se ejecutaron completos; las pruebas anteriores ejercitan únicamente sus piezas
+indicadas. Esta limitación mantiene la elección como recomendación técnica
+provisional y no acredita que un plugin haya ganado una prueba de usabilidad.
