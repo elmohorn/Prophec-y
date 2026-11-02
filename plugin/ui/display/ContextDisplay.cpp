@@ -25,7 +25,7 @@ void ContextDisplay::paint(juce::Graphics& g)
     g.setColour(line);g.drawLine(16,35.f,static_cast<float>(getWidth()-16),35.f,1.f);
     g.setColour(ink);g.setFont(10.f);g.drawText(content_.title,16,38,getWidth()-130,17,juce::Justification::centredLeft);
     g.setColour(accent);g.setFont(12.f);g.drawText(content_.value,getWidth()-125,38,109,17,juce::Justification::centredRight);
-    const juce::Rectangle<float> plot(17,60,static_cast<float>(getWidth()-34),36);
+    const juce::Rectangle<float> plot(17,58,static_cast<float>(getWidth()-34),static_cast<float>(std::max(20,getHeight()-80)));
     g.setColour(line.withAlpha(.5f));
     for(int i=0;i<=4;++i){const float x=plot.getX()+plot.getWidth()*static_cast<float>(i)/4.f;g.drawLine(x,plot.getY(),x,plot.getBottom(),.6f);}
     g.drawLine(plot.getX(),plot.getBottom(),plot.getRight(),plot.getBottom(),.7f);
@@ -39,9 +39,11 @@ void ContextDisplay::paint(juce::Graphics& g)
         if(!envelope){g.setColour(line);g.drawLine(plot.getX(),plot.getCentreY(),plot.getRight(),plot.getCentreY(),.7f);}
         juce::Path trace;bool first=true;
         for(const auto& p:curve_.points){const auto xy=point(p);if(first){trace.startNewSubPath(xy);first=false;}else trace.lineTo(xy);}
-        auto fill=trace;fill.lineTo(plot.getRight(),plot.getBottom());fill.lineTo(plot.getX(),plot.getBottom());fill.closeSubPath();
-        g.setGradientFill(juce::ColourGradient(ink.withAlpha(.13f),0,plot.getY(),ink.withAlpha(0.f),0,plot.getBottom(),false));g.fillPath(fill);
-        g.setColour(ink);g.strokePath(trace,juce::PathStrokeType(1.4f));
+        if(envelope) {
+            auto fill=trace;fill.lineTo(plot.getRight(),plot.getBottom());fill.lineTo(plot.getX(),plot.getBottom());fill.closeSubPath();
+            g.setGradientFill(juce::ColourGradient(ink.withAlpha(.13f),0,plot.getY(),ink.withAlpha(0.f),0,plot.getBottom(),false));g.fillPath(fill);
+        }
+        g.setColour(envelope?ink:juce::Colour{0xffb6e3db});g.strokePath(trace,juce::PathStrokeType(1.8f));
         if(envelope&&curve_.noteOff<curve_.duration){const float x=plot.getX()+static_cast<float>(curve_.noteOff/curve_.duration)*plot.getWidth();g.setColour(accent.withAlpha(.7f));g.drawLine(x,plot.getY(),x,plot.getBottom(),.8f);}
     } else {
         // A position bar cannot be mistaken for a filter transfer function.
@@ -49,5 +51,5 @@ void ContextDisplay::paint(juce::Graphics& g)
         g.setColour(ink);g.fillRoundedRectangle(plot.getX(),plot.getCentreY()-2,plot.getWidth()*static_cast<float>(std::clamp(content_.position,0.,1.)),4,2);
     }
     g.setColour(dim);g.setFont(8.f);
-    g.drawText(curve_.truncated?"TRUNCATED / "+content_.caption:content_.caption,16,101,getWidth()-32,15,juce::Justification::centredLeft);
+    g.drawText(curve_.truncated?"TRUNCATED / "+content_.caption:content_.caption,16,getHeight()-18,getWidth()-32,15,juce::Justification::centredLeft);
 }

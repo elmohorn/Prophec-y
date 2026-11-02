@@ -74,7 +74,7 @@ void P6PluginEditor::MetalLook::drawToggleButton(juce::Graphics& g,juce::ToggleB
         g.setGradientFill(juce::ColourGradient(amber.withAlpha(.65f),xx+6,yy+6,amber.withAlpha(0.f),xx+16,yy+6,true));
         g.fillEllipse(xx-5,yy-5,22,22);g.setColour(juce::Colour{0xffffbe77});g.fillEllipse(xx+4,yy+4,4,4);
     }
-    g.setColour(b.isEnabled()?ink:muted);g.setFont(10.5f);
+    g.setColour(b.isEnabled()?ink:muted);g.setFont(tile?9.f:10.5f);
     g.drawText(b.getButtonText(),tile?0:20,tile?16:0,tile?b.getWidth():b.getWidth()-20,tile?14:b.getHeight(),tile?juce::Justification::centred:juce::Justification::centredLeft);
 }
 juce::Label* P6PluginEditor::MetalLook::createComboBoxTextBox(juce::ComboBox& c)
@@ -170,7 +170,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     constexpr std::array<int,18> switchIds{1,10,11,156,29,48,135,91,145,146,147,148,149,93,94,95,97,98};
     constexpr std::array<const char*,18> switchNames{"SYNC","LOW FREQ","KEYBOARD","UNISON","GLIDE ON","VELOCITY","FX ON","SYNC","FREQ 1","SHAPE 1","PW 1","LP","HP","OSC 1","OSC 2","PW 1+2","LP","HP"};
     for(std::size_t i=0;i<switches_.size();++i) {
-        auto& sw=switches_[i];sw.button.setLookAndFeel(&look_);sw.button.setButtonText(switchNames[i]);
+        auto& sw=switches_[i];sw.button.setLookAndFeel(&look_);sw.button.setButtonText(i==13?"O1":i==14?"O2":i==15?"PW":switchNames[i]);
         sw.button.setTitle(juce::String(i<13&&i>=8?"Poly Mod ":i>=13?"LFO ":"")+switchNames[i]);
         if(i>=8||i<4||i==6)sw.button.getProperties().set("ledTile",true);
         addAndMakeVisible(sw.button);
@@ -321,8 +321,8 @@ void P6PluginEditor::resized()
     for(std::size_t i=0;i<4;++i){knob(i,54+94.f*static_cast<float>(i),119);knob(i+4,54+94.f*static_cast<float>(i),269);}
     knob(8,337,366,49,47);
     knob(9,502,318,79,77);knob(10,621,279,139,137);knob(11,785,318,79,77);knob(12,890,318,79,77);
-    knob(13,1016,115,76,68);knob(14,1108,115,76,68);
-    knob(15,1016,224,62,65);knob(16,1090,224,62,65);knob(17,1164,224,62,65);
+    knob(13,1030,115,75,68);knob(14,1124,115,75,68);
+    knob(15,1030,224,62,65);knob(16,1104,224,62,65);knob(17,1178,224,62,65);
     for(std::size_t i=0;i<4;++i){knob(18+i,1030+94.f*static_cast<float>(i),344,75,68);knob(22+i,1030+94.f*static_cast<float>(i),444,75,68);}
     knob(26,553,535,72,65);knob(27,653,535,72,65);knob(28,753,535,72,65);knob(29,1302,539,89,78);
     for(std::size_t i=0;i<2;++i)knob(30+i,1032+88.f*static_cast<float>(i),549,65,58);
@@ -339,7 +339,7 @@ void P6PluginEditor::resized()
     if(!expanded){previous_.setBounds(rect(305,652,25,23));type_.setBounds(rect(338,652,155,23));next_.setBounds(rect(501,652,25,23));position_.setBounds(rect(550,652,145,24));bypass_.setBounds(rect(735,652,100,24));}
     collapse_.setBounds(rect(1190,652,90,24));motion_.setBounds(rect(1301,652,91,24));
     knob(36,883,109,88,88);
-    displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
+    displayArea_=rect(526,96,322,145);display_.setBounds(displayArea_);tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
     chamber_.setBounds(rect(65,720,320,180));device_.setBounds(chamber_.getBounds());
     for(std::size_t i=0;i<tube_.size();++i){const float x=421+114.f*static_cast<float>(i);tube_[i].label.setBounds(rect(x,759,106,20));tube_[i].slider.setBounds(rect(x,782,106,106));}
 
@@ -384,7 +384,7 @@ void P6PluginEditor::refreshDisplay()
         content.spec.kind=p6plugin::ui::PreviewKind::Oscillator;
         content.spec.values={raw(second?8:3)/254.,p6::mappedPulseWidth(static_cast<std::uint16_t>(raw(second?9:4)),context.calibration),context.calibration.pulseMeanNormalization,0.,0.};
         content.title=juce::String(second?"OSC 2 / ":"OSC 1 / ")+focusName_;
-        content.caption="NOMINAL CYCLE / PHASE 0-1 / NO SYNC OR MOD";
+        content.caption="MODEL / NO SYNC OR MOD / PW "+juce::String(juce::roundToInt(100.*content.spec.values[1]))+"%";
     } else if((focusNrpn_>=67&&focusNrpn_<=70)||(focusNrpn_>=78&&focusNrpn_<=81)||focusNrpn_==77) {
         const bool filter=focusNrpn_>=77;
         const int first=filter?78:67;
@@ -444,7 +444,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
     section(g,"OSCILLATOR 1",56,90,360);section(g,"OSCILLATOR 2",56,240,360);section(g,"MIXER",56,431,360);
     section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);section(g,"FX",916,528,315);
     section(g,"POLY MOD",1020,85,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,316,373);section(g,"AMPLIFIER ENVELOPE",1020,426,373);
-    g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
+    g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1001*sx,107,1001*sx,615,1.f);
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
     paintCharacterPanel(g);
