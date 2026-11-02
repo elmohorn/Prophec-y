@@ -42,5 +42,11 @@ int main()
         auto future=bytes;future[4]=99;CHECK(!p6plugin::decodeState(future,state));
         CHECK(p6plugin::encodeState(state)==upgraded);
     }
+    // v3 master/Tubes survive migration; v4 preserves all inactive modules.
+    p6plugin::WrapperState custom;custom.masterOutputDb=-23.4f;
+    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)custom.character.custom[d][i]=static_cast<float>(d*7+i)/100.f;
+    for(int type=0;type<6;++type){custom.character.type=type;custom.character.legacyType=1;auto bytes=p6plugin::encodeState(custom);p6plugin::WrapperState decoded;CHECK(p6plugin::decodeState(bytes,decoded));CHECK(decoded.character.type==type);CHECK(decoded.character.legacyType==(type<2?type:1));CHECK(decoded.character.custom==custom.character.custom);}
+    custom.character.type=1;auto bytes=p6plugin::encodeState(custom);bytes[4]=3;bytes.resize(p6plugin::kV3StateBytes);
+    p6plugin::WrapperState decoded;CHECK(p6plugin::decodeState(bytes,decoded));CHECK(decoded.character.type==1);CHECK(std::abs(decoded.masterOutputDb+23.4f)<.001f);CHECK(decoded.character.custom==p6plugin::kCustomDefaults);
     std::cout<<"Historical encoder fixtures v0.17-v0.20: payload, wrapper, migration and rejection verified\n";
 }

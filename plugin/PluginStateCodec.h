@@ -19,10 +19,11 @@ struct WrapperState {
 };
 
 inline constexpr std::array<std::uint8_t, 4> kStateMagic { 'P', '6', 'V', '1' };
-inline constexpr std::uint16_t kStateVersion = 3;
+inline constexpr std::uint16_t kStateVersion = 4;
 inline constexpr std::size_t kV1StateBytes = 4 + 2 + 2 + 2 + 1024 + 8 + 8;
 inline constexpr std::size_t kV2StateBytes = kV1StateBytes + 3 + 14;
-inline constexpr std::size_t kEncodedStateBytes = kV2StateBytes + 2;
+inline constexpr std::size_t kV3StateBytes = kV2StateBytes + 2;
+inline constexpr std::size_t kEncodedStateBytes = kV3StateBytes + 57;
 
 std::vector<std::uint8_t> encodeState(const WrapperState& state);
 bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state);

@@ -227,7 +227,16 @@ jobs:
         run: |
           set -euo pipefail
           cat > notes.md <<'EOF'
-          ## v0.20 — Local preset browser
+          ## v0.20 — Four custom Character devices
+          - Plasma: stateful ignition, hysteresis/hold, conduction distortion and tone.
+          - Optical Spring: dispersive spring FDN with three internal pickups and stereo blend.
+          - Ferrofluid: resonant envelope-following filter, bipolar sensitivity and response control.
+          - Neon Wavefolder: asymmetric multi-fold transfer, bias and tone, using the MIT DaisySP kernel.
+          - Every device has seven independent saved/automatable controls, Start/End insertion, bypass, Mix/Output and a native recessed window informed by audio telemetry.
+          - Wrapper codec v4 reads v1/v2/v3 and preserves all device values; legacy None/Tube normalized automation remains unchanged. Prophet SysEx is untouched.
+          - Original software effects inspired by physical visual metaphors; not verified emulations of commercial pedals. Extreme folding is not claimed alias-free.
+
+          ### Local preset browser
           - PRESETS opens a native overlay: Factory Init / Imported / User, search, bank/category filters and persistent favorites.
           - Save / Save As store musical state and Character. Loads preserve Master, quality, clock, calibration and runtime globals; unsaved edits require confirmation before replacement.
           - Import Prophet-6 .syx programs or concatenated bank dumps without replacing the active sound. Export current program or saved selected bank; unchanged imports retain original frames and ordering.
@@ -235,9 +244,9 @@ jobs:
           - Factory includes our own Init only. No Sequential factory banks are bundled. After a DAW reload, sound is restored but library association is transient; use Save As unless reselecting a library entry.
 
           ### Existing v0.20 features
-          - Master Output and L/R sample peak/RMS/CLIP. New instances: -18 dB; legacy v1/v2 sessions: 0 dB. State codec v3, no limiter or voice normalization.
+          - Master Output and L/R sample peak/RMS/CLIP. New instances: -18 dB; legacy v1/v2 sessions: 0 dB. Master was introduced in codec v3; no limiter or voice normalization.
           - Independent Character faceplate and recessed Tube chamber, driven by measured telemetry. Standard FX A/B, exact/raw editing and contextual oscillator/ADSR model previews remain available.
-          - This remains a preview. Custom Studio, remaining contextual views/FX work, Compare/A-B/undo and manual DAW validation are pending. MIDI channel/monitor work is postponed. Fixed latency remains 71 samples.
+          - This remains a preview. Custom Studio, remaining contextual views, custom FX listening/visual refinement, Compare/A-B/undo and manual DAW validation are pending. MIDI channel/monitor work is postponed. Fixed latency remains 71 samples.
 
           ### Windows installation
           Close the DAW, extract the Windows ZIP, locate the entire **P6 Core.vst3** folder and copy it to `C:\Program Files\Common Files\VST3\`. Rescan plugins and load **P6 Core** as an instrument. Preserve a backup before replacing an older build; the plugin identity is shared.

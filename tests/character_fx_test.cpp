@@ -69,6 +69,45 @@ int main()
         CHECK(fx.telemetry().changeRms<1e-5f);
         fx.prepare(sr);CHECK(fx.telemetry().inputRms==0.f);CHECK(fx.telemetry().changeRms==0.f);
     }
+    // All new devices: deterministic audio, hot-input stability, independent
+    // stereo (spring is an intentional coupled tank), zero realtime allocation.
+    for(double sr:{44100.,48000.,96000.,192000.})for(int type=2;type<6;++type) {
+        p6plugin::CharacterFx a,b;a.prepare(sr);b.prepare(sr);
+        p6plugin::CharacterState state;state.type=type;state.custom[static_cast<std::size_t>(type-2)][5]=1;
+        a.setState(state);b.setState(state);double energy=0;bool valid=true;
+        counting=true;
+        for(int n=0;n<12000;++n){
+            const double x=n<8000?.2*std::sin(n*.11):0.;
+            a.advanceRoute();b.advanceRoute();const auto y=a.process({x,0}),z=b.process({x,0});
+            valid=valid&&y.left==z.left&&y.right==z.right&&std::isfinite(y.left)&&std::abs(y.left)<32;
+            if(type!=3)valid=valid&&std::abs(y.right)<1.e-8;
+            energy+=y.left*y.left;
+        }
+        counting=false;CHECK(valid);CHECK(allocations==0);CHECK(energy>1.e-5);CHECK(a.telemetry().type==type);
+        // Bypass and Mix=0 must null the exact latency-aligned input, no tail.
+        for(int mode=0;mode<2;++mode){
+            state.bypass=mode==0;state.custom[static_cast<std::size_t>(type-2)][5]=mode==1?0.f:1.f;a.setState(state);
+            for(int n=0;n<static_cast<int>(sr*.04);++n){a.advanceRoute();a.process({});}
+            for(int n=0;n<180;++n){a.advanceRoute();const auto y=a.process({n==0?.7:0.,n==0?-.3:0.});CHECK(y.left==(n==71?.7:0.));CHECK(y.right==(n==71?-.3:0.));}
+        }
+        state.bypass=false;state.custom[static_cast<std::size_t>(type-2)][5]=1;
+        counting=true;
+        for(int n=0;n<16000;++n){
+            if(n%257==0){state.type=2+(n/257)%4;state.position=(n/257)%2;for(auto& device:state.custom)for(auto& v:device)v=static_cast<float>((n/257)%3)*.5f;a.setState(state);}
+            a.advanceRoute();const auto y=a.process({8.*std::sin(n*.073),-7.*std::sin(n*.17)});
+            valid=valid&&std::isfinite(y.left)&&std::isfinite(y.right)&&std::abs(y.left)<64&&std::abs(y.right)<64;
+        }
+        counting=false;CHECK(valid);CHECK(allocations==0);
+    }
+    // Spring pickups must carry a decaying impulse tail rather than dry audio.
+    {
+        p6plugin::CharacterFx spring;spring.prepare(48000);p6plugin::CharacterState state;state.type=3;
+        state.custom[1][1]=.15f;state.custom[1][5]=1;spring.setState(state);
+        for(int n=0;n<1000;++n){spring.advanceRoute();spring.process({});}
+        double early=0,late=0;
+        for(int n=0;n<144000;++n){const auto y=spring.process({n==0?1.:0.,0});if(n>1000&&n<20000)early+=y.left*y.left;if(n>120000)late+=y.left*y.left;}
+        CHECK(early>1.e-5);CHECK(late<early*.001);
+    }
     // The unchanged engine and the None wrapper must null after exactly the
     // declared delay; do not compare only RMS/spectrum.
     p6::P6Engine a,b;a.prepare(48000,1);b.prepare(48000,1);

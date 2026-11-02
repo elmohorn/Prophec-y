@@ -110,12 +110,12 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     look_.setColour(juce::ComboBox::textColourId,ink);
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
-    addAndMakeVisible(display_);addChildComponent(chamber_);
+    addAndMakeVisible(display_);addChildComponent(chamber_);addChildComponent(device_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
     }
     for(auto* c:{&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) c->setColour(juce::ComboBox::textColourId,ink);
-    type_.addItem("NONE",1);type_.addItem("TUBE / 01",2);type_.setTitle("Prophec-y effect");
+    for(int t=0;t<p6plugin::kCharacterTypes;++t)type_.addItem(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(t)]).toUpperCase(),t+1);type_.setTitle("Prophec-y effect");
     type_.getProperties().set("characterPlate",true);position_.getProperties().set("characterPlate",true);
     position_.addItem("START OF FX",1);position_.addItem("END OF FX",2);position_.setTitle("Effect position");
     keyTrack_.addItem("OFF",1);keyTrack_.addItem("HALF",2);keyTrack_.addItem("FULL",3);keyTrack_.setTitle("Low-pass keyboard tracking");
@@ -140,17 +140,17 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     clearClips_.setLookAndFeel(&look_);clearClips_.setTooltip("Clear latched output clip and pre-master over-zero indicators.");
     clearClips_.onClick=[this]{processor_.resetOutputClips();outputMeter_.update(processor_.consumeOutputReadings());};addAndMakeVisible(clearClips_);
     outputMeter_.update(processor_.consumeOutputReadings());lastOutputRevision_=processor_.outputRevision();
-    typeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kCharacterTypeID,type_);
+    type_.onChange=[this]{setType(type_.getSelectedId()-1);};
     positionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kCharacterPositionID,position_);
     keyBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(47),keyTrack_);
     fxATypeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(119),fxAType_);
     fxBTypeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(127),fxBType_);
     bypassBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,p6plugin::kCharacterBypassID,bypass_);
-    previous_.onClick=[this]{setType(0);};next_.onClick=[this]{setType(1);};
+    previous_.onClick=[this]{setType(processor_.selectedCharacterType()-1);};next_.onClick=[this]{setType(processor_.selectedCharacterType()+1);};
     module_.onClick=[this]{studioView_=false;refreshVisibility();};studio_.onClick=[this]{studioView_=true;refreshVisibility();};
     collapse_.onClick=[this]{collapsed_=!collapsed_;refreshVisibility();};motion_.setToggleState(true,juce::dontSendNotification);
     motion_.setTooltip("Pause the light animation; audio continues.");collapse_.setTooltip("Hide the device, keeping its audio active.");
-    type_.setTooltip("None removes the character effect; Tube settings are retained.");
+    type_.setTooltip("Select a Character device. Every device retains its own settings.");
     position_.setTooltip("Start: before distortion, FX A and FX B. End: after FX B.");
     fxAType_.setTooltip("Select standard Prophet-6 FX slot A. Use FX ON to enable the standard chain.");
     fxBType_.setTooltip("Select standard Prophet-6 FX slot B. Slot B also contains the reverbs.");
@@ -217,7 +217,7 @@ void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String&
 }
 void P6PluginEditor::setType(int value)
 {
-    if(auto* p=processor_.parameters().getParameter(p6plugin::kCharacterTypeID)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(value)));p->endChangeGesture();}refreshVisibility();
+    processor_.selectCharacterType(value);refreshVisibility();
 }
 void P6PluginEditor::timerCallback()
 {
@@ -228,8 +228,7 @@ void P6PluginEditor::timerCallback()
     auto readings=processor_.consumeOutputReadings();
     if(staleOutputTicks_>=30){readings.peak={};readings.rms={};readings.prePeak={};}
     outputMeter_.update(readings);
-    const bool selected=processor_.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()>=.5f;
-    if(selected!=showTube_)refreshVisibility();
+    if(processor_.selectedCharacterType()!=boundType_)refreshVisibility();
     if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");}
     const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");if(name!=presetName_){presetName_=name;repaint(displayArea_);}
     if(focusNrpn_>=0) {
@@ -253,6 +252,7 @@ void P6PluginEditor::timerCallback()
     staleVisualTicks_=revision==lastVisualRevision_?std::min(30,staleVisualTicks_+1):0;
     lastVisualRevision_=revision;
     const auto sample=processor_.characterTelemetry();
+    visual_.type=sample.type;visual_.device=sample.device;
     const bool bypassed=processor_.parameters().getRawParameterValue(p6plugin::kCharacterBypassID)->load()>=.5f;
     const bool live=staleVisualTicks_<4;
     visual_.active=sample.active&&!bypassed&&live;
@@ -265,21 +265,26 @@ void P6PluginEditor::timerCallback()
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
     chamber_.setIllumination(visual_.active,motion_.getToggleState(),glow_,characterGlow_);
+    updateDevice();
     if(showTube_&&!collapsed_&&!studioView_)repaint(tubeArea_);
     refreshDisplay();
 }
 void P6PluginEditor::refreshVisibility()
 {
-    showTube_=processor_.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()>=.5f;
+    const int selected=processor_.selectedCharacterType();
+    if(boundType_!=selected)bindDevice(selected);
+    showTube_=selected>0;
+    type_.setSelectedId(selected+1,juce::dontSendNotification);
     for(auto& k:synth_){k.slider.setVisible(!studioView_);k.label.setVisible(!studioView_);}
     for(auto& s:switches_)s.button.setVisible(!studioView_);
     fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
     for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_);k.label.setVisible(k.slider.isVisible());}
     diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
-    chamber_.setVisible(!studioView_&&showTube_&&!collapsed_);
+    chamber_.setVisible(!studioView_&&selected==1&&!collapsed_);
+    device_.setVisible(!studioView_&&selected>=2&&!collapsed_);updateDevice();
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
     collapse_.setVisible(!studioView_&&showTube_);motion_.setVisible(!studioView_&&showTube_&&!collapsed_);
-    position_.setEnabled(showTube_);bypass_.setEnabled(showTube_);previous_.setEnabled(showTube_);next_.setEnabled(!showTube_);
+    position_.setEnabled(showTube_);bypass_.setEnabled(showTube_);previous_.setEnabled(selected>0);next_.setEnabled(selected<p6plugin::kCharacterTypes-1);
     module_.setToggleState(!studioView_,juce::dontSendNotification);studio_.setToggleState(studioView_,juce::dontSendNotification);
     collapse_.setButtonText(collapsed_?"SHOW":"HIDE");
     const bool expanded=!studioView_&&showTube_&&!collapsed_;
@@ -319,7 +324,7 @@ void P6PluginEditor::resized()
     collapse_.setBounds(rect(1190,652,90,24));motion_.setBounds(rect(1301,652,91,24));
     knob(36,883,109,88,88);
     displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
-    chamber_.setBounds(rect(65,720,320,180));
+    chamber_.setBounds(rect(65,720,320,180));device_.setBounds(chamber_.getBounds());
     for(std::size_t i=0;i<tube_.size();++i){const float x=421+114.f*static_cast<float>(i);tube_[i].label.setBounds(rect(x,759,106,20));tube_[i].slider.setBounds(rect(x,782,106,106));}
 
 }
@@ -397,8 +402,8 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     g.setColour(muted);g.setFont(juce::Font(10.f).boldened());
-    g.drawText("VALVE SATURATION",static_cast<int>(430*sx),696,static_cast<int>(240*sx),18,juce::Justification::centredLeft);
-    g.drawText("TONE",static_cast<int>(770*sx),696,static_cast<int>(200*sx),18,juce::Justification::centredLeft);
+    g.drawText(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(std::max(0,boundType_))]).toUpperCase(),static_cast<int>(430*sx),696,static_cast<int>(240*sx),18,juce::Justification::centredLeft);
+    g.drawText(boundType_==1?"TONE":"CHARACTER",static_cast<int>(770*sx),696,static_cast<int>(200*sx),18,juce::Justification::centredLeft);
     g.drawText("LEVEL",static_cast<int>(1085*sx),696,static_cast<int>(130*sx),18,juce::Justification::centredLeft);
     g.drawText("INSERTION",static_cast<int>(1260*sx),789,static_cast<int>(120*sx),18,juce::Justification::centredLeft);
     g.setColour(muted.withAlpha(.3f));g.drawLine(405*sx,691,405*sx,898,1);g.drawLine(1238*sx,731,1238*sx,893,1);
@@ -429,4 +434,55 @@ void P6PluginEditor::paint(juce::Graphics& g)
     paintCharacterPanel(g);
     g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),651,static_cast<int>(240*sx),24,juce::Justification::centredLeft);
     if(showTube_&&!collapsed_)paintTube(g);
+}
+
+void P6PluginEditor::bindDevice(int type)
+{
+    boundType_=type;
+    for(std::size_t i=0;i<7;++i) {
+        auto& k=tube_[i];
+        k.slider.onValueChange={};k.slider.onDragStart={};k.slider.onSelected={};
+        k.attachment.reset();
+        const auto* id=type>=2?p6plugin::kCustomIDs[static_cast<std::size_t>(type-2)][i]:p6plugin::kTubeIDs[i];
+        const auto* name=type>=2?p6plugin::kCustomNames[static_cast<std::size_t>(type-2)][i]:p6plugin::kTubeNames[i];
+        k.slider.setTitle(name);k.label.setText(name,juce::dontSendNotification);
+        k.slider.setTooltip(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(type)])+" "+name+". Drag, arrow keys, Shift for fine adjustment; double-click to reset.");
+        k.attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor_.parameters(),id,k.slider);
+        k.slider.setDoubleClickReturnValue(true,type>=2?p6plugin::kCustomDefaults[static_cast<std::size_t>(type-2)][i]:p6plugin::kTubeDefaults[i]);
+        k.slider.setWantsKeyboardFocus(true);k.slider.setDescription(k.slider.getTooltip());
+        const bool drive=i==0&&type!=4;
+        const double minimum=type==1?-12.:type==3?-12.:0.,span=type==1?48.:type==3?24.:type==5?24.:36.;
+        k.slider.textFromValueFunction=[i,type,drive,minimum,span](double v){
+            if(i==6)return juce::String(-24.+36.*v,1)+" dB";
+            if(drive)return juce::String(minimum+span*v,1)+" dB";
+            if(type==4&&i==0)return juce::String(20.*std::pow(900.,v),1)+" Hz";
+            if(type==4&&i==3)return juce::String(10.+290.*v,1)+" ms";
+            if(type==4&&i==4)return juce::String(200.*v-100.,0)+" %";
+            return juce::String(v*100.,0)+" %";
+        };
+        k.slider.valueFromTextFunction=[i,type,drive,minimum,span,&k](const juce::String& text){
+            const juce::String unit=i==6||drive?"dB":type==4&&i==0?"Hz":type==4&&i==3?"ms":"%";
+            const auto clean=text.trim().replace(unit,"",true).trim().toStdString();char* end=nullptr;
+            const double v=std::strtod(clean.c_str(),&end);
+            if(end==clean.c_str()||!end||*end!='\0'||!std::isfinite(v))return k.slider.getValue();
+            double normalized=v/100.;
+            if(i==6)normalized=(v+24.)/36.;
+            else if(drive)normalized=(v-minimum)/span;
+            else if(type==4&&i==0)normalized=v>0?std::log(v/20.)/std::log(900.):-1.;
+            else if(type==4&&i==3)normalized=(v-10.)/290.;
+            else if(type==4&&i==4)normalized=(v+100.)/200.;
+            return normalized>=0.&&normalized<=1.?normalized:k.slider.getValue();
+        };
+        k.slider.onValueChange=[this,&k]{focusNrpn_=-1;focusName_=k.slider.getTitle();focusValue_=k.slider.getTextFromValue(k.slider.getValue());refreshDisplay();updateDevice();};
+        k.slider.onDragStart=k.slider.onValueChange;k.slider.onSelected=k.slider.onValueChange;
+        k.slider.updateText();
+    }
+}
+void P6PluginEditor::updateDevice()
+{
+    if(boundType_<2)return;
+    std::array<float,7> values{};
+    for(std::size_t i=0;i<7;++i)values[i]=processor_.parameters().getRawParameterValue(p6plugin::kCustomIDs[static_cast<std::size_t>(boundType_-2)][i])->load();
+    auto reading=visual_;reading.active=reading.active&&reading.type==boundType_;
+    device_.update(boundType_,values,reading,motion_.getToggleState());
 }

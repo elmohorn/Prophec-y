@@ -1,5 +1,11 @@
 # v0.20 — Interfaz y flujo de presets
 
+Prioridad acordada: audicionar los cuatro nuevos módulos Character — Plasma,
+Optical Spring, Ferrofluid y Neon Wavefolder — antes de retomar MIDI y Studio.
+Los cuatro prototipos nativos ya tienen DSP, controles/estado y ventana común;
+ver [alcance actual](V0_20_CUSTOM_CHARACTER.md). El cierre de v0.20 sigue pendiente.
+
+
 Estado: **PROTOTIPO ACTIVO EN IMPLEMENTACIÓN**, 1 de noviembre de 2026, Santiago.
 
 Dirección acordada: vistas **Module + Studio** sobre el módulo contemporáneo de aluminio. Module ya incorpora la organización principal del sinte, Performance, selección visible de FX A/B y la bahía Character FX. La colección visual corresponde exclusivamente a efectos propios Prophec-y, empezando por Tube; los efectos normales conservan edición convencional. Ver `V0_20_CHARACTER_CAROUSEL.md` para el carrusel Inicio/Final y `V0_20_FX_COMPARISON.md` para los núcleos ensayados. La válvula DSPark ya está integrada como primer prototipo Character y dispone de telemetría reactiva; ver `V0_20_TUBE_PROTOTYPE.md` y `V0_20_REACTIVE_TUBE.md`. Studio conserva por ahora el editor genérico completo. El estado vivo del branch, incluyendo pitch bend, valores semánticos y diagnóstico de headroom, se mantiene en `V0_20_CURRENT_STATUS.md`.

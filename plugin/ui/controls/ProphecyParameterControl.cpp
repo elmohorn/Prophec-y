@@ -39,7 +39,7 @@ void ProphecyParameterControl::mouseDown(const juce::MouseEvent& event)
 {
     if(onSelected)onSelected();
     if(parameter_&&event.mods.isPopupMenu()){showContextMenu();return;}
-    if(parameter_)setMouseDragSensitivity(event.mods.isShiftDown()?1500:250);
+    setMouseDragSensitivity(event.mods.isShiftDown()?1500:250);
     juce::Slider::mouseDown(event);
 }
 bool ProphecyParameterControl::keyPressed(const juce::KeyPress& key)

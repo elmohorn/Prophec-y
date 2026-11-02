@@ -72,11 +72,18 @@ public:
     float characterExcitation() const noexcept { return characterExcitation_.load(std::memory_order_relaxed); }
     p6plugin::CharacterTelemetry characterTelemetry() const noexcept
     {
-        return {characterInputRms_.load(std::memory_order_relaxed),
-                characterOutputRms_.load(std::memory_order_relaxed),
-                characterChangeRms_.load(std::memory_order_relaxed),
-                characterActive_.load(std::memory_order_relaxed)};
+        p6plugin::CharacterTelemetry t;
+        t.inputRms=characterInputRms_.load(std::memory_order_relaxed);
+        t.outputRms=characterOutputRms_.load(std::memory_order_relaxed);
+        t.changeRms=characterChangeRms_.load(std::memory_order_relaxed);
+        t.active=characterActive_.load(std::memory_order_relaxed);
+        t.type=characterActiveType_.load(std::memory_order_relaxed);
+        for(std::size_t i=0;i<8;++i)t.device.values[i]=deviceValues_[i].load(std::memory_order_relaxed);
+        for(std::size_t i=0;i<32;++i){t.device.input[i]=deviceInput_[i].load(std::memory_order_relaxed);t.device.wet[i]=deviceWet_[i].load(std::memory_order_relaxed);}
+        return t;
     }
+    int selectedCharacterType() const noexcept;
+    void selectCharacterType(int);
     unsigned characterTelemetryRevision() const noexcept { return characterTelemetryRevision_.load(std::memory_order_relaxed); }
     p6plugin::OutputReadings consumeOutputReadings() noexcept;
     void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
@@ -130,6 +137,11 @@ private:
     std::atomic<float> characterInputRms_{},characterOutputRms_{},characterChangeRms_{};
     std::atomic<bool> characterActive_{};
     std::atomic<unsigned> characterTelemetryRevision_{};
+    std::atomic<int> characterActiveType_{};
+    std::array<std::atomic<float>,8> deviceValues_{};
+    std::array<std::atomic<float>,32> deviceInput_{},deviceWet_{};
+    std::atomic<float>* customType_{};
+    std::array<std::array<std::atomic<float>*,7>,4> customParameters_{};
     std::array<std::atomic<float>*, 7> tubeParameters_{};
     std::array<std::atomic<float>*, 3> characterParameters_{};
     p6::P6PerformanceScheduler scheduler_ { engine_ };

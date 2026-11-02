@@ -1,5 +1,15 @@
 # v0.20 — Current implementation status
 
+## Custom Character priority — four native prototypes implemented
+
+Plasma, Optical Spring, Ferrofluid and Neon Wavefolder now join Tube in the
+same recessed bay. Each has real DSP, seven independent persistent controls,
+Start/End routing and an audio-informed native visualization. See
+[V0_20_CUSTOM_CHARACTER.md](V0_20_CUSTOM_CHARACTER.md) for the exact scope,
+source reuse, compatibility strategy and validation. MIDI policy and custom
+Studio remain postponed by request while these modules are auditioned.
+
+
 Status: **active prototype / engineering checkpoint**, 1 November 2026.
 
 This file is the current short-form ledger for the `v0.20-ui` branch. It records what is implemented, what has been measured, and what is still intentionally unresolved. It complements the design/history documents rather than replacing them.

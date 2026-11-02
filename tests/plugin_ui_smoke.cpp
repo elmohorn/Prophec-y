@@ -262,6 +262,28 @@ int main(int argc,char** argv)
         CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
         CHECK(screenshot(*editor,folder.getChildFile("module_none.png")));
     }
+    // Added IDs do not alter the old None/Tube normalized automation domain.
+    CHECK(p.parameters().getParameter(p6plugin::kCharacterTypeID)->convertFrom0to1(1.f)==1.f);
+    for(int type=2;type<6;++type){
+        p.selectCharacterType(type);CHECK(p.selectedCharacterType()==type);
+        for(std::size_t i=0;i<7;++i)set(p,p6plugin::kCustomIDs[static_cast<std::size_t>(type-2)][i],p6plugin::kCustomDefaults[static_cast<std::size_t>(type-2)][i]);
+        for(int block=0;block<300;++block)p.processBlock(audio,midi);
+        CHECK(p.characterTelemetry().type==type);CHECK(p.characterTelemetry().active);
+        editor.reset();editor.reset(p.createEditor());CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+        int controls=0;
+        for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()){
+            for(std::size_t i=0;i<7;++i)if(slider->getTitle()==p6plugin::kCustomNames[static_cast<std::size_t>(type-2)][i]){
+                ++controls;CHECK(slider->getValueFromText("nan")==slider->getValue());CHECK(slider->getValueFromText("999999")==slider->getValue());const float value=i==5?.8f:.42f;slider->setValue(value,juce::sendNotificationSync);
+                CHECK(std::abs(p.parameters().getRawParameterValue(p6plugin::kCustomIDs[static_cast<std::size_t>(type-2)][i])->load()-value)<.001f);
+            }
+        }
+        CHECK(controls==7);p.getStateInformation(state);restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+        CHECK(restored.selectedCharacterType()==type);CHECK(restored.exportEditBuffer()==sysex);
+        CHECK(p6plugin::encodeState(restored.presetSnapshot())==p6plugin::encodeState(p.presetSnapshot()));
+        for(int block=0;block<300;++block)p.processBlock(audio,midi);
+        editor.reset();editor.reset(p.createEditor());
+        if(argc>1){const juce::File folder{juce::String(argv[1])};CHECK(screenshot(*editor,folder.getChildFile("module_custom_"+juce::String(type)+".png")));}
+    }
     editor.reset();p.releaseResources();
     std::cout<<"Native editor, restored controls, SysEx isolation and live audio smoke passed\n";
 }

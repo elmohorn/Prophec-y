@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/electro-smith/DaisySP",
+  "commit": "2c72eaf9eac5fc0dca1919d65d606da907832618",
+  "license": "MIT",
+  "modifications": "Wavefolder, SVF and DCBlock source files unchanged. Source/Filters/dsp.h is a local minimal PI_F/fclamp adapter replacing unrelated upstream utility dependencies.",
+  "files_sha256": {
+    "LICENSE": "2f4900e73b42229b195386e3347db49dc32913b1ff07f41df554b791e563ded4",
+    "Source/Filters/svf.h": "97356a57d038421c5df461d22de2c2ad02b27e92067c65275791da4831620bca",
+    "Source/Filters/svf.cpp": "27ff7d834b9c6d705570bec43079c752028c15d4bfb00c97140a42508ec87ce0",
+    "Source/Filters/dsp.h": "3a37eeca0dde6055b8029df07a9ce50ad75eb9e2e10684766a94518a1b01157e",
+    "Source/Effects/wavefolder.cpp": "b0aaf67474956848a0d5edcfd5ad82c7223b52c466849b132dcd9989f66e04ef",
+    "Source/Effects/wavefolder.h": "97ab020a9fa2ef9a80d0578f2e2c8b2663fc76281e24a18c2a5fba31193ece15",
+    "Source/Utility/dcblock.cpp": "2fa1e5ce2d090e7791315ba27ac31069407fbf6ebcc065ebb38b42ee6fee24cb",
+    "Source/Utility/dcblock.h": "9b5318ab81de87276e8326e44a25ab08c24168fa545e07aea837ac32bdd5ec83"
+  }
+}

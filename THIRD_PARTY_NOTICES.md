@@ -65,5 +65,23 @@ The minimal transitive header set for `Effects/TubePreamp.h` is now vendored
 unmodified in `third_party/DSPark` from CristianMoresi/DSPark commit
 `0a66a4dd1a4e114d3020ccedd454c4d2e0202560` (MIT, copyright 2026 Cristian Moresi).
 The complete license is retained at `third_party/DSPark/LICENSE` and original
-header notices remain intact. Only the tube adapter links this selection;
-no other previously researched library is a plugin dependency.
+header notices remain intact. TubePreamp uses this selection; custom Character devices also reuse its
+2x high-quality oversampler.
+
+
+## DaisySP — v0.20 custom Character devices
+
+Wavefolder, SVF and DCBlock are vendored from Electrosmith DaisySP commit
+`2c72eaf9eac5fc0dca1919d65d606da907832618` under MIT.
+Original source files are unchanged, with copyright/license retained in
+`third_party/DaisySP/LICENSE`. `Source/Filters/dsp.h` is an original minimal
+PI_F/fclamp include adapter, not a copy of the complete upstream dsp.h.
+The pinned source manifest and hashes are in `third_party/DaisySP/UPSTREAM.json`.
+The full license is also packaged with the VST3 binary.
+
+Neon uses DaisySP's actual folding kernel, Ferrofluid its SVF, and the four
+custom devices use its DC blocker. Plasma's ignition/conduction state machine,
+Optical Spring's dispersive input and pickup blend, and all visual adapters
+are original. Optical Spring reuses Prophec-y's existing algorithmic spring
+FDN. No Gamechanger Audio source, trademark artwork, circuit or firmware was
+copied; these are original effects inspired by physical visual metaphors.

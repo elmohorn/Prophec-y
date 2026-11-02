@@ -86,6 +86,8 @@ P6AudioProcessor::P6AudioProcessor()
     for(std::size_t i=0;i<tubeParameters_.size();++i)
         tubeParameters_[i]=apvts_.getRawParameterValue(p6plugin::kTubeIDs[i]);
     masterDb_=apvts_.getRawParameterValue(p6plugin::kMasterOutputID);
+    customType_=apvts_.getRawParameterValue(p6plugin::kCustomTypeID);
+    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)customParameters_[d][i]=apvts_.getRawParameterValue(p6plugin::kCustomIDs[d][i]);
     characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
                           apvts_.getRawParameterValue(p6plugin::kCharacterPositionID),
                           apvts_.getRawParameterValue(p6plugin::kCharacterBypassID)};
@@ -253,6 +255,12 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{p6plugin::kMasterOutputID,1},"Master Output",
         juce::NormalisableRange<float>{-60.f,0.f,.1f},p6plugin::kNewMasterDb));
+    // Append only: legacy choice range and existing host parameter indices stay stable.
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{p6plugin::kCustomTypeID,1},
+        "Character Custom Module",juce::StringArray{"Legacy","Plasma","Optical Spring","Ferrofluid","Neon Wavefolder"},0));
+    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{p6plugin::kCustomIDs[d][i],1},
+            juce::String(p6plugin::kCharacterNames[d+2])+" "+p6plugin::kCustomNames[d][i],juce::NormalisableRange<float>{0.f,1.f,.001f},p6plugin::kCustomDefaults[d][i]));
     return layout;
 }
 
@@ -630,10 +638,11 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
     applyHostTransport();
     p6plugin::CharacterState characterState;
-    characterState.type=static_cast<int>(characterParameters_[0]->load());
+    characterState.type=selectedCharacterType();
     characterState.position=static_cast<int>(characterParameters_[1]->load());
     characterState.bypass=characterParameters_[2]->load()>=.5f;
     for(std::size_t i=0;i<tubeParameters_.size();++i) characterState.tube[i]=tubeParameters_[i]->load();
+    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)characterState.custom[d][i]=customParameters_[d][i]->load();
     character_.setState(characterState);
     engine_.setCharacterInsert(&character_, [](void* context,p6::StereoSample x) noexcept {
         return static_cast<p6plugin::CharacterFx*>(context)->process(x);
@@ -675,6 +684,9 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     characterOutputRms_.store(visual.outputRms,std::memory_order_relaxed);
     characterChangeRms_.store(visual.changeRms,std::memory_order_relaxed);
     characterActive_.store(visual.active,std::memory_order_relaxed);
+    characterActiveType_.store(visual.type,std::memory_order_relaxed);
+    for(std::size_t i=0;i<8;++i)deviceValues_[i].store(visual.device.values[i],std::memory_order_relaxed);
+    for(std::size_t i=0;i<32;++i){deviceInput_[i].store(visual.device.input[i],std::memory_order_relaxed);deviceWet_[i].store(visual.device.wet[i],std::memory_order_relaxed);}
     characterTelemetryRevision_.fetch_add(1,std::memory_order_relaxed);
 }
 
@@ -751,10 +763,12 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
         }())
     };
 
-    state.character.type=static_cast<int>(characterParameters_[0]->load());
+    state.character.type=selectedCharacterType();
+    state.character.legacyType=static_cast<int>(characterParameters_[0]->load());
     state.character.position=static_cast<int>(characterParameters_[1]->load());
     state.character.bypass=characterParameters_[2]->load()>=.5f;
     for(std::size_t i=0;i<tubeParameters_.size();++i) state.character.tube[i]=tubeParameters_[i]->load();
+    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)state.character.custom[d][i]=customParameters_[d][i]->load();
     state.masterOutputDb=masterDb_->load(std::memory_order_relaxed);
     const auto bytes = p6plugin::encodeState (state);
     destData.replaceAll (bytes.data(), bytes.size());
@@ -793,7 +807,10 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual (kSlopModeID, state.extras[5] != 0);
     setActual (kCalibrationID, std::clamp<int> (state.extras[6], 0, 1));
     setActual (kSequencePlayID, state.extras[7] != 0);
-    setActual(p6plugin::kCharacterTypeID,state.character.type);
+    setActual(p6plugin::kCharacterTypeID,state.character.type<2?state.character.type:state.character.legacyType);
+    setActual(p6plugin::kCustomTypeID,state.character.type>=2?state.character.type-1:0);
+    for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)
+        if(auto* p=apvts_.getParameter(p6plugin::kCustomIDs[d][i]))p->setValueNotifyingHost(state.character.custom[d][i]);
     setActual(p6plugin::kCharacterPositionID,state.character.position);
     setActual(p6plugin::kCharacterBypassID,state.character.bypass?1:0);
     for(std::size_t i=0;i<p6plugin::kTubeIDs.size();++i)
@@ -876,3 +893,16 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
     return new P6AudioProcessor();
 }
 
+
+int P6AudioProcessor::selectedCharacterType() const noexcept
+{
+    const int custom=static_cast<int>(customType_->load(std::memory_order_relaxed));
+    return custom>0?custom+1:static_cast<int>(characterParameters_[0]->load(std::memory_order_relaxed));
+}
+void P6AudioProcessor::selectCharacterType(int type)
+{
+    type=std::clamp(type,0,p6plugin::kCharacterTypes-1);
+    auto change=[this](const char* id,float value){auto* p=apvts_.getParameter(id);p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(value));p->endChangeGesture();};
+    if(type<2)change(p6plugin::kCharacterTypeID,static_cast<float>(type));
+    change(p6plugin::kCustomTypeID,type>=2?static_cast<float>(type-1):0.f);
+}

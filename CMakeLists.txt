@@ -45,8 +45,11 @@ else()
 endif()
 
 enable_testing()
-add_library(p6character plugin/CharacterFx.cpp)
-target_include_directories(p6character PUBLIC plugin PRIVATE third_party/DSPark)
+add_library(p6character plugin/CharacterFx.cpp plugin/CustomCharacter.cpp
+    third_party/DaisySP/Source/Effects/wavefolder.cpp
+    third_party/DaisySP/Source/Filters/svf.cpp
+    third_party/DaisySP/Source/Utility/dcblock.cpp)
+target_include_directories(p6character PUBLIC plugin PRIVATE third_party/DSPark third_party/DaisySP third_party/DaisySP/Source)
 target_link_libraries(p6character PUBLIC p6core)
 set_target_properties(p6character PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_executable(p6core_tests tests/test_main.cpp)

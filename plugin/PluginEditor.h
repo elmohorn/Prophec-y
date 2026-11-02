@@ -3,6 +3,7 @@
 #include "ui/controls/ProphecyParameterControl.h"
 #include "ui/display/ContextDisplay.h"
 #include "ui/fx/TubeChamber.h"
+#include "ui/fx/CharacterDeviceView.h"
 #include "ui/display/OutputMeter.h"
 #include "ui/preset/PresetBrowser.h"
 #include <memory>
@@ -35,6 +36,8 @@ private:
     void timerCallback() override;
     void refreshVisibility();
     void setType(int);
+    void bindDevice(int);
+    void updateDevice();
     void paintCharacterPanel(juce::Graphics&);
     void paintSurface(juce::Graphics&);
     void refreshDisplay();
@@ -47,6 +50,8 @@ private:
     bool presetIsDirty_{};
     ContextDisplay display_;
     TubeChamber chamber_;
+    CharacterDeviceView device_;
+    int boundType_{-1};
     OutputMeter outputMeter_;
     juce::Slider master_;
     juce::Label masterLabel_;
@@ -57,7 +62,7 @@ private:
     juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> typeBinding_,positionBinding_,keyBinding_,fxATypeBinding_,fxBTypeBinding_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> positionBinding_,keyBinding_,fxATypeBinding_,fxBTypeBinding_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassBinding_;
     std::array<Knob,37> synth_;
     std::array<Switch,18> switches_;

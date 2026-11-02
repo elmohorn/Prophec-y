@@ -37,6 +37,8 @@ target_sources(P6CorePlugin PRIVATE
     PluginEditor.h
     ui/controls/ProphecyParameterControl.cpp
     ui/controls/ProphecyParameterControl.h
+    ui/fx/CharacterDeviceView.cpp
+    ui/fx/CharacterDeviceView.h
     ui/fx/TubeChamber.cpp
     ui/fx/TubeChamber.h
     ui/display/OutputMeter.cpp
@@ -73,6 +75,9 @@ add_custom_command(TARGET P6CorePlugin_VST3 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/third_party/DSPark/LICENSE"
         "${P6_VST3_BUNDLE}/Contents/Resources/DSPark-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/third_party/DaisySP/LICENSE"
+        "${P6_VST3_BUNDLE}/Contents/Resources/DaisySP-LICENSE.txt"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
         "${P6_VST3_BUNDLE}/Contents/Resources/THIRD_PARTY_NOTICES.md"

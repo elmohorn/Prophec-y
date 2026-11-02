@@ -1,5 +1,7 @@
 # Prophec-y — v0.20 prototype
 
+**Character FX:** [Plasma, Optical Spring, Ferrofluid y Neon Wavefolder](docs/V0_20_CUSTOM_CHARACTER.md) se suman a Tube, con audio real, controles independientes y ventanas nativas reactivas.
+
 **Presets:** [browser local nativo](docs/V0_20_PRESET_BROWSER.md), búsqueda/favoritos, Save/Save As e import/export de programa y banco SysEx. Factory incluye nuestro Init; los bancos de Sequential no se redistribuyen.
 
 **Salida:** [Master Output y medidores estéreo](docs/V0_20_MASTER_OUTPUT.md): -18 dB en instancias nuevas; 0 dB al migrar sesiones anteriores.
@@ -8,7 +10,7 @@
 
 **Estado actual:** [checkpoint v0.20 de implementación, pitch bend y headroom](docs/V0_20_CURRENT_STATUS.md). [Descargas de previews Windows/Linux](https://github.com/elmohorn/Prophec-y/releases). Las nuevas previews de esta rama se publican únicamente después de aprobar toda la CI. El acabado visual, Studio personalizado, el flujo de presets y las siguientes vistas del display siguen en desarrollo. El OLED ya muestra [ciclos nominales de oscilador y envolventes ADSR del modelo](docs/V0_20_CONTEXT_DISPLAY.md).
 
-The native editor follows the aluminum desktop-module direction: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, performance controls, standard FX A/B selectors, plus the collapsible Prophec-y Character FX bay. The first Character module is the reactive Tube insert. Main Module controls now use human-readable values where mappings are known, while the canonical raw Prophet/SysEx state remains unchanged. The central display also exposes live 14-bit pitch-bend telemetry for hardware diagnosis. Studio still uses the complete generic diagnostic editor.
+The native editor follows the aluminum desktop-module direction: oscillators/mixer, central OLED/filter, Poly Mod/LFO and dual envelopes, performance controls, standard FX A/B selectors, plus the collapsible Prophec-y Character FX bay. The Character bay now includes Tube, Plasma, Optical Spring, Ferrofluid and Neon Wavefolder. Main Module controls now use human-readable values where mappings are known, while the canonical raw Prophet/SysEx state remains unchanged. The central display also exposes live 14-bit pitch-bend telemetry for hardware diagnosis. Studio still uses the complete generic diagnostic editor.
 
 Master Output and stereo sample-peak/RMS/clip metering now follow the complete effect chain. New instances use -18 dB; legacy sessions retain unity gain. No limiter or voice normalization was added. A deterministic 1–6 voice poly/Unison probe is now part of the DSP fingerprint tooling and has a focused GitHub Actions workflow. Ordinary polyphony can exceed 0 dBFS as strongly as, or more strongly than, Unison; the new final Master provides explicit output attenuation without changing internal voice summing. See [current v0.20 status](docs/V0_20_CURRENT_STATUS.md).
 
@@ -26,14 +28,14 @@ Current implemented highlights:
 
 - custom aluminum Module editor with standard synthesis sections;
 - visible standard FX A/B type selection and global FX On/Off;
-- separate Character FX bay with Start/End routing and reactive Tube module;
+- separate Character FX bay with Start/End routing and five independently saved devices;
 - semantic display values on the main Module without changing raw/SysEx domains;
 - full 14-bit pitch-wheel routing plus CC121 recenter regression coverage;
 - live `RAW14` pitch-bend diagnostics in the central display;
 - deterministic polyphonic/Unison headroom measurement in `p6_dsp_fingerprint`;
 - focused `headroom-probe` CI workflow.
 
-Open v0.20 work includes the Master Output/headroom implementation, truthful context-sensitive central visualizations, custom Studio UI, deeper effect-specific editing and preset/browser workflow.
+Open v0.20 work includes custom Studio UI, MIDI channel policy, remaining central visualizations, hardware librarian connection and listening/visual refinement of the custom Character prototypes.
 
 ## v0.19 — Final calibration and engineering closeout
 
