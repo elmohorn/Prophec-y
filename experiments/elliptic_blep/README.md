@@ -24,3 +24,14 @@ La energía fuera de armónicos usa una FFT coherente de 1 segundo, notas estát
 ## Observaciones, no veredicto
 
 En estas implementaciones preliminares y con la métrica limitada anterior: sierra 997 Hz/48 kHz muestra -32.4 dB fuera de armónicos en actual y -59.6 dB en prototipo; pulso 10% muestra -28.4 y -56.7 dB. La diferencia total alineada frente a la referencia 16× fue respectivamente -25.0/-15.5 dB y -23.0/-13.9 dB: incluye fase y respuesta espectral, no contradice necesariamente la reducción de energía fuera de armónicos. Las referencias 8×/16× difieren -35.7 y -32.5 dB, lo que limita la precisión. A 8 kHz difieren -22.2 dB y no sustentan una conclusión detallada. No se han comprobado Poly Mod, automatización, rendimiento, ni full voice. Por ello la recomendación actual es conservar producción y continuar con una implementación de eventos equivalentes y una referencia independiente validada antes de decidir. Una conclusión sobre fidelidad Prophet-6 exige grabaciones de hardware emparejadas.
+
+## Prueba aislada a 2×
+
+`python3 experiments/elliptic_blep/run_2x.py` ejecuta ambos osciladores a
+96 kHz y aplica a su salida directamente los 33 coeficientes de decimación 2×
+de P6Voice para obtener 48 kHz. Es un ensayo de oscilador aislado más FIR: la
+voz real coloca otras etapas, incluidas no lineales, antes de la decimación.
+No es una prueba de la cadena completa. Con señal estacionaria de 997 Hz, la
+energía fuera de armónicos fue -40.98/-65.70 dB (actual/elíptico) para sierra,
+-35.09/-62.90 para pulso al 10% y -42.89/-68.14 para morph 0.75 y ancho 20%.
+Se mantienen las limitaciones de la métrica, del prototipo y de la fase.
