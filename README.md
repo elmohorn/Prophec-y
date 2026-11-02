@@ -1,27 +1,29 @@
 # Prophec-y — estado y descargas
 
-Actualizado: 1 de noviembre de 2026.
+Actualizado: 2 de noviembre de 2026.
 
 ## Descargar y probar
 
 | Versión | Estado | Windows x64 VST3 | Linux x64 VST3 |
 |---|---|---|---|
-| [v0.20 preview 275](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.275) | Browser local + Master/OLED + Module/Tube | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.275/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.275/P6-Core-v0.20-prototype-Linux-VST3.zip) |
+| [v0.20 preview 278](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.278) | Cuatro nuevos Character FX + Tube/Browser | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.278/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.278/P6-Core-v0.20-prototype-Linux-VST3.zip) |
 | [v0.19.0](https://github.com/elmohorn/Prophec-y/releases/tag/v0.19.0) | Checkpoint de ingeniería y calibración provisional; editor de diagnóstico | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Linux-VST3.zip) |
 
-**Para probar el avance actual, descarga v0.20 preview 275.** Incluye la revisión del panel y la válvula reactiva, selectores FX A/B, formato semántico, pitch bend RAW14 y diagnósticos de headroom. Incluye ahora browser local y Master Output. El acabado visual y la validación musical del headroom siguen pendientes.
+**Para probar el avance actual, descarga v0.20 preview 278.** Añade los cuatro módulos Character: **Plasma, Optical Spring, Ferrofluid y Neon Wavefolder**, junto a Tube. Cada uno tiene DSP propio, siete controles independientes guardables, ventana nativa reactiva, Mix/Output, bypass e inserción Start/End. Son prototipos para audición; el acabado visual y las pruebas musicales manuales en DAW siguen pendientes.
 
 Los binarios están publicados en Releases, junto con SHA256SUMS.txt. No necesitas compilar ni buscarlos entre los artefactos temporales de Actions. El repositorio es privado: debes iniciar sesión en GitHub con una cuenta que tenga acceso.
 
-La base de edición añade el contrato común de edición en las 37 instancias de controles de síntesis (34 parámetros distintos): valor exacto/raw, reset a Init, ajuste fino y teclado. Corrige las lecturas de envolvente según el perfil activo e incorpora fixtures de compatibilidad emitidos por codificadores históricos. [Detalle del bloque](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PARAMETER_FOUNDATION.md). Se conserva la lectura de los estados anteriores y las huellas del motor. El estado actual usa codec v3 para guardar Master; la migración de v1/v2 conserva ganancia unitaria.
+La base de edición añade el contrato común de edición en las 37 instancias de controles de síntesis (34 parámetros distintos): valor exacto/raw, reset a Init, ajuste fino y teclado. Corrige las lecturas de envolvente según el perfil activo e incorpora fixtures de compatibilidad emitidos por codificadores históricos. [Detalle del bloque](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PARAMETER_FOUNDATION.md). Se conserva la lectura de los estados anteriores y las huellas del motor. El estado actual usa codec v4 para guardar todos los dispositivos Character y Master; lee v1/v2/v3, conservando niveles históricos y la automatización antigua de None/Tube.
 
-La preview 275 incorpora el **OLED contextual**: al seleccionar OSC 1/2 muestra su ciclo nominal de shape/PW; al seleccionar una envolvente muestra el ADSR del motor, con gate y escala de tiempo. Son previews del modelo, antes de modulación, no osciloscopio ni mediciones del hardware. Las vistas contextuales de filtro, LFO y FX siguen pendientes; los medidores de salida ya están implementados. [Alcance, captura y validación](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CONTEXT_DISPLAY.md).
+La preview 278 incorpora los cuatro [módulos Character y su alcance](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CUSTOM_CHARACTER.md): Plasma con ignición/conducción; Optical Spring con tres captadores del tanque; Ferrofluid con filtro resonante sensible a la envolvente; Neon con wavefolding asimétrico. Reutiliza kernels MIT de DaisySP y el oversampler DSPark. Son diseños propios, sin afirmar emulación física verificada de pedales comerciales. El SysEx Prophet permanece intacto.
 
-La preview 275 implementa el diseño Character aprobado: **panel de aluminio independiente y válvula hundida en una cavidad oscura**, con marco mecanizado, circuito interior y luz cálida por capas ligada a la señal. Conserva bypass, inserción Start/End, plegado y los siete controles Tube. [Captura del editor real y detalle](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_RECESSED_CHARACTER.md).
+La preview 278 conserva el **OLED contextual**: al seleccionar OSC 1/2 muestra su ciclo nominal de shape/PW; al seleccionar una envolvente muestra el ADSR del motor, con gate y escala de tiempo. Son previews del modelo, antes de modulación, no osciloscopio ni mediciones del hardware. Las vistas contextuales de filtro, LFO y FX siguen pendientes; los medidores de salida ya están implementados. [Alcance, captura y validación](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CONTEXT_DISPLAY.md).
 
-La preview 275 añade **Master Output y medidores L/R de pico, RMS y CLIP**, después de toda la cadena. Instancias nuevas: **-18 dB**. Sesiones anteriores: **0 dB**, conservando su nivel; puedes bajar el Master para darles margen. El volumen Prophet se identifica ahora como PROGRAM VOL. Estado v3 fuera del SysEx, rampa de 20 ms y aviso PRE antes del Master. No se añade limitador ni normalización de voces. [Detalle, migración y captura real](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_MASTER_OUTPUT.md).
+La preview 278 implementa el diseño Character aprobado: **panel de aluminio independiente y válvula hundida en una cavidad oscura**, con marco mecanizado, circuito interior y luz cálida por capas ligada a la señal. Conserva bypass, inserción Start/End, plegado y los siete controles Tube. [Captura del editor real y detalle](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_RECESSED_CHARACTER.md).
 
-La preview 275 incorpora el **browser local de presets**: Factory Init / Imported / User, búsqueda y filtros, favoritos persistentes, Save/Save As, protección de cambios sin guardar e import/export de programa/banco `.syx`. Cargar un preset conserva los controles globales, incluido Master; los dumps importados conservan sus bytes y orden. Factory trae nuestro Init, sin bancos Sequential. Tras reabrir un proyecto DAW se recupera el sonido, pero la asociación de biblioteca es transitoria: usa Save As hasta volver a seleccionar una entrada. [Uso, límites y captura nativa](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRESET_BROWSER.md).
+La preview 278 añade **Master Output y medidores L/R de pico, RMS y CLIP**, después de toda la cadena. Instancias nuevas: **-18 dB**. Sesiones anteriores: **0 dB**, conservando su nivel; puedes bajar el Master para darles margen. El volumen Prophet se identifica ahora como PROGRAM VOL. Master introducido en codec v3; sesión actual v4 fuera del SysEx, rampa de 20 ms y aviso PRE antes del Master. No se añade limitador ni normalización de voces. [Detalle, migración y captura real](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_MASTER_OUTPUT.md).
+
+La preview 278 incorpora el **browser local de presets**: Factory Init / Imported / User, búsqueda y filtros, favoritos persistentes, Save/Save As, protección de cambios sin guardar e import/export de programa/banco `.syx`. Cargar un preset conserva los controles globales, incluido Master; los dumps importados conservan sus bytes y orden. Factory trae nuestro Init, sin bancos Sequential. Tras reabrir un proyecto DAW se recupera el sonido, pero la asociación de biblioteca es transitoria: usa Save As hasta volver a seleccionar una entrada. [Uso, límites y captura nativa](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRESET_BROWSER.md).
 
 ### Instalación en Windows
 
@@ -35,7 +37,7 @@ En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se inclu
 ### Qué contiene cada versión
 
 - **v0.19:** corrección de primera tecla Unison tras una cola Release, consistencia de dominios de parámetros y herramientas/comparaciones acústicas ampliadas. Default permanece congelado; no se declara paridad acústica completa con Prophet-6. [Cierre y límites](https://github.com/elmohorn/Prophec-y/blob/v0.19-sound-matching/docs/V0_19_CLOSEOUT.md).
-- **v0.20 preview 275:** panel nativo de aluminio, controles de síntesis con valores semánticos, selectores FX A/B, diagnóstico RAW14 y Tube reactivo con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Studio personalizado, Compare/A-B/undo, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
+- **v0.20 preview 278:** panel nativo de aluminio, controles de síntesis con valores semánticos, selectores FX A/B, diagnóstico RAW14, browser local, Master Output y cinco dispositivos Character con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Studio personalizado, Compare/A-B/undo, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
 
 ### Código y validación
 
@@ -44,7 +46,7 @@ En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se inclu
 | Código | Commit del binario publicado | Validación |
 |---|---|---|
 | [v0.19-sound-matching](https://github.com/elmohorn/Prophec-y/tree/v0.19-sound-matching) | `3e148b6c9d1002178ca294fc4613943fa7533ee6` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41268532229) |
-| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `9556ac7f64838daffbab0cf59e0092644195798e` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41378012001) |
+| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `77e549f31d31cd93c702f862cfb7d0426f60db73` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41430731561) |
 
 Windows/Linux VST3, tests automatizados, pluginval strictness 10, sanitizers Linux y guards de análisis aprobados en las ejecuciones indicadas. v0.20 también incluye smoke nativo de editor/audio. Las releases reutilizan exactamente esos ZIP validados y verifican procedencia, checksums e integridad antes de publicarlos. La matriz de pruebas manuales en distintos DAW sigue pendiente.
 
