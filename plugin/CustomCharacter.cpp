@@ -6,6 +6,7 @@
 #include "Source/Utility/dcblock.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 namespace p6plugin {
 namespace {
 float gain(float db){return std::pow(10.f,db/20.f);}
@@ -21,7 +22,7 @@ struct CustomCharacter::Impl {
         float envelope{},conduction{},tone{},hold{};bool lit{};
     };
     std::array<Channel,2> channels;
-    std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{},tick{},scopeTick{};
+    std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{};std::uint32_t tick{},scopeTick{};
     std::array<float,7> current{};bool first{true};double rate{48000},highRate{96000};
     float springDecay{},springDamping{};
     float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},folds{},symmetry{},bias{},responseAlpha{};
