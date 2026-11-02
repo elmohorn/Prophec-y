@@ -10,6 +10,7 @@
 #include "p6/VersionedEditMailbox.h"
 #include "CharacterFx.h"
 #include "OutputStage.h"
+#include "PresetBankCodec.h"
 #include "ui/ParameterPresentation.h"
 
 #include <array>
@@ -54,6 +55,14 @@ public:
     bool loadSysex (std::span<const std::uint8_t> bytes, juce::String& error);
     std::vector<std::uint8_t> exportEditBuffer();
 
+    // Non-realtime preset operations. Browsing changes musical state only.
+    p6plugin::WrapperState presetSnapshot();
+    static p6plugin::WrapperState factoryInitPreset();
+    void loadMusicalPreset(const p6plugin::WrapperState&,const juce::String& id,const juce::String& name);
+    void adoptPreset(const juce::String& id,const juce::String& name,const p6plugin::WrapperState* baseline=nullptr);
+    bool presetDirty();
+    juce::String activePresetId() const;
+    juce::String activePresetName() const;
     juce::AudioProcessorValueTreeState& parameters() noexcept { return apvts_; }
     const p6::P6PatchState& canonicalPatchUnsafeForAudioThread() const noexcept { return patch_; }
     p6plugin::ui::ParameterContext parameterPresentationContext() const
@@ -126,6 +135,9 @@ private:
     p6::P6PerformanceScheduler scheduler_ { engine_ };
     p6::P6MidiRouter midiRouter_{};
     juce::AudioProcessorValueTreeState apvts_;
+    mutable juce::CriticalSection presetIdentityLock_; // host/UI only, never audio
+    std::vector<std::uint8_t> presetBaseline_;
+    juce::String activePresetId_,activePresetName_;
     std::vector<HostBinding> bindings_;
     std::array<std::atomic<int>, 1024> hostObservedRaw_{};
 

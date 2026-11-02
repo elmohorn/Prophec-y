@@ -1,5 +1,7 @@
 # Prophec-y — v0.20 prototype
 
+**Presets:** [browser local nativo](docs/V0_20_PRESET_BROWSER.md), búsqueda/favoritos, Save/Save As e import/export de programa y banco SysEx. Factory incluye nuestro Init; los bancos de Sequential no se redistribuyen.
+
 **Salida:** [Master Output y medidores estéreo](docs/V0_20_MASTER_OUTPUT.md): -18 dB en instancias nuevas; 0 dB al migrar sesiones anteriores.
 
 **Diseño Character:** [panel independiente y válvula empotrada](docs/V0_20_RECESSED_CHARACTER.md).

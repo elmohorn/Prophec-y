@@ -97,6 +97,7 @@ P6AudioProcessor::P6AudioProcessor()
     // Poll the lock-free MIDI->host mirror from JUCE's message thread. Using
     // Timer rather than AsyncUpdater is deliberate: JUCE documents that
     // triggerAsyncUpdate() may block when called from a realtime/audio thread.
+    adoptPreset("factory-init","Init P6 Core");
     startTimerHz (30);
 }
 
@@ -803,6 +804,34 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     hostSequencePlayObserved_.store (state.extras[7] != 0 ? 1 : 0, std::memory_order_release);
 
     fullPatchLoadPending_.store (true, std::memory_order_release);
+    adoptPreset({},getProgramName(0));
+}
+
+p6plugin::WrapperState P6AudioProcessor::presetSnapshot()
+{
+    juce::MemoryBlock bytes;getStateInformation(bytes);p6plugin::WrapperState state;
+    p6plugin::decodeState({static_cast<const std::uint8_t*>(bytes.getData()),bytes.getSize()},state);return state;
+}
+p6plugin::WrapperState P6AudioProcessor::factoryInitPreset()
+{
+    p6plugin::WrapperState state;state.patch=makeInitPatch();state.sequenceControls={0,63,0,0};return state;
+}
+void P6AudioProcessor::adoptPreset(const juce::String& id,const juce::String& name,const p6plugin::WrapperState* baseline)
+{
+    const auto bytes=p6plugin::musicalPresetBytes(baseline?*baseline:presetSnapshot());
+    const juce::ScopedLock lock(presetIdentityLock_);presetBaseline_=bytes;activePresetId_=id;activePresetName_=name;
+}
+bool P6AudioProcessor::presetDirty()
+{
+    const auto bytes=p6plugin::musicalPresetBytes(presetSnapshot());
+    const juce::ScopedLock lock(presetIdentityLock_);return bytes!=presetBaseline_;
+}
+juce::String P6AudioProcessor::activePresetId() const {const juce::ScopedLock lock(presetIdentityLock_);return activePresetId_;}
+juce::String P6AudioProcessor::activePresetName() const {const juce::ScopedLock lock(presetIdentityLock_);return activePresetName_;}
+void P6AudioProcessor::loadMusicalPreset(const p6plugin::WrapperState& source,const juce::String& id,const juce::String& name)
+{
+    auto current=presetSnapshot();current.patch=source.patch;current.sequenceControls=source.sequenceControls;current.character=source.character;
+    const auto bytes=p6plugin::encodeState(current);setStateInformation(bytes.data(),static_cast<int>(bytes.size()));adoptPreset(id,name,&source);
 }
 
 bool P6AudioProcessor::loadSysex (std::span<const std::uint8_t> bytes, juce::String& error)

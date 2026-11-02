@@ -95,7 +95,7 @@ void P6PluginEditor::MetalLook::drawComboBox(juce::Graphics& g,int w,int h,bool 
     juce::Path arrow;arrow.startNewSubPath(x-3,y-1);arrow.lineTo(x,y+2);arrow.lineTo(x+3,y-1);
     g.setColour(ink.withAlpha(box.isEnabled()?.7f:.25f));g.strokePath(arrow,juce::PathStrokeType(1));
 }
-P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),processor_(p)
+P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioProcessorEditor(p),processor_(p)
 {
     look_.setColour(juce::ResizableWindow::backgroundColourId,silver);
     look_.setColour(juce::Slider::textBoxTextColourId,ink);
@@ -188,6 +188,11 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p):AudioProcessorEditor(p),proc
     chamber_.setIllumination(visual_.active,motion_.getToggleState(),glow_,characterGlow_);
     focusValue_=juce::String(p6plugin::ui::formatParameterValue(45,params.getRawParameterValue(hardwareID(45))->load(),p.parameterPresentationContext()));
     setResizable(true,false);setResizeLimits(1240,compactHeight,1920,1200);setSize(1460,compactHeight);
+    browser_=std::make_unique<PresetBrowser>(processor_,std::move(presetRoot));addChildComponent(*browser_);
+    browserButton_.setLookAndFeel(&look_);browserButton_.setTitle("Preset browser");addAndMakeVisible(browserButton_);
+    browserButton_.onClick=[this]{browser_->setVisible(!browser_->isVisible());if(browser_->isVisible()){browser_->refreshLibrary();browser_->toFront(true);}};
+    browser_->onClose=[this]{browser_->setVisible(false);browserButton_.grabKeyboardFocus();};
+    presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
     refreshVisibility();refreshDisplay();startTimerHz(30);
 }
 P6PluginEditor::~P6PluginEditor(){stopTimer();setLookAndFeel(nullptr);}
@@ -225,7 +230,8 @@ void P6PluginEditor::timerCallback()
     outputMeter_.update(readings);
     const bool selected=processor_.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()>=.5f;
     if(selected!=showTube_)refreshVisibility();
-    const auto name=processor_.getProgramName(0);if(name!=presetName_){presetName_=name;repaint(displayArea_);}
+    if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");}
+    const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");if(name!=presetName_){presetName_=name;repaint(displayArea_);}
     if(focusNrpn_>=0) {
         const auto* raw=processor_.parameters().getRawParameterValue(hardwareID(focusNrpn_));
         if(raw) {
@@ -284,6 +290,8 @@ void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
+    browserButton_.setBounds(rect(505,65,85,23));
+    if(browser_)browser_->setBounds(55,98,getWidth()-110,450);
     master_.setBounds(rect(602,12,100,67));masterLabel_.setBounds(rect(602,78,100,15));
     outputMeter_.setBounds(rect(724,25,350,60));clearClips_.setBounds(rect(1085,49,105,24));
     module_.setBounds(rect(1210,36,84,25));studio_.setBounds(rect(1300,36,84,25));

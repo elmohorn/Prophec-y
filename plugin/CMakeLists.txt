@@ -27,6 +27,12 @@ target_sources(P6CorePlugin PRIVATE
     PluginProcessor.cpp
     PluginProcessor.h
     OutputStage.h
+    PresetBankCodec.cpp
+    PresetBankCodec.h
+    PresetLibrary.cpp
+    PresetLibrary.h
+    ui/preset/PresetBrowser.cpp
+    ui/preset/PresetBrowser.h
     PluginEditor.cpp
     PluginEditor.h
     ui/controls/ProphecyParameterControl.cpp

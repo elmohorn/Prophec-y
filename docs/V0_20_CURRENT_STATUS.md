@@ -21,6 +21,10 @@ Prophec-y v0.20 keeps the Prophet-6-compatible raw/SysEx state as the canonical 
 - Tube graphics are driven by measured audio telemetry (input RMS, output RMS and latency-aligned waveform-change RMS), not random animation. The light display is cosmetic and does not alter DSP.
 - Human-readable control formatting has begun replacing raw 0–127 / 0–255 numbers on the main Module surface. Internal values and SysEx/NRPN domains remain unchanged.
 
+## Preset browser implemented
+
+[Native local browser](V0_20_PRESET_BROWSER.md): Factory Init / Imported / User, search and filters, persistent favorites, Save/Save As, protected unsaved edits and program/bank SysEx import/export. Musical loads preserve global instance settings and opaque payload bytes. Library ID/alias association is transient across DAW reloads; full sound/session state remains supported.
+
 ## Human-readable parameter display
 
 The Module editor now formats common controls into semantic units where the current mapping is known or intentionally defined: semitone/coarse pitch, cents, oscillator morph labels, pulse-width percentage, mixer/output percentages, bipolar percentages, LFO Hz and envelope/glide time. Raw values remain canonical internally and remain available for diagnostic/compatibility work.
@@ -113,12 +117,12 @@ The measured +16.91 dBFS no-FX peak becomes -1.09 dBFS at -18 dB. PRE and final 
 
 ## Current unresolved v0.20 items
 
-1. MIDI input channel selection/monitor, plus manual headroom/listening checks of the implemented Master Output.
+1. Contextual Studio/Inspector. MIDI input channel selection/monitor is postponed by the owner; manual headroom/listening checks remain open.
 2. Complete the remaining filter/LFO/FX/output contextual views; OSC/ADSR models and live pitch bend are already implemented.
 3. Replace the generic Studio editor with the custom Studio design.
 4. Continue semantic formatting/precise editing for controls that still expose raw-style values or ambiguous units.
 5. Expand standard FX editing beyond type/mix into clear effect-specific controls where the hardware semantics are verified.
-6. Continue preset/browser/SysEx workflow and remaining v0.20 plan items.
+6. Browser follow-up: Compare/A-B, undo/redo, DAW library association and remaining v0.20 plan items.
 
 ## Recent implementation checkpoints
 
@@ -136,7 +140,7 @@ The focused headroom workflow passed for the current diagnostic implementation. 
 
 ## Product review and proposed next steps
 
-The owner's comparison with Surge XT, Vital, Dexed, Gearmulator and Odin 2 has been reviewed against this checkpoint. Concrete formatter/calibration and MIDI-channel findings, references and proposed acceptance criteria are recorded in [V0_20_PRODUCT_REVIEW.md](V0_20_PRODUCT_REVIEW.md). These recommendations are not marked implemented.
+The owner's comparison with Surge XT, Vital, Dexed, Gearmulator and Odin 2 has been reviewed against this checkpoint. Concrete formatter/calibration and MIDI-channel findings, references and proposed acceptance criteria are recorded in [V0_20_PRODUCT_REVIEW.md](V0_20_PRODUCT_REVIEW.md). The review remains design history; implemented deliveries and remaining work are tracked above.
 
 ## Parameter foundation checkpoint
 

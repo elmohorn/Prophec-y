@@ -49,7 +49,7 @@ jobs:
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build sanitizer tests
-        run: cmake --build build-sanitize --target p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
+        run: cmake --build build-sanitize --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
       - name: Run sanitizer tests
         env:
           ASAN_OPTIONS: detect_leaks=1
@@ -110,7 +110,7 @@ jobs:
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3 P6UiSmoke
+          --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3 P6UiSmoke
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests
@@ -227,35 +227,17 @@ jobs:
         run: |
           set -euo pipefail
           cat > notes.md <<'EOF'
-          ## v0.20 — Master Output and stereo metering
-          - Final Master Output (-60 to 0 dB), separate from Prophet Program Volume. New instances default to -18 dB; legacy v1/v2 sessions load at 0 dB to preserve gain.
-          - L/R sample peaks and 50 ms RMS after Master, latched CLIP, pre-master over-zero warning and RESET CLIP. Not a limiter, true-peak or LUFS meter.
-          - 20 ms live gain smoothing; state codec v3 appends Master outside SysEx. Prior parameter IDs/order and Prophet payload remain unchanged.
-          - Measured hottest no-FX diagnostic peak +16.91 dBFS becomes -1.09 dBFS at -18 dB; arbitrary patch/FX clipping is still possible.
+          ## v0.20 — Local preset browser
+          - PRESETS opens a native overlay: Factory Init / Imported / User, search, bank/category filters and persistent favorites.
+          - Save / Save As store musical state and Character. Loads preserve Master, quality, clock, calibration and runtime globals; unsaved edits require confirmation before replacement.
+          - Import Prophet-6 .syx programs or concatenated bank dumps without replacing the active sound. Export current program or saved selected bank; unchanged imports retain original frames and ordering.
+          - Names/categories are library aliases; hardware payload/name bytes are preserved. Occupied User slots and stale cross-instance overwrites are rejected.
+          - Factory includes our own Init only. No Sequential factory banks are bundled. After a DAW reload, sound is restored but library association is transient; use Save As unless reselecting a library entry.
 
-          ### Recessed Character valve panel
-          - Independent aluminum Character faceplate, beveled perimeter and hardware screws, following the approved design.
-          - Upright valve seated inside a dark recessed chamber, with embedded electronics background and separately rendered signal-driven warm lighting. Bypass removes illumination; Motion pauses it.
-          - Seven existing Tube controls, insertion, bypass and fold remain connected to the same host/state contract. Folding is tested to preserve complete plugin state.
-          - No DSP, parameter IDs, session format or SysEx changes.
-
-          ### Contextual oscillator and ADSR display
-          - Select an oscillator control to see its nominal shape/PW cycle from the core model; level, sync, modulation and anti-alias correction are excluded.
-          - Select a filter/amp envelope control to see its core ADSR model with labelled gate and time axis, before depth/velocity/modulation.
-          - Curves are cached outside the audio thread. Selection does not edit the patch. The decorative filter curve is replaced by a labelled position bar; filter response, LFO, FX views and output meters remain pending.
-
-          ### Parameter editing and state compatibility
-          - Hardware controls: right-click/Shift+F10 for exact value or raw editing, Init reset, keyboard steps and fine drag. Morph/synced-rate fields use raw input where a scalar semantic entry is not established.
-          - Envelope values follow the active model/calibration; synced LFO rate is identified as raw until its division law is verified.
-          - Historical-encoder state fixtures and presentation/model regression tests added; existing state formats and DSP fingerprints preserved.
-
-          ### Existing Module and Tube features
-          - Panel proportions revised against the owner's original aluminum render.
-          - Embedded glass-valve resource with signal-driven heater and waveform-change illumination.
-          - Input/output RMS and latency-aligned waveform-change readings. These are not THD measurements.
-          - Bypass extinguishes the tube; stopping audio processing releases stale readings. Motion can be paused independently of the audio.
-
-          This remains a preview. Final visual approval, preset workflow, custom Studio and manual DAW testing remain pending. Fixed host latency is 71 samples, including None.
+          ### Existing v0.20 features
+          - Master Output and L/R sample peak/RMS/CLIP. New instances: -18 dB; legacy v1/v2 sessions: 0 dB. State codec v3, no limiter or voice normalization.
+          - Independent Character faceplate and recessed Tube chamber, driven by measured telemetry. Standard FX A/B, exact/raw editing and contextual oscillator/ADSR model previews remain available.
+          - This remains a preview. Custom Studio, remaining contextual views/FX work, Compare/A-B/undo and manual DAW validation are pending. MIDI channel/monitor work is postponed. Fixed latency remains 71 samples.
 
           ### Windows installation
           Close the DAW, extract the Windows ZIP, locate the entire **P6 Core.vst3** folder and copy it to `C:\Program Files\Common Files\VST3\`. Rescan plugins and load **P6 Core** as an instrument. Preserve a backup before replacing an older build; the plugin identity is shared.

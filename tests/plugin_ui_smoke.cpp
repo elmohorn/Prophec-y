@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "PluginStateCodec.h"
+#include "p6/SysexCodec.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <iostream>
@@ -24,9 +25,67 @@ static bool screenshot(juce::Component& c,const juce::File& file)
     if(!juce::PNGImageFormat().writeImageToStream(image,stream))return false;
     return file.replaceWithData(stream.getData(),stream.getDataSize());
 }
+static int presetLibraryChecks(const juce::File& captureFolder)
+{
+    const auto root=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("p6-browser-test-"+juce::Uuid().toString());
+    struct Cleanup {juce::File root;~Cleanup(){root.deleteRecursively();}} cleanup{root};
+    const auto factory=P6AudioProcessor::factoryInitPreset();
+    p6plugin::PresetLibrary library(root,factory);CHECK(library.entries().size()==1);CHECK(!root.exists());
+    auto patch=factory.patch;patch.rawPayload[1023]=217;
+    auto first=p6::SysexCodec::encodeProgramDump(patch,2,10),second=p6::SysexCodec::encodeProgramDump(patch,2,9);
+    std::vector<std::uint8_t> bank=first;bank.insert(bank.end(),second.begin(),second.end());
+    int imported=0;CHECK(library.importSysex(bank,"Local test bank",imported).wasOk());CHECK(imported==2);CHECK(library.entries().size()==3);
+    juce::String importedId,bankKey;for(const auto& p:library.entries())if(p.source==p6plugin::PresetSource::Imported&&p.program==10){importedId=p.id;bankKey=p.bankKey;}
+    CHECK(!importedId.isEmpty());CHECK(library.exportBank(bankKey)==bank);
+    CHECK(library.setFavorite(importedId,true).wasOk());CHECK(library.setFavorite("factory-init",true).wasOk());
+    p6plugin::PresetLibrary reopened(root,factory);CHECK(reopened.find(importedId)->favorite);CHECK(reopened.find("factory-init")->favorite);
+    CHECK(reopened.exportBank(bankKey)==bank);CHECK(reopened.find(importedId)->state.patch.rawPayload[1023]==217);
+    auto broken=bank;broken.push_back(0x55);CHECK(reopened.importSysex(broken,"bad",imported).failed());CHECK(imported==0);CHECK(reopened.entries().size()==3);
+    P6AudioProcessor target;set(target,p6plugin::kMasterOutputID,-24);set(target,"wrapper_clock_source",2);set(target,"wrapper_calibration",1);
+    auto user=target.presetSnapshot();user.character.type=1;user.character.tube[0]=.73f;
+    juce::String userId;CHECK(reopened.saveUser({},user,"User test patch","Tests",0,0,userId).wasOk());
+    CHECK(reopened.saveUser({},user,"Duplicate slot","",0,0,userId).failed());
+    const auto stored=*reopened.find(userId);target.loadMusicalPreset(stored.state,stored.id,stored.name);
+    CHECK(!target.presetDirty());CHECK(target.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==-24.f);
+    CHECK(target.parameters().getRawParameterValue("wrapper_clock_source")->load()==2.f);CHECK(target.parameters().getRawParameterValue("wrapper_calibration")->load()==1.f);
+    CHECK(std::abs(target.parameters().getRawParameterValue(p6plugin::kTubeIDs[0])->load()-.73f)<1.e-5f);
+    set(target,p6plugin::kMasterOutputID,-30);CHECK(!target.presetDirty());set(target,p6plugin::kTubeIDs[0],.5f);CHECK(target.presetDirty());
+    target.loadMusicalPreset(stored.state,stored.id,stored.name);CHECK(!target.presetDirty());
+    auto fresh=target.presetSnapshot();fresh.character.tube[1]=.6f;CHECK(reopened.saveUser(userId,fresh,stored.name,stored.category,0,0,userId).wasOk());
+    auto stale=stored.state;stale.character.tube[1]=.2f;
+    // The older library instance must not overwrite a changed saved patch.
+    p6plugin::PresetLibrary oldView(root,factory);auto newer=fresh;newer.character.tube[2]=.3f;
+    CHECK(reopened.saveUser(userId,newer,stored.name,stored.category,0,0,userId).wasOk());
+    CHECK(oldView.saveUser(userId,stale,stored.name,stored.category,0,0,userId).failed());
+    CHECK(reopened.exportBank(bankKey)==bank);
+    const auto blockedRoot=root.getChildFile("blocked-path");CHECK(blockedRoot.replaceWithText("keep this file"));
+    p6plugin::PresetLibrary blocked(blockedRoot,factory);juce::String unused;
+    set(target,"nrpn_0045",90);CHECK(target.presetDirty());
+    CHECK(blocked.saveUser({},target.presetSnapshot(),"Cannot save","",0,0,unused).failed());
+    CHECK(target.presetDirty());CHECK(blockedRoot.loadFileAsString()=="keep this file");
+    target.loadMusicalPreset(stored.state,stored.id,stored.name);
+    if(captureFolder!=juce::File{}) {
+        captureFolder.createDirectory();
+        P6PluginEditor gallery(target,root);gallery.setSize(1460,P6PluginEditor::expandedHeight);
+        PresetBrowser* browser=nullptr;
+        for(auto* child:gallery.getChildren())if(auto* b=dynamic_cast<PresetBrowser*>(child))browser=b;
+        CHECK(browser!=nullptr);
+        for(auto* child:gallery.getChildren())if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getTitle()=="Preset browser")button->onClick();
+        CHECK(browser->isVisible());CHECK(screenshot(gallery,captureFolder.getChildFile("module_browser.png")));
+        juce::TextEditor* search=nullptr;for(auto* child:browser->getChildren())if(auto* edit=dynamic_cast<juce::TextEditor*>(child);edit&&edit->getTitle()=="Search presets")search=edit;
+        CHECK(search!=nullptr);search->setText("not-a-preset",false);search->onTextChange();
+        juce::ListBox* list=nullptr;for(auto* child:browser->getChildren())if(auto* l=dynamic_cast<juce::ListBox*>(child))list=l;
+        CHECK(list!=nullptr&&list->getModel()->getNumRows()==0);search->setText("User test",false);search->onTextChange();CHECK(list->getModel()->getNumRows()==1);
+        search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==4);
+        for(int width:{1240,1460,1780}){gallery.setSize(width,P6PluginEditor::expandedHeight);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));}
+    }
+    std::cout<<"Preset library: persistence, exact banks, favorites, occupied slots, stale writes, globals, dirty tracking and browser filtering verified\n";
+    return 0;
+}
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
     p.prepareToPlay(48000,128);CHECK(p.getLatencySamples()==71);

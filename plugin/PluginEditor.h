@@ -4,12 +4,13 @@
 #include "ui/display/ContextDisplay.h"
 #include "ui/fx/TubeChamber.h"
 #include "ui/display/OutputMeter.h"
+#include "ui/preset/PresetBrowser.h"
 #include <memory>
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
     static constexpr int compactHeight=700, expandedHeight=930;
-    explicit P6PluginEditor(P6AudioProcessor&);
+    explicit P6PluginEditor(P6AudioProcessor&,juce::File presetRoot=p6plugin::PresetLibrary::defaultRoot());
     ~P6PluginEditor() override;
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -40,6 +41,10 @@ private:
     void paintTube(juce::Graphics&);
     void section(juce::Graphics&,const juce::String&,float,float,float);
     P6AudioProcessor& processor_;
+    std::unique_ptr<PresetBrowser> browser_;
+    juce::TextButton browserButton_{"PRESETS"};
+    unsigned browserRefreshTicks_{};
+    bool presetIsDirty_{};
     ContextDisplay display_;
     TubeChamber chamber_;
     OutputMeter outputMeter_;
