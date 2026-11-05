@@ -415,7 +415,7 @@ void P6PluginEditor::resized()
     displayArea_=rect(526,96,322,122);
     display_.setBounds(displayArea_);
     tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
-    hardware_.setBounds(rect(55,707,610,198));
+    hardware_.setBounds(rect(55,710,610,190));
     chamber_.setBounds(hardware_.getBounds());
     device_.setBounds(hardware_.getBounds());
     // Retain all seven existing real APVTS bindings. Five controls on top,
@@ -425,7 +425,7 @@ void P6PluginEditor::resized()
         const bool top=i<5;
         const float x=top?682.f+136.f*static_cast<float>(i)
                          :893.f+206.f*static_cast<float>(i-5);
-        const float y=top?707.f:807.f;
+        const float y=top?702.f:800.f;
         tube_[i].label.setBounds(rect(x,y,110,18));
         tube_[i].slider.setBounds(rect(x,y+17.f,110,81));
     }
@@ -505,7 +505,7 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     g.setColour(juce::Colour{0xff76726b}.withAlpha(.6f));
-    g.drawLine(675.f*sx,702.f,675.f*sx,910.f,1.f);
+    g.drawLine(675.f*sx,702.f,675.f*sx,899.f,1.f);
     g.setColour(juce::Colour{0xff74776f}.withAlpha(.35f));
     g.drawLine(689.f*sx,804.f,1383.f*sx,804.f,1.f);
     if(opticalPreviewActive_)
@@ -537,7 +537,7 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
     const float a=db(visual_.inputRms),b=db(visual_.outputRms);
     for(int i=0;i<2;++i)
     {
-        const float x=(i==0?692.f:1065.f)*sx,y=907.f;
+        const float x=(i==0?692.f:1065.f)*sx,y=894.f;
         g.setColour(muted);g.setFont(9.f);
         g.drawText(i==0?"INPUT":"OUTPUT",static_cast<int>(x),static_cast<int>(y-3.f),static_cast<int>(78.f*sx),15,juce::Justification::centredLeft);
         g.setColour(juce::Colour{0xff3d403a});g.fillRoundedRectangle(x+85.f*sx,y,204.f*sx,7.f,2.f);
