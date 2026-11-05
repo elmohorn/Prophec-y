@@ -1,8 +1,8 @@
 name: character-ui-preview
 
 on:
-  push:
-    branches: [ui-character-hardware-mockups]
+  pull_request:
+    branches: [v0.20-ui]
   workflow_dispatch:
 
 permissions:
