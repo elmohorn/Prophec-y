@@ -62,7 +62,7 @@ private:
     unsigned lastOutputRevision_{};
     int staleOutputTicks_{};
     juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
-    juce::TextButton opticalPreview_{"OPTO · PREVIEW"};
+    juce::TextButton opticalPreview_{"OPTO PREVIEW"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_,midiInputChannel_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> midiChannelBinding_,positionBinding_,keyBinding_,fxATypeBinding_,fxBTypeBinding_;
