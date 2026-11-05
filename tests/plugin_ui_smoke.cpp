@@ -186,17 +186,32 @@ int main(int argc,char** argv)
     set(p,"nrpn_0078",previousAttack);set(p,"wrapper_calibration",0.f);
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
-    TubeChamber* chamber=nullptr;
+    CharacterHardwareWindow* hardware=nullptr;
     juce::TextButton* fold=nullptr;
+    juce::TextButton* optoPreview=nullptr;
     for(auto* child:editor->getChildren()) {
-        if(auto* device=dynamic_cast<TubeChamber*>(child))chamber=device;
-        if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getButtonText()=="HIDE")fold=button;
+        if(auto* device=dynamic_cast<CharacterHardwareWindow*>(child))hardware=device;
+        if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
+            if(button->getButtonText()=="HIDE")fold=button;
+            if(button->getButtonText()=="OPTO · PREVIEW")optoPreview=button;
+        }
     }
-    CHECK(chamber!=nullptr&&chamber->isVisible()&&fold!=nullptr);
+    CHECK(hardware!=nullptr&&hardware->isVisible()&&fold!=nullptr&&optoPreview!=nullptr);
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
-    fold->onClick();CHECK(!chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
+    fold->onClick();CHECK(!hardware->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
     juce::MemoryBlock afterFold;p.getStateInformation(afterFold);CHECK(beforeFold==afterFold);
-    fold->onClick();CHECK(chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+    fold->onClick();CHECK(hardware->isVisible());CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+    // The optical preview is visual only. Toggling it must not alter a single
+    // byte of the musical, host or Character state.
+    juce::MemoryBlock beforePreview;p.getStateInformation(beforePreview);
+    optoPreview->onClick();CHECK(hardware->isVisible()&&optoPreview->getToggleState());
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};folder.createDirectory();
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview.png")));
+    }
+    optoPreview->onClick();CHECK(hardware->isVisible()&&!optoPreview->getToggleState());
+    juce::MemoryBlock afterPreview;p.getStateInformation(afterPreview);
+    CHECK(beforePreview==afterPreview);
     for(int width:{1240,1460,1780}) {
         editor->setSize(width,P6PluginEditor::expandedHeight);
         for(auto* child:editor->getChildren()) if(child->isVisible()) {
