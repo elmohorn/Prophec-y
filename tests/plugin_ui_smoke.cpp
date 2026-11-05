@@ -193,7 +193,7 @@ int main(int argc,char** argv)
         if(auto* device=dynamic_cast<CharacterHardwareWindow*>(child))hardware=device;
         if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
             if(button->getButtonText()=="HIDE")fold=button;
-            if(button->getButtonText()=="OPTO · PREVIEW")optoPreview=button;
+            if(button->getButtonText()=="OPTO PREVIEW")optoPreview=button;
         }
     }
     if(!(hardware!=nullptr&&hardware->isVisible()&&fold!=nullptr&&optoPreview!=nullptr)) {
