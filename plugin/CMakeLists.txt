@@ -39,6 +39,7 @@ target_sources(P6CorePlugin PRIVATE
     ui/controls/ProphecyParameterControl.h
     ui/fx/CharacterDeviceView.cpp
     ui/fx/CharacterDeviceView.h
+    ui/fx/CharacterHardwareWindow.h
     ui/fx/TubeChamber.cpp
     ui/fx/TubeChamber.h
     ui/display/OutputMeter.cpp
