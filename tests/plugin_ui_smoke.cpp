@@ -196,6 +196,19 @@ int main(int argc,char** argv)
             if(button->getButtonText()=="OPTO · PREVIEW")optoPreview=button;
         }
     }
+    if(!(hardware!=nullptr&&hardware->isVisible()&&fold!=nullptr&&optoPreview!=nullptr)) {
+        std::cerr << "Character UI CHECK: hardware=" << (hardware!=nullptr)
+                  << " hardwareVisible=" << (hardware&&hardware->isVisible())
+                  << " fold=" << (fold!=nullptr)
+                  << " opto=" << (optoPreview!=nullptr) << "\\n";
+        for(auto* child : editor->getChildren()) {
+            std::cerr << "CHILD " << child->getTitle().toStdString()
+                      << " visible=" << child->isVisible();
+            if(auto* button=dynamic_cast<juce::TextButton*>(child))
+                std::cerr << " button=" << button->getButtonText().toStdString();
+            std::cerr << "\\n";
+        }
+    }
     CHECK(hardware!=nullptr&&hardware->isVisible()&&fold!=nullptr&&optoPreview!=nullptr);
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
     fold->onClick();CHECK(!hardware->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
