@@ -340,6 +340,20 @@ void P6PluginEditor::refreshVisibility()
     device_.setVisible(!studioView_&&selected>=2&&selected!=3&&!collapsed_&&!opticalPreviewActive_);
     opticalPreview_.setVisible(!studioView_);
     opticalPreview_.setToggleState(opticalPreviewActive_,juce::dontSendNotification);
+    // Initialize the selected artwork immediately, not only on a timer tick:
+    // unhosted UI-smoke captures and the first frame must be truthful.
+    if(opticalPreviewActive_)
+        hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,0.f,0.f,0.f,{},.7f);
+    else if(selected==1)
+        hardware_.setState(CharacterHardwareWindow::Mode::Tube,
+                           visual_.active,motion_.getToggleState(),
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms);
+    else if(selected==3)
+        hardware_.setState(CharacterHardwareWindow::Mode::Spring,
+                           visual_.active,motion_.getToggleState(),
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms,
+                           {visual_.device.values[2],visual_.device.values[3],visual_.device.values[4]});
     updateDevice();
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
     collapse_.setVisible(!studioView_&&(showTube_||opticalPreviewActive_));motion_.setVisible(!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_);
