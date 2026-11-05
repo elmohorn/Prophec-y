@@ -1,7 +1,6 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "BinaryData.h"
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -17,12 +16,16 @@ public:
 
     CharacterHardwareWindow()
     {
-        valve_ = juce::ImageCache::getFromMemory(BinaryData::tube_glass_png,
-                                                 BinaryData::tube_glass_pngSize);
         setInterceptsMouseClicks(false, false);
         setTitle("Character hardware chamber");
         setDescription("Recessed hardware illustration; illumination follows effect telemetry "
                        "except in the explicitly labelled optical tremolo design preview.");
+    }
+
+    void setValveAsset(const void* memory, int byteCount)
+    {
+        valve_ = juce::ImageCache::getFromMemory(memory, byteCount);
+        repaint();
     }
 
     void setState(Mode mode, bool enabled, bool motion, float inputRms, float outputRms,
