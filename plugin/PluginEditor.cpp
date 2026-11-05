@@ -110,7 +110,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     look_.setColour(juce::ComboBox::textColourId,ink);
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
-    addAndMakeVisible(display_);addChildComponent(chamber_);addChildComponent(device_);
+    hardware_.setValveAsset(BinaryData::tube_glass_png, BinaryData::tube_glass_pngSize);
+    addAndMakeVisible(display_);addChildComponent(chamber_);addChildComponent(device_);addChildComponent(hardware_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
     }
@@ -159,6 +160,15 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     module_.onClick=[this]{studioView_=false;refreshVisibility();};studio_.onClick=[this]{studioView_=true;refreshVisibility();};
     collapse_.onClick=[this]{collapsed_=!collapsed_;refreshVisibility();};motion_.setToggleState(true,juce::dontSendNotification);
     motion_.setTooltip("Pause the light animation; audio continues.");collapse_.setTooltip("Hide the device, keeping its audio active.");
+    opticalPreview_.setLookAndFeel(&look_);
+    opticalPreview_.setTooltip("Preview the approved optical tremolo hardware design only. No tremolo DSP is present; existing audio and selected Character stay unchanged.");
+    opticalPreview_.setClickingTogglesState(false);
+    opticalPreview_.onClick=[this] {
+        opticalPreviewActive_=!opticalPreviewActive_;
+        previewLfoPhase_=0.f;
+        refreshVisibility();
+    };
+    addAndMakeVisible(opticalPreview_);
     type_.setTooltip("Select a Character device. Every device retains its own settings.");
     position_.setTooltip("Start: before distortion, FX A and FX B. End: after FX B.");
     fxAType_.setTooltip("Select standard Prophet-6 FX slot A. Use FX ON to enable the standard chain.");
@@ -226,6 +236,7 @@ void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String&
 }
 void P6PluginEditor::setType(int value)
 {
+    opticalPreviewActive_=false; // The concept view must not masquerade as an audio effect.
     processor_.selectCharacterType(value);refreshVisibility();
 }
 void P6PluginEditor::timerCallback()
@@ -280,8 +291,36 @@ void P6PluginEditor::timerCallback()
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
     chamber_.setIllumination(visual_.active,motion_.getToggleState(),glow_,characterGlow_);
+    if(opticalPreviewActive_)
+    {
+        if(motion_.getToggleState())
+        {
+            previewLfoPhase_+=0.085f;
+            if(previewLfoPhase_>juce::MathConstants<float>::twoPi)
+                previewLfoPhase_-=juce::MathConstants<float>::twoPi;
+        }
+        // This animation is intentionally synthetic and labelled PREVIEW.
+        // It is never used to represent an active optical DSP.
+        hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,motion_.getToggleState(),0.f,0.f,0.f,{},
+                           .5f+.5f*std::sin(previewLfoPhase_));
+    }
+    else if(boundType_==1)
+    {
+        hardware_.setState(CharacterHardwareWindow::Mode::Tube,
+                           visual_.active,motion_.getToggleState(),
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms);
+    }
+    else if(boundType_==3)
+    {
+        const auto& v=visual_.device.values;
+        hardware_.setState(CharacterHardwareWindow::Mode::Spring,
+                           visual_.active,motion_.getToggleState(),
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms,
+                           {v[2],v[3],v[4]});
+    }
     updateDevice();
-    if(showTube_&&!collapsed_&&!studioView_)repaint(tubeArea_);
+    if((showTube_||opticalPreviewActive_)&&!collapsed_&&!studioView_)repaint(tubeArea_);
     refreshDisplay();
 }
 void P6PluginEditor::refreshVisibility()
@@ -293,16 +332,36 @@ void P6PluginEditor::refreshVisibility()
     for(auto& k:synth_){k.slider.setVisible(!studioView_);k.label.setVisible(!studioView_);}
     for(auto& s:switches_)s.button.setVisible(!studioView_);
     fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
-    for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_);k.label.setVisible(k.slider.isVisible());}
+    for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_&&!opticalPreviewActive_);k.label.setVisible(k.slider.isVisible());}
     diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
-    chamber_.setVisible(!studioView_&&selected==1&&!collapsed_);
-    device_.setVisible(!studioView_&&selected>=2&&!collapsed_);updateDevice();
+    // Tube/Spring use the approved panoramic artwork; existing experimental
+    // Character modes retain their original specialized view.
+    chamber_.setVisible(false);
+    hardware_.setVisible(!studioView_&&!collapsed_&&(opticalPreviewActive_||selected==1||selected==3));
+    device_.setVisible(!studioView_&&selected>=2&&selected!=3&&!collapsed_&&!opticalPreviewActive_);
+    opticalPreview_.setVisible(!studioView_);
+    opticalPreview_.setToggleState(opticalPreviewActive_,juce::dontSendNotification);
+    // Initialize the selected artwork immediately, not only on a timer tick:
+    // unhosted UI-smoke captures and the first frame must be truthful.
+    if(opticalPreviewActive_)
+        hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,0.f,0.f,0.f,{},.7f);
+    else if(selected==1)
+        hardware_.setState(CharacterHardwareWindow::Mode::Tube,
+                           visual_.active,motion_.getToggleState(),
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms);
+    else if(selected==3)
+        hardware_.setState(CharacterHardwareWindow::Mode::Spring,
+                           visual_.active,motion_.getToggleState(),
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms,
+                           {visual_.device.values[2],visual_.device.values[3],visual_.device.values[4]});
+    updateDevice();
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
-    collapse_.setVisible(!studioView_&&showTube_);motion_.setVisible(!studioView_&&showTube_&&!collapsed_);
-    position_.setEnabled(showTube_);bypass_.setEnabled(showTube_);previous_.setEnabled(selected>0);next_.setEnabled(selected<p6plugin::kCharacterTypes-1);
+    collapse_.setVisible(!studioView_&&(showTube_||opticalPreviewActive_));motion_.setVisible(!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_);
+    position_.setEnabled(showTube_&&!opticalPreviewActive_);bypass_.setEnabled(showTube_&&!opticalPreviewActive_);previous_.setEnabled(selected>0);next_.setEnabled(selected<p6plugin::kCharacterTypes-1);
     module_.setToggleState(!studioView_,juce::dontSendNotification);studio_.setToggleState(studioView_,juce::dontSendNotification);
     collapse_.setButtonText(collapsed_?"SHOW":"HIDE");
-    const bool expanded=!studioView_&&showTube_&&!collapsed_;
+    const bool expanded=!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_;
     setResizeLimits(1240,expanded?expandedHeight:compactHeight,1920,1200);
     setSize(getWidth(),expanded?std::max(getHeight(),expandedHeight):compactHeight);resized();repaint();
 }
@@ -333,15 +392,44 @@ void P6PluginEditor::resized()
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
     fxAType_.setBounds(rect(916,590,100,18));fxBType_.setBounds(rect(916,611,100,18));
     keyTrack_.setBounds(rect(587,446,132,24));
-    const bool expanded=showTube_&&!collapsed_;
-    previous_.setBounds(rect(66,expanded?689:652,25,23));type_.setBounds(rect(99,expanded?689:652,158,23));next_.setBounds(rect(265,expanded?689:652,25,23));
-    position_.setBounds(rect(1248,expanded?811:652,137,24));bypass_.setBounds(rect(1262,expanded?753:652,100,24));
-    if(!expanded){previous_.setBounds(rect(305,652,25,23));type_.setBounds(rect(338,652,155,23));next_.setBounds(rect(501,652,25,23));position_.setBounds(rect(550,652,145,24));bypass_.setBounds(rect(735,652,100,24));}
-    collapse_.setBounds(rect(1190,652,90,24));motion_.setBounds(rect(1301,652,91,24));
+    const bool expanded=(showTube_||opticalPreviewActive_)&&!collapsed_;
+    // Hardware header follows the wide Character mockup; only one Character
+    // can process audio, but the independent optical artwork can be previewed.
+    opticalPreview_.setBounds(rect(306,652,177,25));
+    previous_.setBounds(rect(546,652,33,25));
+    type_.setBounds(rect(584,652,247,25));
+    next_.setBounds(rect(836,652,33,25));
+    position_.setBounds(rect(893,652,151,25));
+    bypass_.setBounds(rect(1064,652,88,25));
+    motion_.setBounds(rect(1160,652,88,25));
+    collapse_.setBounds(rect(1261,652,116,25));
+    if(!expanded)
+    {
+        opticalPreview_.setBounds(rect(307,652,172,25));
+        previous_.setBounds(rect(504,652,31,25));
+        type_.setBounds(rect(540,652,200,25));
+        next_.setBounds(rect(744,652,31,25));
+        position_.setBounds(rect(790,652,160,25));
+        bypass_.setBounds(rect(968,652,93,25));
+    }
     knob(36,883,109,88,88);
-    displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
-    chamber_.setBounds(rect(65,720,320,180));device_.setBounds(chamber_.getBounds());
-    for(std::size_t i=0;i<tube_.size();++i){const float x=421+114.f*static_cast<float>(i);tube_[i].label.setBounds(rect(x,759,106,20));tube_[i].slider.setBounds(rect(x,782,106,106));}
+    displayArea_=rect(526,96,322,122);
+    display_.setBounds(displayArea_);
+    tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
+    hardware_.setBounds(rect(55,710,610,190));
+    chamber_.setBounds(hardware_.getBounds());
+    device_.setBounds(hardware_.getBounds());
+    // Retain all seven existing real APVTS bindings. Five controls on top,
+    // two below, as in the approved visual design.
+    for(std::size_t i=0;i<tube_.size();++i)
+    {
+        const bool top=i<5;
+        const float x=top?682.f+136.f*static_cast<float>(i)
+                         :893.f+206.f*static_cast<float>(i-5);
+        const float y=top?702.f:800.f;
+        tube_[i].label.setBounds(rect(x,y,110,18));
+        tube_[i].slider.setBounds(rect(x,y+17.f,110,81));
+    }
 
 }
 void P6PluginEditor::section(juce::Graphics& g,const juce::String& text,float x,float y,float width)
@@ -417,23 +505,36 @@ void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
 void P6PluginEditor::paintTube(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
-    g.setColour(muted);g.setFont(juce::Font(10.f).boldened());
-    g.drawText(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(std::max(0,boundType_))]).toUpperCase(),static_cast<int>(430*sx),696,static_cast<int>(240*sx),18,juce::Justification::centredLeft);
-    g.drawText(boundType_==1?"TONE":"CHARACTER",static_cast<int>(770*sx),696,static_cast<int>(200*sx),18,juce::Justification::centredLeft);
-    g.drawText("LEVEL",static_cast<int>(1085*sx),696,static_cast<int>(130*sx),18,juce::Justification::centredLeft);
-    g.drawText("INSERTION",static_cast<int>(1260*sx),789,static_cast<int>(120*sx),18,juce::Justification::centredLeft);
-    g.setColour(muted.withAlpha(.3f));g.drawLine(405*sx,691,405*sx,898,1);g.drawLine(1238*sx,731,1238*sx,893,1);
-    // Signal-change meter deliberately is not labelled saturation or THD: EQ,
-    // output gain, drive and wet/dry mix all contribute to this difference.
-    const std::array<float,3> values{visual_.inputRms,visual_.outputRms,visual_.changeRms};
-    const std::array<const char*,3> labels{"IN","OUT","CHANGE"};
-    for(std::size_t i=0;i<3;++i) {
-        const float x=(430+270.f*static_cast<float>(i))*sx,y=741.f;
-        g.setColour(muted);g.setFont(9.f);g.drawText(labels[i],static_cast<int>(x),static_cast<int>(y)-10,70,13,juce::Justification::centredLeft);
-        g.setColour(ink.withAlpha(.12f));g.fillRoundedRectangle(x+45*sx,y-6,180*sx,4,2.f);
-        const float level=std::clamp((20.f*std::log10(std::max(values[i],.000001f))+60.f)/60.f,0.f,1.f);
-        g.setColour(amber.darker(.15f));g.fillRoundedRectangle(x+45*sx,y-6,180*sx*level,4,2.f);
+    g.setColour(juce::Colour{0xff76726b}.withAlpha(.6f));
+    g.drawLine(675.f*sx,702.f,675.f*sx,899.f,1.f);
+    g.setColour(juce::Colour{0xff74776f}.withAlpha(.35f));
+    g.drawLine(689.f*sx,804.f,1383.f*sx,804.f,1.f);
+    if(opticalPreviewActive_)
+    {
+        g.setColour(juce::Colour{0xff6d4b29});g.setFont(juce::Font(12.f).boldened());
+        g.drawText("OPTICAL TREMOLO · VISUAL DESIGN PREVIEW · NO AUDIO PROCESSING",
+                   static_cast<int>(688.f*sx),686,static_cast<int>(680.f*sx),19,
+                   juce::Justification::centred);
+        const std::array<const char*,6> names{"RATE","DEPTH","RESPONSE","STEREO","MIX","OUTPUT"};
+        const std::array<float,6> positions{723.f,865.f,1007.f,1149.f,911.f,1117.f};
+        for(std::size_t i=0;i<names.size();++i)
+        {
+            const bool top=i<4; const float xx=positions[i]*sx;
+            const float y=top?719.f:822.f;
+            g.setColour(ink);g.setFont(juce::Font(10.f).boldened());
+            g.drawText(names[i],static_cast<int>(xx-23.f*sx),static_cast<int>(y-8.f),
+                       static_cast<int>(120.f*sx),16,juce::Justification::centred);
+            const float cx=xx+35.f*sx,cy=y+36.f;
+            g.setColour(juce::Colours::black.withAlpha(.22f));g.fillEllipse(cx-30.f,cy-25.f,65.f,65.f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour{0xff575a55},cx-30.f,cy-30.f,
+                                                     juce::Colour{0xff121614},cx+30.f,cy+30.f,false));
+            g.fillEllipse(cx-27.f,cy-27.f,54.f,54.f);
+            g.setColour(juce::Colour{0xffe0d5bf});g.drawLine(cx,cy-13.f,cx,cy-23.f,2.f);
+        }
+        return;
     }
+    // The hardware window owns its IN/OUT (or spring energy/tail) meters.
+    // Avoid drawing a second set behind the real Mix/Output text boxes.
 }
 void P6PluginEditor::paint(juce::Graphics& g)
 {
@@ -448,8 +549,10 @@ void P6PluginEditor::paint(juce::Graphics& g)
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
     paintCharacterPanel(g);
-    g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),651,static_cast<int>(240*sx),24,juce::Justification::centredLeft);
-    if(showTube_&&!collapsed_)paintTube(g);
+    g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));
+    g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),651,
+               static_cast<int>(240*sx),24,juce::Justification::centredLeft);
+    if((showTube_||opticalPreviewActive_)&&!collapsed_)paintTube(g);
 }
 
 void P6PluginEditor::bindDevice(int type)
