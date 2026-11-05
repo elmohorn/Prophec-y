@@ -1,5 +1,26 @@
 # v0.20 — Interfaz y flujo de presets
 
+## Actualización de prioridades — 5 de noviembre de 2026 (planificación, no implementación)
+
+Esta decisión de planificación sustituye el orden de prioridades previo del 1 de noviembre; no afirma que las tareas siguientes estén ejecutadas. No modifica los compromisos de preservación SysEx/NRPN, las huellas DSP congeladas ni la compatibilidad de sesiones, y no requiere acceso a un Prophet-6 físico.
+
+1. **Primero: cerrar interfaz y biblioteca/presets.** Completar el Studio/Inspector, alinear/validar controles, asegurar que las visualizaciones representen fielmente el modelo, cerrar Compare A/B y undo/redo; terminar el flujo real de biblioteca (Save/Save As, favoritos/búsqueda, import/export SysEx, estado de Character) y comprobar round-trip de patches/sesiones en DAW, con pruebas explícitas de migración v1–v5. El browser local inicial existe, pero no equivale al cierre del librarian.
+2. **Después: establecer una referencia sonora reproducible.** Construir un protocolo de renders MIDI y A/B entre Prophec-y y **Arturia Prophet-5 V**, que el propietario tiene instalado, sin asumir que emula exactamente un Prophet-6. Desactivar efectos al aislar osciladores/filtros; igualar niveles y registrar parámetros comparables. Evaluar osciladores, filtros, envolventes, articulación, FX y presets musicales completos. Separar medidas objetivas de escuchas ciegas y no convertir la similitud con Arturia en el único objetivo.
+3. **Auditoría específica de Tube (DSPark) — nueva tarea prioritaria de calidad sonora.** La implementación actual usa `DSPark TubePreamp` (triodo 12AX7 / Koren, dinámica de cátodo y sag, tone stack tipo Bassman), fijado a **una etapa y 2×** de sobremuestreo; `plugin/CharacterFx.cpp` entrega audio al núcleo mediante `processBlock` con un frame estéreo por llamada. Hay evidencia técnica previa favorable, pero **no** validación auditiva profesional ni paridad con válvula física.
+   - **Arquitectura/CPU:** crear prototipo experimental que agrupe el procesamiento en bloques, manteniendo semántica de estado, latencia, smoothing y wet/dry; comparar contra la implementación actual mediante nulos/regresiones (sin asumir equivalencia exacta de antemano). Medir CPU media/p99/máximo en 44,1/48/96 kHz y bloques 32/64/128, integrado con el motor/FX y en DAW real, no solo un kernel aislado.
+   - **Espacio de diseño:** comparar **una vs. dos etapas** del mismo modelo y la respuesta de Drive, Sag y Bass/Middle/Treble; no declarar que dos etapas son mejores sin pruebas. Mantener una etapa como baseline. Considerar simplificaciones físicas (grid conduction/blocking distortion, carga entre etapas, corrección de tono) solo si se demuestra relevancia audible.
+   - **Ganancia y controles:** revisar el nivel por defecto (`Output=-24+36*0.5=-6 dB`) y el caso documentado de Tube default **−6,16 dB RMS frente a dry** para una frase específica. Establecer ganancia de unidad/compensación auditable, no normalizar silenciosamente presets o compatibilidad. A/B a nivel perceptual pareado además de conservar renders originales.
+   - **Calidad medible:** pruebas de THD y distribución armónica vs Drive/nivel, intermodulación, aliasing frente a referencia de mayor frecuencia de muestreo, respuesta a transitorios/dinámica/Sag, rango de controles, DC y ausencia de clics al automatizar Drive/Mix/bypass/Start-End. Documentar costo y trade-offs de 2× frente a opciones superiores de oversampling sin asumir necesidad de aumentarlo.
+   - **Calidad musical:** escuchar a ciegas con presets de bajos, leads suaves y agresivos, pads, acordes polifónicos y notas con distinta intensidad; distinguir cambios útiles de mejoras aparentes por volumen. Comparar con saturadores reconocidos en condiciones razonablemente emparejadas, sin exigir clonación tonal exacta.
+   - **Decisión de salida:** **mantener, optimizar o sustituir** DSPark únicamente según resultados musicales y de ingeniería. Conservar ID de parámetros, estado, automatización, latencia reportada y bypass; cualquier cambio audible debe ser explícito y acompañado de fixtures/compatibilidad.
+4. **Luego: aplicar el mismo estándar a los demás Character FX** (Plasma, Optical Spring, Ferrofluid, Neon); no aumentar la colección solo por atractivo visual antes de validar su calidad sonora y uso real.
+
+**Criterio de aceptación del hito Tube:** informe trazable con commit, parámetros, renders originales y nivelados, métricas reproducibles, comparaciones auditivas y decisión argumentada; pruebas de estabilidad y costo en host real. Los tests anteriores de finitud, sanitizer, estado y CI se conservan, pero **no sustituyen** una validación acústica ni musical.
+
+Referencias internas: [prototipo Tube](V0_20_TUBE_PROTOTYPE.md), [comparación de cinco núcleos](V0_20_FX_COMPARISON.md), [auditoría global](AUDITORIA_GLOBAL_2026_11_02.md), [estado de desarrollo](V0_20_CURRENT_STATUS.md) y [Character implementados](V0_20_CUSTOM_CHARACTER.md).
+
+---
+
 Prioridad acordada: audicionar los cuatro nuevos módulos Character — Plasma,
 Optical Spring, Ferrofluid y Neon Wavefolder — antes de retomar MIDI y Studio.
 Los cuatro prototipos nativos ya tienen DSP, controles/estado y ventana común;
