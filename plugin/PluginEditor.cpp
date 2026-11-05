@@ -532,17 +532,8 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
         }
         return;
     }
-    // These are audio-level meters, not physical heater or reverb displacements.
-    const auto db=[](float rms){return std::clamp((20.f*std::log10(std::max(rms,1.e-6f))+60.f)/60.f,0.f,1.f);};
-    const float a=db(visual_.inputRms),b=db(visual_.outputRms);
-    for(int i=0;i<2;++i)
-    {
-        const float x=(i==0?692.f:1065.f)*sx,y=894.f;
-        g.setColour(muted);g.setFont(9.f);
-        g.drawText(i==0?"INPUT":"OUTPUT",static_cast<int>(x),static_cast<int>(y-3.f),static_cast<int>(78.f*sx),15,juce::Justification::centredLeft);
-        g.setColour(juce::Colour{0xff3d403a});g.fillRoundedRectangle(x+85.f*sx,y,204.f*sx,7.f,2.f);
-        g.setColour(amber);g.fillRoundedRectangle(x+85.f*sx,y,204.f*sx*(i==0?a:b),7.f,2.f);
-    }
+    // The hardware window owns its IN/OUT (or spring energy/tail) meters.
+    // Avoid drawing a second set behind the real Mix/Output text boxes.
 }
 void P6PluginEditor::paint(juce::Graphics& g)
 {
