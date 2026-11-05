@@ -110,6 +110,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     look_.setColour(juce::ComboBox::textColourId,ink);
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
+    hardware_.setValveAsset(BinaryData::tube_glass_png, BinaryData::tube_glass_pngSize);
     addAndMakeVisible(display_);addChildComponent(chamber_);addChildComponent(device_);addChildComponent(hardware_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
