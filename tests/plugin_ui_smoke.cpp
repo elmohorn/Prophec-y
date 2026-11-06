@@ -218,9 +218,13 @@ int main(int argc,char** argv)
         for(int row=0;row<2;++row)
             for(int x=90;x<370;x+=8)
                 g.fillRect(x,23+row*45,3,25);
-        g.setColour(juce::Colour{0xffffc05e});
+        // Dark bulb, then genuinely brighter bulb plus independent sensor.
+        g.setColour(juce::Colour{0xff593c21});
         g.fillEllipse(160.f,165.f,95.f,70.f);
+        g.setColour(juce::Colour{0xffffc05e});
         g.fillEllipse(160.f,285.f,95.f,70.f);
+        g.setColour(juce::Colour{0xffffa943});
+        g.fillEllipse(370.f,291.f,42.f,58.f);
     }
     juce::MemoryOutputStream photoBytes;
     CHECK(juce::JPEGImageFormat().writeImageToStream(syntheticPhoto,photoBytes));
