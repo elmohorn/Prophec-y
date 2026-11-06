@@ -70,6 +70,10 @@ private:
     std::array<Knob,37> synth_;
     std::array<Switch,18> switches_;
     std::array<Knob,7> tube_;
+    // UI-only concept controls: these NEVER have APVTS bindings or modify audio.
+    // Only display them while previewing the not-yet-implemented optical DSP.
+    std::array<Knob,3> opticalConcept_;
+    juce::ComboBox opticalWave_;
     std::unique_ptr<juce::GenericAudioProcessorEditor> diagnostic_;
     juce::Image grain_;
     juce::String focusName_{"LOW PASS"},focusValue_{"100 %"},presetName_;
