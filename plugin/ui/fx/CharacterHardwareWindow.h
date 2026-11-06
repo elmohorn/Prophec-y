@@ -49,8 +49,20 @@ public:
     void setSpringArtwork(const juce::Image& backdrop,
                           const std::array<juce::Image, 3>& coils)
     {
-        springBackdrop_ = backdrop;
-        springCoils_ = coils;
+        // Reject bad dimensions or opaque coil masks: malformed artwork
+        // must never displace a working atlas/fallback with stretched pixels.
+        if(isFullSizeArtwork(backdrop) &&
+           isFullSizeArtwork(coils[0],true) &&
+           isFullSizeArtwork(coils[1],true))
+        {
+            springBackdrop_=backdrop;
+            springCoils_=coils;  // third legacy layer ignored by drawSpring
+        }
+        else
+        {
+            springBackdrop_={};
+            springCoils_={};
+        }
         repaint();
     }
 
@@ -61,10 +73,21 @@ public:
     void setOpticalArtwork(const juce::Image& backdrop, const juce::Image& lampOff,
                            const juce::Image& lampOn, const juce::Image& ldr)
     {
-        opticalBackdrop_ = backdrop;
-        opticalLampOff_ = lampOff;
-        opticalLampOn_ = lampOn;
-        opticalLdr_ = ldr;
+        if(isFullSizeArtwork(backdrop) && isFullSizeArtwork(lampOff) &&
+           isFullSizeArtwork(lampOn,true) && isFullSizeArtwork(ldr,true))
+        {
+            opticalBackdrop_=backdrop;
+            opticalLampOff_=lampOff;
+            opticalLampOn_=lampOn;
+            opticalLdr_=ldr;
+        }
+        else
+        {
+            opticalBackdrop_={};
+            opticalLampOff_={};
+            opticalLampOn_={};
+            opticalLdr_={};
+        }
         repaint();
     }
 
@@ -192,6 +215,14 @@ public:
     }
 
 private:
+    static bool isFullSizeArtwork(const juce::Image& image,
+                                  bool needsAlpha=false) noexcept
+    {
+        return image.isValid() && image.getWidth()==640 &&
+               image.getHeight()==190 &&
+               (!needsAlpha || image.getFormat()==juce::Image::ARGB);
+    }
+
     static void drawGlass(juce::Graphics& g, juce::Rectangle<float> cavity)
     {
         const auto inner = cavity.reduced(3.f);
@@ -265,12 +296,9 @@ private:
 
     void drawSpring(juce::Graphics& g)
     {
-        // A miniature illuminated mechanical tank, shared with the Tube
-        // chamber's recess / bezel. This is a 2.5D projection of real helix
-        // geometry: the front turns occlude the rear turns and have different
-        // diffuse and specular materials. No web renderer or extra GPU needed.
-        const auto amber = juce::Colour{0xffe9a45d};
-        const auto steel = juce::Colour{0xffbaad93};
+        // Preferred authored physical layers, JPEG compatibility scene,
+        // then procedural 2.5D fallback. All share the same bezel and meter.
+        const auto amber=juce::Colour{0xffe9a45d};
         const auto& springFrame = visualDynamics_.frame();
         const float energy = std::clamp((springFrame.springEnergy[0] + springFrame.springEnergy[1]) * .5f, 0.f, 1.f);
 
