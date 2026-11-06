@@ -85,7 +85,8 @@ public:
         {
             // Freeze frame while enabled, but NEVER swallow a bypass or
             // mode change: the off state must still extinguish visual energy.
-            motion_ = false;
+            // Keep the last rendered motion/phase cached so a paused
+            // snapshot is pixel-identical. Only enabled -> false may clear it.
             setDescription("Character animation paused; audio is unaffected.");
             return;
         }
