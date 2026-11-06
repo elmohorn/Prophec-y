@@ -24,9 +24,12 @@ The 448×360 JPEG contains three 448×120 rows in order:
 2. Optical bulb darkened (physical socket and facing LDR retained)
 3. Optical bulb illuminated
 
-`plugin/CMakeLists.txt` embeds this resource when present. The existing
-`CharacterHardwareWindow::drawPhotoFrame` uses a narrower crop (448×97)
-so the native JUCE meters remain independently rendered. The original Tube
+`plugin/CMakeLists.txt` embeds this resource when present. The camera
+now uses the central **448×100 crop (source y=14..114)**, not the old 448×97
+crop which cut off the lower Spring. A 582×130 scene inside the panoramic
+cavity preserves the source's physical aspect ratio; any extra lateral space
+belongs to the chassis, never stretched into the image. Native meters remain
+independently rendered outside the illuminated scene. The original Tube
 is restored to the **original `TubeChamber` component**, at its approved
 320×180 bounds with the original single-row seven knobs, labels and
 IN/OUT/CHANGE meters. Spring and Optical share its material language and
@@ -44,17 +47,24 @@ audio algorithm, parameter ID, preset codec or SysEx implementation changes.
   note-on blink). The original 12AX7 art and hardware frame are unchanged.
 - **Optical Spring:** the DSP publishes three real delay-line tap RMS values
   (`DeviceTelemetry.values[2..4]`). The approved photograph contains **two**
-  physical springs. Weighted combinations of taps (1+2, 2+3) set the energy of
-  those two visible springs; do not synthesize a third nonexistent coil. On
-  atlas load, JUCE derives two masked photographic spring-wire layers and a
-  fixed recessed chassis. A small standing-wave displacement is applied to
-  the wound wire in 32 clipped strips while fixed anchors and the native
-  bezel/glass stay still. Oscillator amplitude is tied to **measured tail
-  energy**, with asymmetric attack/release; the low-frequency visual motion
-  is a display approximation and is not sample-accurate wire vibration.
+  physical springs. Weighted combinations of taps (1+2, 2+3) set their
+  independent energy and movement; do not synthesize a third nonexistent coil.
+  **During atlas initialization only**, JUCE prepares a clean, stationary
+  chassis plus two spatially feathered wire mattes with metal-specific chroma
+  extraction. It removes the central wire silhouettes from the chassis using
+  neighboring-row reconstruction. The **fixed end sockets and the front glass
+  never move**. Each 30Hz frame requires exactly **two moving image draws**,
+  down from 64 full-image transforms/clipped strips, so there are no hard
+  per-segment seams. Oscillation amplitude follows actual measured tap power;
+  the low-frequency motion is an illustration, not sample-accurate vibration.
 - **Optical Tremolo:** remains clearly labelled **DESIGN PREVIEW** with no
-  tremolo DSP or genuine physical LDR model. **Three functional JUCE preview
-  sliders** control LFO rate, modulation depth and bulb/LDR response, and
+  tremolo DSP or genuine physical LDR model. The JPEG is separated at load
+  into a **static unlit chassis**, a narrowly confined bulb/beam illumination
+  layer and an independently lagging LDR illumination layer. Only additive
+  RGB differences between the matched dark/lit photographs are composited,
+  bounded by the physical lamp/beam/sensor masks: **metal, screws and sockets
+  do not flash**. **Three functional JUCE preview sliders** control LFO rate,
+  modulation depth and bulb/LDR response, and
   an interactive waveform selector chooses sine, triangle, ramp or square.
   These are editor-local visual parameters only: **no APVTS attachment**,
   no host automation, DSP or preset mutation. The demonstration LFO is gated
@@ -73,8 +83,12 @@ masks are prepared once, not recomputed in `paint()`.
 receiving three DSP pickups, continued vibration with sustained energy,
 finite graphics state, decay in silence, exact freeze and immediate bypass.
 `P6UiSmoke` exercises the original Tube camera, optical-preview state
-isolation, all seven Spring APVTS attachments and the actual native JPEG
-masking and photo rendering path, with screenshots:
+isolation, **all seven** Spring APVTS attachments without modifying Tube
+parameters, independent movement of both photographic coil bands, fixed
+fastener pixels, undistorted 640×190/800×190 renders, separate bulb and LDR
+light and an unchanged socket/chassis across brightness states. It exercises
+the native JPEG masking and photo rendering path using a synthetic photo
+fixture, with screenshots:
 
 - `spring_photo_reactive_probe.png`
 - `optical_audio_reactive_probe.png`
