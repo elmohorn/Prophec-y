@@ -4,8 +4,9 @@
 #include <array>
 #include <cmath>
 
-// Pure, allocation-free, UI-thread-only (30 Hz) mapping of measured DSP
-// telemetry to physical-looking Character camera animation. Never called from
+// Pure, allocation-free, UI-thread-only mapping of measured DSP telemetry
+// to physical-looking Character animation. Uses real elapsed time so rates
+// stay constant when DAW/UI refresh fluctuates. Never called from
 // processBlock; no parameters or musical state are changed.
 namespace p6plugin::ui
 {
@@ -34,15 +35,17 @@ public:
     // represented as an actual optical effect modulation.
     void advance(bool enabled, bool motion, float inputRms, float changedRms,
                  const std::array<float, 3>& tapRms, float previewLamp,
-                 float previewResponse = .5f) noexcept
+                 float previewResponse = .5f,
+                 float elapsedSeconds = 1.f/30.f) noexcept
     {
         if (!enabled) { reset(); return; }
         if (!motion) return; // exact freeze including lamp decay and spring phase
+        const float dt=std::clamp(positive(elapsedSeconds),0.f,.10f);
 
         const float in = std::sqrt(positive(inputRms));
         const float delta = std::sqrt(positive(changedRms));
         const float heat = unit(in * 1.75f + delta * 1.15f);
-        frame_.heater = follow(frame_.heater, heat, .46f, .12f);
+        frame_.heater = follow(frame_.heater, heat, .054f, .260f,dt);
 
         // The Spring DSP publishes three RMS delay-line pickups. The photo
         // depicts TWO helical springs; do not paint a fictitious third coil.
@@ -66,8 +69,8 @@ public:
         for (std::size_t i = 0; i < 2; ++i)
         {
             frame_.springEnergy[i] =
-                follow(frame_.springEnergy[i], target[i], .40f, .105f);
-            phase_[i] = std::fmod(phase_[i] + hz[i] * twoPi / 30.f, twoPi);
+                follow(frame_.springEnergy[i], target[i], .065f, .300f,dt);
+            phase_[i] = std::fmod(phase_[i] + hz[i] * twoPi * dt, twoPi);
             frame_.springShift[i] =
                 (2.8f + 1.4f * frame_.springEnergy[i]) *
                 frame_.springEnergy[i] * std::sin(phase_[i]);
@@ -76,11 +79,12 @@ public:
         const float response=unit(previewResponse);
         // User's UI-only RESPONSE knob changes the thermal and photoresistive
         // inertia of the conceptual bulb. No effect audio parameter is saved.
-        frame_.lamp = follow(frame_.lamp, unit(previewLamp),
-                             .24f+.60f*response, .08f+.34f*response);
-        // The photoresistor is deliberately slower than the filament.
-        frame_.ldr = follow(frame_.ldr, frame_.lamp,
-                            .06f+.26f*response, .025f+.17f*response);
+        frame_.lamp = follow(frame_.lamp,unit(previewLamp),
+                             .120f-.100f*response,.380f-.320f*response,dt);
+        // Realistic thermal / optical inertia in seconds, not per-frame
+        // multipliers; the LDR is always slower than the lamp.
+        frame_.ldr = follow(frame_.ldr,frame_.lamp,
+                            .350f-.270f*response,.800f-.650f*response,dt);
     }
 
 private:
@@ -94,9 +98,12 @@ private:
         return std::clamp(positive(x), 0.f, 1.f);
     }
 
-    static float follow(float oldValue, float target, float attack, float release) noexcept
+    static float follow(float oldValue,float target,
+                        float attackSeconds,float releaseSeconds,float dt) noexcept
     {
-        return oldValue + (target > oldValue ? attack : release) * (target - oldValue);
+        const float tau=target>oldValue?attackSeconds:releaseSeconds;
+        const float alpha=-std::expm1(-dt/std::max(.001f,tau));
+        return oldValue + alpha*(target-oldValue);
     }
 
     Frame frame_{};
