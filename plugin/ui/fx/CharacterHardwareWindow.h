@@ -573,7 +573,9 @@ private:
             const auto& f=visualDynamics_.frame();
             // Backlight shimmers with the *two visible* coils, each receiving
             // a weighted mix of the three actual spring FDN pickup energies.
-            constexpr std::array<float,2> centerY{63.f,127.f};
+            // Source crop (y=14..114) mapped at 1.3x: metal windings lie
+            // near y=49 and y=113 in the physical 640x190 design surface.
+            constexpr std::array<float,2> centerY{49.f,113.f};
             for (std::size_t row=0;row<2;++row)
             {
                 const float level=active_ ? f.springEnergy[row] : 0.f;
