@@ -28,6 +28,16 @@ public:
         repaint();
     }
 
+    // Matched photorealistic camera study: 448x360 JPEG atlas with three
+    // 448x120 rows: Spring, optical lamp dark, optical lamp lit. ONLY the
+    // inner mechanical scene is copied; the authentic Tube bezel, recession,
+    // glass overlay and rotary controls remain native JUCE components.
+    void setPhotoAtlas(const void* data, int bytes)
+    {
+        cameraAtlas_ = juce::ImageCache::getFromMemory(data, bytes);
+        repaint();
+    }
+
     // Optional pre-rendered transparent 640x190 layers, aligned to the SAME
     // recessed Tube camera. Backdrop owns the tank and fixed mounts; each coil
     // layer contains only one metal spring and can move independently.
@@ -140,7 +150,7 @@ public:
             g.drawRoundedRectangle(cavity, 7.f, 5.f);
             // The physical glass sits IN FRONT of all three hero objects.
             // Never bake it into the spring/lamp art or redesign the bezel.
-            drawGlass(g, cavity);
+            if (mode_ != Mode::Tube) drawGlass(g, cavity);
         }
 
         for (float xx : {18.f, 622.f}) for (float yy : {18.f, 172.f}) screw(g, xx, yy);
@@ -177,6 +187,15 @@ private:
         if (image.isValid())
             g.drawImage(image, juce::Rectangle<float>{0.f, yShift, 640.f, 190.f},
                         juce::RectanglePlacement::stretchToFit);
+    }
+
+    void drawPhotoFrame(juce::Graphics& g, int row)
+    {
+        // Crop away baked meters and the alternate mock's bezel. This
+        // preserves the real Tube camera framing and live JUCE meters.
+        if (!cameraAtlas_.isValid()) return;
+        g.drawImage(cameraAtlas_, 12, 14, 616, 130,
+                    0, row * 120, 448, 97);
     }
 
     static void screw(juce::Graphics& g, float x, float y)
@@ -261,6 +280,18 @@ private:
         // Visual concept only. Lamp drive will be supplied by the future LFO
         // and actual LDR conductance once the optical DSP is implemented.
         const float l=std::clamp(lamp_,0.f,1.f);
+        if (cameraAtlas_.isValid())
+        {
+            drawPhotoFrame(g, 1);
+            {
+                juce::Graphics::ScopedSaveState glowing(g);
+                g.setOpacity(active_ ? l : 0.f);
+                drawPhotoFrame(g, 2);
+            }
+            meter(g,"LAMP",37.f,152.f,265.f,active_ ? l : 0.f);
+            meter(g,"LDR",343.f,152.f,254.f,active_ ? l*.78f : 0.f);
+            return;
+        }
         if (opticalBackdrop_.isValid() && opticalLampOff_.isValid() &&
             opticalLampOn_.isValid() && opticalLdr_.isValid())
         {
@@ -326,6 +357,26 @@ private:
         const auto steel = juce::Colour{0xffbaad93};
         const float energy = std::clamp((pickups_[0] + pickups_[1] + pickups_[2]) / 3.f, 0.f, 1.f);
 
+        if (cameraAtlas_.isValid())
+        {
+            drawPhotoFrame(g, 0);
+            // Light dances across the already-real metallic winding instead
+            // of replacing it with a diagram. Each reflection is driven by
+            // its actual pickup telemetry, not a fake note-on animation.
+            for (int row = 0; row < 3; ++row)
+            {
+                const float drive = active_ ? pickups_[static_cast<std::size_t>(row)] : 0.f;
+                const float y = 41.f + 40.f * static_cast<float>(row);
+                const float x = 320.f + 43.f * std::sin(springPhase_ + row*1.4f);
+                g.setGradientFill(juce::ColourGradient(
+                    amber.withAlpha(.10f * drive),x,y,
+                    amber.withAlpha(0.f),x+160.f,y,true));
+                g.fillEllipse(x-180.f,y-17.f,360.f,34.f);
+            }
+            meter(g,"ENERGY",37.f,152.f,276.f,energy);
+            meter(g,"TAIL",344.f,152.f,267.f,output_);
+            return;
+        }
         if (springBackdrop_.isValid() &&
             std::all_of(springCoils_.begin(), springCoils_.end(),
                         [](const juce::Image& image) { return image.isValid(); }))
@@ -448,6 +499,7 @@ private:
         meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
     }
 
+    juce::Image cameraAtlas_;
     juce::Image valve_;
     juce::Image springBackdrop_;
     std::array<juce::Image, 3> springCoils_{};
