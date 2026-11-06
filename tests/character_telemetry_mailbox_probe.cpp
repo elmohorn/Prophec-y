@@ -43,10 +43,13 @@ int main()
 
     std::atomic<bool> finished{false};
     std::atomic<unsigned> failedWrites{0};
+    std::atomic<std::uint32_t> lastPublishedTag{1};
     std::thread producer([&] {
         for(std::uint32_t tag=2;tag<50002;++tag)
         {
-            if(!mailbox.publish(makeFrame(tag)))
+            if(mailbox.publish(makeFrame(tag)))
+                lastPublishedTag.store(tag,std::memory_order_release);
+            else
                 failedWrites.fetch_add(1,std::memory_order_relaxed);
             if((tag&255)==0)
                 std::this_thread::yield();
@@ -82,8 +85,8 @@ int main()
     assert(mailbox.revision()==generation);
     // The producer finished: the final published frame is authoritative,
     // and the full 72-element payload must still match its generation.
-    assert(frame.tag==generation);
-    assert(frame.tag>=2 && frame.tag<=50001);
+    assert(frame.tag==lastPublishedTag.load(std::memory_order_acquire));
+    assert(generation>=2 && generation<=50001);
     assert(failedWrites.load(std::memory_order_relaxed)<50000);
     std::cout<<"Coherent Character mailbox: concurrent publication and "
              <<"72 correlated values per frame; no torn data\n";
