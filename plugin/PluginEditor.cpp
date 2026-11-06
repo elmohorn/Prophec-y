@@ -355,8 +355,10 @@ void P6PluginEditor::refreshVisibility()
     diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
     // Tube/Spring use the approved panoramic artwork; existing experimental
     // Character modes retain their original specialized view.
-    chamber_.setVisible(false);
-    hardware_.setVisible(!studioView_&&!collapsed_&&(opticalPreviewActive_||selected==1||selected==3));
+    // Tube is the approved original; never replace or recreate its bezel.
+    chamber_.setVisible(!studioView_&&!collapsed_&&selected==1&&!opticalPreviewActive_);
+    // The panoramic photo chamber is only for Spring and optical preview.
+    hardware_.setVisible(!studioView_&&!collapsed_&&(opticalPreviewActive_||selected==3));
     device_.setVisible(!studioView_&&selected>=2&&selected!=3&&!collapsed_&&!opticalPreviewActive_);
     opticalPreview_.setVisible(!studioView_);
     opticalPreview_.setToggleState(opticalPreviewActive_,juce::dontSendNotification);
@@ -437,18 +439,28 @@ void P6PluginEditor::resized()
     display_.setBounds(displayArea_);
     tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
     hardware_.setBounds(rect(55,710,610,190));
-    chamber_.setBounds(hardware_.getBounds());
+    // Restore the exact original Tube camera proportions and placement.
+    chamber_.setBounds(rect(65,720,320,180));
     device_.setBounds(hardware_.getBounds());
-    // Retain all seven existing real APVTS bindings. Five controls on top,
-    // two below, as in the approved visual design.
+    // Existing Tube: preserve original seven-knob single-row module.
+    // Spring: keep the approved wider two-row physical-control arrangement.
     for(std::size_t i=0;i<tube_.size();++i)
     {
-        const bool top=i<5;
-        const float x=top?682.f+136.f*static_cast<float>(i)
-                         :893.f+206.f*static_cast<float>(i-5);
-        const float y=top?702.f:800.f;
-        tube_[i].label.setBounds(rect(x,y,110,18));
-        tube_[i].slider.setBounds(rect(x,y+17.f,110,81));
+        if(boundType_==1 && !opticalPreviewActive_)
+        {
+            const float x=421.f+114.f*static_cast<float>(i);
+            tube_[i].label.setBounds(rect(x,759,106,20));
+            tube_[i].slider.setBounds(rect(x,782,106,106));
+        }
+        else
+        {
+            const bool top=i<5;
+            const float x=top?682.f+136.f*static_cast<float>(i)
+                             :893.f+206.f*static_cast<float>(i-5);
+            const float y=top?702.f:800.f;
+            tube_[i].label.setBounds(rect(x,y,110,18));
+            tube_[i].slider.setBounds(rect(x,y+17.f,110,81));
+        }
     }
 
 }
