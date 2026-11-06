@@ -29,7 +29,18 @@ jobs:
       - name: Configure native editor smoke
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON -DP6_BUILD_UI_SMOKE=ON
       - name: Build screenshot harness
-        run: cmake --build build --target P6UiSmoke --parallel 2
+        run: cmake --build build --target P6UiSmoke P6CharacterVisualProbe --parallel 2
+      - name: Check measured DSP-to-visual response without JUCE
+        run: ctest --test-dir build -R '^p6_character_visual_dynamics
+        run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
+      - name: Upload generated screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prophecy-Character-screenshots
+          path: ui-smoke/*.png
+          if-no-files-found: warn
+ --output-on-failure
       - name: Capture Tube, Spring and optical concept
         run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
       - name: Upload generated screenshots
