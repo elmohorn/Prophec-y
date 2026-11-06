@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "CharacterVisualDynamics.h"
+#include "CharacterHardwarePrimitives.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -12,38 +13,6 @@
 class CharacterProceduralArt final
 {
 private:
-    static void screw(juce::Graphics& g, float x, float y)
-    {
-        g.setColour(juce::Colour{0xff161a17}); g.fillEllipse(x-5.f, y-5.f, 10.f, 10.f);
-        g.setGradientFill(juce::ColourGradient(juce::Colour{0xffefebe0},x-4.f,y-4.f,
-                                                 juce::Colour{0xff707369},x+4.f,y+4.f,false));
-        g.fillEllipse(x-3.5f,y-3.5f,7.f,7.f);
-        g.setColour(juce::Colour{0xff343b36}); g.drawLine(x-2.f,y+1.f,x+2.f,y-1.f,1.2f);
-    }
-
-    static void meter(juce::Graphics& g, const juce::String& label,
-                      float x, float y, float width, float level)
-    {
-        level = std::clamp(level, 0.f, 1.f);
-        g.setFont(juce::Font(12.f).boldened());
-        g.setColour(juce::Colour{0xffc9bca5}); g.drawText(label, juce::Rectangle<float>(x,y,88.f,16.f),
-                                                           juce::Justification::centredLeft);
-        const float trackX=x+83.f;
-        const int count=15;
-        for(int i=0;i<count;++i)
-        {
-            auto cell=juce::Rectangle<float>(trackX+i*(width-83.f)/count,y+2.f,
-                                            (width-83.f)/count-3.f,11.f);
-            const bool lit=(static_cast<float>(i)+.5f)/count<level;
-            g.setColour(lit ? juce::Colour{0xffeeb357} :
-                        juce::Colour{0xff37312a});
-            g.fillRoundedRectangle(cell,1.3f);
-            if(lit){g.setColour(juce::Colour{0xfffad69b}.withAlpha(.7f));
-                    g.fillRect(cell.reduced(2.f,2.f));}
-        }
-    }
-
-
 public:
     static void drawTube(juce::Graphics& g,const juce::Image& valve,
                          bool active,float heater,float input,float output)
@@ -60,7 +29,7 @@ public:
             g.setGradientFill(juce::ColourGradient(juce::Colour{0xff4d4a41},x,54.f,
                                                      juce::Colour{0xff0b0e0c},x+110.f,137.f,false));
             g.fillRoundedRectangle(x,65.f,72.f,72.f,8.f);
-            screw(g,x+12.f,77.f); screw(g,x+59.f,124.f);
+            CharacterHardwarePrimitives::screw(g,x+12.f,77.f); CharacterHardwarePrimitives::screw(g,x+59.f,124.f);
         }
         // Heater bloom follows measured RMS and the DIFFERENCE caused by the
         // tube algorithm. Camera brightness is not a random or note-on blink.
@@ -91,8 +60,8 @@ public:
         }
         g.setColour(juce::Colour{0xfff2d3ab}); g.setFont(juce::Font(19.f).boldened());
         g.drawText("12AX7",juce::Rectangle<float>(285.f,91.f,70.f,24.f),juce::Justification::centred);
-        meter(g,"IN",32.f,151.f,220.f,input);
-        meter(g,"OUT",393.f,151.f,220.f,output);
+        CharacterHardwarePrimitives::meter(g,"IN",32.f,151.f,220.f,input);
+        CharacterHardwarePrimitives::meter(g,"OUT",393.f,151.f,220.f,output);
     }
 
     static void drawOptical(juce::Graphics& g,float l,float sensor)
@@ -101,7 +70,7 @@ public:
         {
             g.setColour(juce::Colour{0xff363833});
             g.fillRoundedRectangle(x,45.f,90.f,82.f,6.f);
-            screw(g,x+15.f,59.f); screw(g,x+75.f,112.f);
+            CharacterHardwarePrimitives::screw(g,x+15.f,59.f); CharacterHardwarePrimitives::screw(g,x+75.f,112.f);
         }
         const auto gold=juce::Colour{0xffffb458};
         g.setGradientFill(juce::ColourGradient(gold.withAlpha(.32f*l),205.f,86.f,
@@ -133,8 +102,8 @@ public:
             if(i==0)ldr.startNewSubPath(x,y);else ldr.lineTo(x,y);
         }
         g.setColour(juce::Colour{0xffefb76d});g.strokePath(ldr,juce::PathStrokeType(2.f));
-        meter(g,"LAMP",37.f,152.f,265.f,l);
-        meter(g,"LDR",343.f,152.f,254.f,sensor);
+        CharacterHardwarePrimitives::meter(g,"LAMP",37.f,152.f,265.f,l);
+        CharacterHardwarePrimitives::meter(g,"LDR",343.f,152.f,254.f,sensor);
     }
 
     static void drawSpring(juce::Graphics& g,
@@ -215,7 +184,7 @@ public:
                 g.fillRoundedRectangle(x, y - 13.f, 31.f, 26.f, 3.f);
                 g.setColour(juce::Colour{0xff968775});
                 g.drawRoundedRectangle(x + 2.f, y - 11.f, 27.f, 22.f, 2.f, 1.f);
-                screw(g, x + 12.f, y);
+                CharacterHardwarePrimitives::screw(g, x + 12.f, y);
             }
             g.setColour(steel.withAlpha(.78f));
             g.drawLine(72.f, y, 86.f, y, 3.f);
@@ -241,7 +210,7 @@ public:
             g.setColour(amber.withAlpha(.05f + .12f * level));
             g.strokePath(front, juce::PathStrokeType(5.f));
         }
-        meter(g, "ENERGY", 37.f, 152.f, 276.f, energy);
-        meter(g, "TAIL", 344.f, 152.f, 267.f, output);
+        CharacterHardwarePrimitives::meter(g, "ENERGY", 37.f, 152.f, 276.f, energy);
+        CharacterHardwarePrimitives::meter(g, "TAIL", 344.f, 152.f, 267.f, output);
     }
 };
