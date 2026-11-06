@@ -61,6 +61,11 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
         run: ctest --test-dir build-sanitize --output-on-failure
+      - name: Character mailbox concurrency and visual dynamics under ASan/UBSan
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: python3 tools/verify_character_core.py --sanitizers asan-ubsan --stress-rounds 20
       - name: Reference corpus tooling self-tests
         shell: bash
         run: |
