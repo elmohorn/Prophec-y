@@ -86,12 +86,20 @@ int main()
     assert(std::abs(a.springShift[0]-b.springShift[0])<.001f);
     assert(std::abs(a.springShift[1]-b.springShift[1])<.001f);
     assert(std::abs(a.lamp-b.lamp)<.0001f);
-    // An exceptionally long UI stall is capped instead of jumping forward.
+    // A blocked UI must integrate the FULL elapsed time in one analytical
+    // update, never silently lose 1.9s to a 100ms clipping limit.
     CharacterVisualDynamics delayed,reference;
-    delayed.advance(true,true,.20f,.07f,steady,.65f,.6f,20.f);
+    delayed.advance(true,true,.20f,.07f,steady,.65f,.6f,2.f);
     reference.advance(true,true,.20f,.07f,steady,.65f,.6f,.1f);
-    assert(std::abs(delayed.frame().heater-reference.frame().heater)<.00001f);
-    assert(std::abs(delayed.frame().lamp-reference.frame().lamp)<.00001f);
+    assert(delayed.frame().heater>reference.frame().heater);
+    assert(delayed.frame().lamp>reference.frame().lamp);
+    assert(delayed.frame().springEnergy[0]>reference.frame().springEnergy[0]);
+    // Even a 60-second stall stays finite; the damped state reaches target
+    // without an O(seconds * fps) replay.
+    delayed.advance(true,true,0.f,0.f,{},0.f,.6f,60.f);
+    assert(std::isfinite(delayed.frame().springShift[0]));
+    assert(std::isfinite(delayed.frame().lamp));
+    assert(delayed.frame().lamp<.0001f);
     // Bypass works even while motion is paused, clearing stored energy.
     dynamics.advance(false,false,.9f,.9f,{.9f,.9f,.9f},1.f);
     const auto bypass=dynamics.frame();
