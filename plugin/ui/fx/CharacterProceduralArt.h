@@ -141,6 +141,8 @@ public:
                            const p6plugin::ui::CharacterVisualDynamics::Frame& frame,
                            float phase,float energy,float output)
     {
+        const auto amber=juce::Colour{0xffe9a45d};
+        const auto steel=juce::Colour{0xffbaad93};
         g.setGradientFill(juce::ColourGradient(
             juce::Colour{0xff181a18}, 320.f, 34.f,
             juce::Colour{0xff090a09}, 320.f, 149.f, false));
