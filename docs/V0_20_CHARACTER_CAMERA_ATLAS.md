@@ -145,9 +145,11 @@ heuristic; do not claim that its limitations are fully eliminated.
 **Renderer organization.** `CharacterProceduralArt.h` now contains the
 vector-only fallback Tube, Spring and Optical art. The hardware window
 retains only the physical bezel, native glass, compositing order, state and
-meters; `CharacterPhotoLayers.h` retains atlas decoding and matte creation;
+meters. `CharacterHardwarePrimitives.h` shares the native screw and meter
+painter with the procedural fallback rather than duplicating them;
+`CharacterPhotoLayers.h` retains atlas decoding and matte creation;
 `CharacterVisualDynamics.h` retains pure signal-to-motion integration.
-The hardware header shrank from approximately 538 to 356 lines. All paths
+The hardware header shrank from approximately 538 to 337 lines. All paths
 are UI-thread-only; no audio processing, existing parameter IDs, presets,
 state codecs or SysEx were modified.
 
