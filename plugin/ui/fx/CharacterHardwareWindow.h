@@ -84,8 +84,10 @@ public:
         for (int i = 0; i < 3; ++i)
             nextSprings[static_cast<std::size_t>(i)] =
                 enabled ? finite01(springPickups[static_cast<std::size_t>(i)] * 8.f) : 0.f;
+        // Dynamics uses analytical exponential integration; a delayed
+        // host/UI frame must advance the *whole* elapsed interval.
         const float dt=std::isfinite(elapsedSeconds)?
-            std::clamp(elapsedSeconds,0.f,.1f):1.f/30.f;
+            std::max(0.f,elapsedSeconds):1.f/30.f;
         // Continue repainting a sustained Spring note: the pickup energies
         // control a visual, damped displacement, not a prerecorded animation.
         // The geometry stays still at zero energy and when motion is paused.
