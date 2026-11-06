@@ -33,7 +33,8 @@ public:
     // previewLamp is an *explicit visual design preview* signal; it is not
     // represented as an actual optical effect modulation.
     void advance(bool enabled, bool motion, float inputRms, float changedRms,
-                 const std::array<float, 3>& tapRms, float previewLamp) noexcept
+                 const std::array<float, 3>& tapRms, float previewLamp,
+                 float previewResponse = .5f) noexcept
     {
         if (!enabled) { reset(); return; }
         if (!motion) return; // exact freeze including lamp decay and spring phase
@@ -72,10 +73,14 @@ public:
                 frame_.springEnergy[i] * std::sin(phase_[i]);
         }
 
-        frame_.lamp = follow(frame_.lamp, unit(previewLamp), .46f, .15f);
-        // The photoresistor is not a second instantaneous LFO meter: its
-        // illuminated state follows the lamp with asymmetrical latency.
-        frame_.ldr = follow(frame_.ldr, frame_.lamp, .20f, .07f);
+        const float response=unit(previewResponse);
+        // User's UI-only RESPONSE knob changes the thermal and photoresistive
+        // inertia of the conceptual bulb. No effect audio parameter is saved.
+        frame_.lamp = follow(frame_.lamp, unit(previewLamp),
+                             .24f+.60f*response, .08f+.34f*response);
+        // The photoresistor is deliberately slower than the filament.
+        frame_.ldr = follow(frame_.ldr, frame_.lamp,
+                            .06f+.26f*response, .025f+.17f*response);
     }
 
 private:
