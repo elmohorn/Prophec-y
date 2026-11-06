@@ -77,6 +77,46 @@ visual pause freezes the exact image, bypass clears energy immediately, and
 the spring tail decays as real delay-line measurements fall. Cached JPEG
 masks are prepared once, not recomputed in `paint()`.
 
+## Medium-priority engineering hardening (2026-11-06)
+
+### Time-based movement
+
+The message-thread timer is still *requested* at 30 Hz but is no longer a
+source of simulated time. `PluginEditor::timerCallback()` uses JUCE's monotonic
+millisecond counter, clamps long host/UI stalls to 100 ms and feeds
+`elapsedSeconds` into the preview LFO and image dynamics. Smoothing uses
+`alpha = 1 - exp(-dt/tau)` with attack/release constants measured in **seconds**.
+Motion therefore keeps the same pace at 30 and 120 UI refreshes per second.
+Pausing MOTION continues to freeze the exact visual frame.
+
+### Coherent real-time telemetry without audio-thread blocking
+
+`plugin/RealtimeSnapshotMailbox.h` replaces independent atomic fields with
+a **single-producer/single-reader triple-slot mailbox**. Each slot has atomic
+ownership. The audio thread claims an unused slot, copies the full Character
+snapshot including RMS, active effect type, pickups and scope values, then
+publishes it with a release store. The UI claims that slot before copying
+and releases it afterward. No torn cross-block frames or non-atomic races;
+no mutex, heap allocation, busy waits or DSP feedback on the audio thread.
+On a bounded failed read, the editor retains its last verified complete
+snapshot and ages it out normally. Its revision comes from the **same slot**.
+
+### Photo renderer responsibility
+
+`CharacterPhotoLayers.h` owns atlas decode, one-time JPEG masks and static
+chassis / two spring / bulb / LDR image compositing. The hardware window
+owns the glass, machined aluminum bezel, meters and mode routing;
+`CharacterVisualDynamics.h` owns measured-signal motion only.
+All pixel manipulation runs on the message thread at initialization.
+
+New `tests/character_telemetry_mailbox_probe.cpp` uses a concurrent writer
+and reader to check 72 correlated values per frame without blocking.
+The visual dynamics probe checks equivalent amplitudes/phase over a real
+second at 30 Hz and 120 Hz, and caps delayed host ticks.
+Five isolated local C++ mailbox stress runs passed without torn frames;
+**the native JUCE build and DAW screenshot smoke remain unverified**
+because GitHub Actions still fails before starting a runner.
+
 ## Verification
 
 `P6CharacterVisualProbe` tests measured input/tap response, two coils
