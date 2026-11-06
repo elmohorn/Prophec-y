@@ -170,6 +170,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     opticalPreview_.onClick=[this] {
         opticalPreviewActive_=!opticalPreviewActive_;
         previewLfoPhase_=0.f;
+        previewAudioLevel_=0.f;
         refreshVisibility();
     };
     addAndMakeVisible(opticalPreview_);
@@ -295,6 +296,16 @@ void P6PluginEditor::timerCallback()
     glow_=visual_.active?std::clamp(std::sqrt(visual_.inputRms)*1.8f,0.f,1.f):0.f;
     characterGlow_=visual_.active?std::clamp(std::sqrt(visual_.changeRms)*2.f,0.f,1.f):0.f;
     chamber_.setIllumination(visual_.active,motion_.getToggleState(),glow_,characterGlow_);
+    // The optical chamber is still a non-DSP PREVIEW. Its incandescent bulb
+    // now receives the actual final-output RMS envelope rather than pulsing
+    // at full intensity while the instrument is silent. The demonstration
+    // LFO remains a visual metaphor until an optical DSP exists.
+    const float audioRms=std::clamp(
+        std::max({0.f,readings.rms[0],readings.rms[1]}),0.f,1.f);
+    const float targetPreviewEnvelope=std::clamp(
+        std::sqrt(audioRms)*2.4f,0.f,1.f);
+    const float previewAlpha=targetPreviewEnvelope>previewAudioLevel_?.48f:.11f;
+    previewAudioLevel_+=previewAlpha*(targetPreviewEnvelope-previewAudioLevel_);
     if(opticalPreviewActive_)
     {
         if(motion_.getToggleState())
@@ -303,11 +314,11 @@ void P6PluginEditor::timerCallback()
             if(previewLfoPhase_>juce::MathConstants<float>::twoPi)
                 previewLfoPhase_-=juce::MathConstants<float>::twoPi;
         }
-        // This animation is intentionally synthetic and labelled PREVIEW.
-        // It is never used to represent an active optical DSP.
+        const float lfo=.5f+.5f*std::sin(previewLfoPhase_);
+        const float lampDrive=.015f+.985f*lfo*previewAudioLevel_;
         hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
-                           true,motion_.getToggleState(),0.f,0.f,0.f,{},
-                           .5f+.5f*std::sin(previewLfoPhase_));
+                           true,motion_.getToggleState(),
+                           audioRms,audioRms,0.f,{},lampDrive);
     }
     else if(boundType_==1)
     {
