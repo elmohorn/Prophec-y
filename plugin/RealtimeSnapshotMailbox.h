@@ -27,6 +27,9 @@ class RealtimeSnapshotMailbox final
 {
     static_assert(std::is_trivially_copyable_v<Snapshot>,
                   "A snapshot must be a trivially-copyable value type");
+    static_assert(std::atomic<std::uint8_t>::is_always_lock_free &&
+                  std::atomic<unsigned>::is_always_lock_free,
+                  "This realtime mailbox requires lock-free byte/index atomics");
 public:
     RealtimeSnapshotMailbox() noexcept
     {
