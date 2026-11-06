@@ -26,9 +26,13 @@ The 448×360 JPEG contains three 448×120 rows in order:
 
 `plugin/CMakeLists.txt` embeds this resource when present. The existing
 `CharacterHardwareWindow::drawPhotoFrame` uses a narrower crop (448×97)
-so the native JUCE meters remain independently rendered. The unchanged bezel
-and glass are drawn after the photographic interior. The image generation
-study's panel, knobs, lettering and FX display are deliberately excluded.
+so the native JUCE meters remain independently rendered. The original Tube
+is restored to the **original `TubeChamber` component**, at its approved
+320×180 bounds with the original single-row seven knobs, labels and
+IN/OUT/CHANGE meters. Spring and Optical share its material language and
+recessed/glass construction but use a wider camera to fit the physical
+objects. The image generation study's alternate panel, knobs and lettering
+are deliberately excluded.
 
 ## Reactive motion (DSP telemetry -> native camera)
 
@@ -49,11 +53,14 @@ audio algorithm, parameter ID, preset codec or SysEx implementation changes.
   energy**, with asymmetric attack/release; the low-frequency visual motion
   is a display approximation and is not sample-accurate wire vibration.
 - **Optical Tremolo:** remains clearly labelled **DESIGN PREVIEW** with no
-  tremolo DSP or genuine physical LDR model. The visible bulb's demonstration
-  LFO is now *amplitude-gated by actual final output RMS*, and the LDR
-  illumination has slower attack/release than the bulb. With silence, the
-  glass and metal remain visible but the lamp fades. The interface does
-  **not** claim the preview is altering the sound.
+  tremolo DSP or genuine physical LDR model. **Three functional JUCE preview
+  sliders** control LFO rate, modulation depth and bulb/LDR response, and
+  an interactive waveform selector chooses sine, triangle, ramp or square.
+  These are editor-local visual parameters only: **no APVTS attachment**,
+  no host automation, DSP or preset mutation. The demonstration LFO is gated
+  by actual final-output RMS, and the LDR illumination has delayed
+  attack/release relative to the bulb. With silence, the hardware remains
+  visible but the lamp fades. The old decorative fake knobs are removed.
 
 All dynamic values are clamped and checked for non-finite telemetry, the
 visual pause freezes the exact image, bypass clears energy immediately, and
@@ -65,8 +72,9 @@ masks are prepared once, not recomputed in `paint()`.
 `P6CharacterVisualProbe` tests measured input/tap response, two coils
 receiving three DSP pickups, continued vibration with sustained energy,
 finite graphics state, decay in silence, exact freeze and immediate bypass.
-`P6UiSmoke` exercises the actual native JPEG masking and photo rendering
-path using an internally generated test atlas, with screenshots:
+`P6UiSmoke` exercises the original Tube camera, optical-preview state
+isolation, all seven Spring APVTS attachments and the actual native JPEG
+masking and photo rendering path, with screenshots:
 
 - `spring_photo_reactive_probe.png`
 - `optical_audio_reactive_probe.png`
