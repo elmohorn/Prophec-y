@@ -526,6 +526,19 @@ int main(int argc,char** argv)
         for(int c=0;c<2;++c)for(int n=0;n<128;++n){CHECK(std::isfinite(audio.getSample(c,n)));energy+=audio.getSample(c,n)*audio.getSample(c,n);}
     }
     CHECK(energy>0);
+    // Verify the full processor->UI mailbox is wired, not only that the
+    // independent mailbox template behaves correctly under concurrency.
+    p6plugin::CharacterTelemetry coherentFrame{};
+    std::uint32_t coherentGeneration{};
+    CHECK(p.readCharacterTelemetry(coherentFrame,coherentGeneration));
+    CHECK(coherentGeneration>0);
+    CHECK(coherentGeneration==p.characterTelemetryRevision());
+    CHECK(std::isfinite(coherentFrame.inputRms));
+    CHECK(std::isfinite(coherentFrame.outputRms));
+    CHECK(std::isfinite(coherentFrame.changeRms));
+    for(float value:coherentFrame.device.values)CHECK(std::isfinite(value));
+    for(float value:coherentFrame.device.input)CHECK(std::isfinite(value));
+    for(float value:coherentFrame.device.wet)CHECK(std::isfinite(value));
     auto meters=p.consumeOutputReadings();CHECK(meters.prePeak[0]>0&&meters.peak[0]>0);
     CHECK(std::abs(meters.peak[0]/meters.prePeak[0]-std::pow(10.f,-18.f/20.f))<.0001f);
     CHECK(p.consumeOutputReadings().peak[0]==0); // UI consumption retains short peaks until read
