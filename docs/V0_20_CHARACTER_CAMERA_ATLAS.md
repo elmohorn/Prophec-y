@@ -136,7 +136,7 @@ for silver wire against highlights. The pre-existing public APIs
 `setOpticalArtwork(cleanChassis, darkFixture, transparentLampEmission,
 transparentSensorEmission)` are now **preferred over an available JPEG
 atlas**; previously the JPEG silently took precedence and could override
-hand-authored RGBA images. Explicit bulb and LDR alpha layers are animated
+hand-authored RGBA images. Malformed artwork dimensions (must be 640x190) or missing alpha in moving/emissive layers are rejected, preserving the JPEG/procedural fallback. Explicit bulb and LDR alpha layers are animated
 independently, leaving screws and metal stationary. The native smoke test
 asserts identical results for explicit assets *with and without* a JPEG loaded.
 Until approved RGBA layers are supplied, JPEG segmentation remains a
@@ -149,7 +149,7 @@ meters. `CharacterHardwarePrimitives.h` shares the native screw and meter
 painter with the procedural fallback rather than duplicating them;
 `CharacterPhotoLayers.h` retains atlas decoding and matte creation;
 `CharacterVisualDynamics.h` retains pure signal-to-motion integration.
-The hardware header shrank from approximately 538 to 337 lines. All paths
+The hardware header shrank from approximately 538 to 365 lines (including new artwork validation). All paths
 are UI-thread-only; no audio processing, existing parameter IDs, presets,
 state codecs or SysEx were modified.
 
