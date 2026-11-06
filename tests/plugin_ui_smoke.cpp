@@ -140,6 +140,73 @@ int main(int argc,char** argv)
                               .1f, .18f, .08f, springPickups);
         CHECK(screenshot(springVisual, folder.getChildFile("spring_tank_active.png")));
     }
+    // Rendered photographic layers must animate without touching the fixed
+    // physical Tube bezel / glass. Small synthetic RGBA assets make the test
+    // independent of artistic assets and keep the native smoke deterministic.
+    juce::Image springBack(juce::Image::ARGB,640,190,true);
+    {
+        juce::Graphics g(springBack);
+        g.setColour(juce::Colour{0xff292019});
+        g.fillRect(15,15,610,140);
+    }
+    std::array<juce::Image,3> springLayers;
+    for(int i=0;i<3;++i) {
+        springLayers[static_cast<std::size_t>(i)]=juce::Image(juce::Image::ARGB,640,190,true);
+        juce::Graphics g(springLayers[static_cast<std::size_t>(i)]);
+        g.setColour(juce::Colour{0xffcda56a});
+        g.fillRect(120,38+i*40,400,12);
+    }
+    springVisual.setSpringArtwork(springBack,springLayers);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .2f,.16f,.1f,springPickups);
+    const auto artLive=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .2f,.16f,.1f,springPickups);
+    const auto artNext=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool artMoved=false;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        artMoved=artMoved||(artLive.getPixelAt(x,y)!=artNext.getPixelAt(x,y));
+    CHECK(artMoved);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,true,false,
+                          .2f,.16f,.1f,springPickups);
+    const auto artFrozen=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool photoFrozen=true;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        photoFrozen=photoFrozen&&(artNext.getPixelAt(x,y)==artFrozen.getPixelAt(x,y));
+    CHECK(photoFrozen);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,false,false,0.f,0.f,0.f);
+    const auto artOff=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool photoBypassChanged=false;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        photoBypassChanged=photoBypassChanged||
+                           artFrozen.getPixelAt(x,y)!=artOff.getPixelAt(x,y);
+    CHECK(photoBypassChanged);
+    // Optical artwork is a preview, not a DSP state change. Distinct lit
+    // filament pixels must track LFO light level across UI frames.
+    juce::Image opticalBack(juce::Image::ARGB,640,190,true);
+    juce::Image opticalOff(juce::Image::ARGB,640,190,true);
+    juce::Image opticalOn(juce::Image::ARGB,640,190,true);
+    juce::Image opticalLdr(juce::Image::ARGB,640,190,true);
+    {
+        juce::Graphics g(opticalOn);
+        g.setColour(juce::Colours::orange);
+        g.fillEllipse(170.f,58.f,65.f,65.f);
+    }
+    CharacterHardwareWindow opticalVisual;
+    opticalVisual.setSize(640,190);
+    opticalVisual.setOpticalArtwork(opticalBack,opticalOff,opticalOn,opticalLdr);
+    opticalVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,0.f,0.f,0.f,{},0.f);
+    const auto opticalDark=opticalVisual.createComponentSnapshot(opticalVisual.getLocalBounds());
+    opticalVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,0.f,0.f,0.f,{},1.f);
+    const auto opticalBright=opticalVisual.createComponentSnapshot(opticalVisual.getLocalBounds());
+    CHECK(opticalDark.getPixelAt(200,90)!=opticalBright.getPixelAt(200,90));
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};
+        CHECK(screenshot(springVisual,folder.getChildFile("spring_layered_asset_probe.png")));
+        CHECK(screenshot(opticalVisual,folder.getChildFile("optical_layered_asset_probe.png")));
+    }
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
