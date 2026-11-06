@@ -277,12 +277,13 @@ void P6PluginEditor::setType(int value)
 void P6PluginEditor::timerCallback()
 {
     // A timer configured at 30Hz does NOT guarantee 33.3ms delivery in a DAW.
-    // Use elapsed real time; clamp long window/sleep gaps rather than catch up
-    // an unbounded number of visual oscillations on the message thread.
+    // No iterative catch-up loop: LFO phase advances modulo 2pi, and
+    // physical envelopes integrate elapsed time analytically. Retaining the
+    // whole gap avoids the slow/incorrect phase after a blocked DAW UI.
     const double nowMs=juce::Time::getMillisecondCounterHiRes();
     const float elapsedSeconds=lastUiFrameTimeMs_>0.0?
-        std::clamp(static_cast<float>((nowMs-lastUiFrameTimeMs_)*.001),
-                   0.f,.1f):1.f/30.f;
+        static_cast<float>(std::max(0.0,(nowMs-lastUiFrameTimeMs_)*.001)):
+        1.f/30.f;
     lastUiFrameTimeMs_=nowMs;
     if(!isShowing())return;
     const auto events=processor_.recentMidiEvents();juce::String monitor;
@@ -372,9 +373,11 @@ void P6PluginEditor::timerCallback()
         {
             const float rate=static_cast<float>(opticalConcept_[0].slider.getValue());
             const float hz=.25f+3.5f*rate*rate;
-            previewLfoPhase_=std::fmod(previewLfoPhase_+
-                juce::MathConstants<float>::twoPi*hz*elapsedSeconds,
-                juce::MathConstants<float>::twoPi);
+            const double twoPi=juce::MathConstants<double>::twoPi;
+            previewLfoPhase_=static_cast<float>(std::fmod(
+                static_cast<double>(previewLfoPhase_)+twoPi*
+                static_cast<double>(hz)*static_cast<double>(elapsedSeconds),
+                twoPi));
         }
         const float cycle=previewLfoPhase_/juce::MathConstants<float>::twoPi;
         float lfo=.5f+.5f*std::sin(previewLfoPhase_);
