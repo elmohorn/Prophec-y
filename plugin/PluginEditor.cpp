@@ -360,7 +360,8 @@ void P6PluginEditor::refreshVisibility()
     // unhosted UI-smoke captures and the first frame must be truthful.
     if(opticalPreviewActive_)
         hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
-                           true,true,0.f,0.f,0.f,{},.7f);
+                           true,motion_.getToggleState(),
+                           0.f,0.f,0.f,{},.015f);
     else if(selected==1)
         hardware_.setState(CharacterHardwareWindow::Mode::Tube,
                            visual_.active,motion_.getToggleState(),
