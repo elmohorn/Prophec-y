@@ -20,7 +20,13 @@ juce_add_plugin(P6CorePlugin
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE)
 
-juce_add_binary_data(P6PanelAssets SOURCES assets/tube_glass.png assets/tube_chamber.jpg)
+set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg)
+# Optional camera atlas uses native Tube frame; builds without asset retain fallback.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_cameras_atlas.jpg")
+    list(APPEND P6_PANEL_ASSETS assets/character_cameras_atlas.jpg)
+    set(P6_HAS_CHARACTER_ATLAS TRUE)
+endif()
+juce_add_binary_data(P6PanelAssets SOURCES ${P6_PANEL_ASSETS})
 set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_sources(P6CorePlugin PRIVATE
@@ -48,6 +54,10 @@ target_sources(P6CorePlugin PRIVATE
     ui/display/ContextDisplay.h
     PluginStateCodec.cpp
     PluginStateCodec.h)
+
+if(P6_HAS_CHARACTER_ATLAS)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_CHARACTER_ATLAS=1)
+endif()
 
 target_compile_definitions(P6CorePlugin
     PUBLIC
