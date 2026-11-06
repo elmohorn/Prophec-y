@@ -40,10 +40,10 @@ public:
         repaint();
     }
 
-    // Optional pre-rendered transparent 640x190 layers, aligned to the SAME
-    // recessed Tube camera. Backdrop owns the tank and fixed mounts; each coil
-    // layer contains only one metal spring and can move independently.
-    // An incomplete asset set never replaces the current fallback renderer.
+    // Optional pre-rendered transparent layers aligned to the recessed bezel.
+    // The first TWO coil layers represent the two approved physical springs.
+    // A legacy third image is ignored; missing coil layers use the procedural
+    // two-spring fallback. Backdrop owns the fixed supports and tank.
     void setSpringArtwork(const juce::Image& backdrop,
                           const std::array<juce::Image, 3>& coils)
     {
@@ -473,7 +473,8 @@ private:
         // diffuse and specular materials. No web renderer or extra GPU needed.
         const auto amber = juce::Colour{0xffe9a45d};
         const auto steel = juce::Colour{0xffbaad93};
-        const float energy = std::clamp((pickups_[0] + pickups_[1] + pickups_[2]) / 3.f, 0.f, 1.f);
+        const auto& springFrame = visualDynamics_.frame();
+        const float energy = std::clamp((springFrame.springEnergy[0] + springFrame.springEnergy[1]) * .5f, 0.f, 1.f);
 
         if (cameraAtlas_.isValid())
         {
@@ -497,23 +498,21 @@ private:
             meter(g,"TAIL",344.f,152.f,267.f,output_);
             return;
         }
-        if (springBackdrop_.isValid() &&
-            std::all_of(springCoils_.begin(), springCoils_.end(),
-                        [](const juce::Image& image) { return image.isValid(); }))
+        if (springBackdrop_.isValid() && springCoils_[0].isValid() &&
+            springCoils_[1].isValid())
         {
             drawArtwork(g, springBackdrop_);
-            for (int row = 0; row < 3; ++row)
+            // Legacy layered assets may include a third image, but the approved
+            // hardware has TWO coils. Never paint a phantom third spring.
+            for (std::size_t row = 0; row < 2; ++row)
             {
-                // The mounts are part of the fixed tank layer. The spring-only
-                // overlay moves at most 2 px: energy comes from its own pickup.
-                const float drive = active_ && motion_
-                    ? pickups_[static_cast<std::size_t>(row)] : 0.f;
-                const float displacement = 2.f * drive *
-                    std::sin(springPhase_ + 1.7f * static_cast<float>(row));
-                drawArtwork(g, springCoils_[static_cast<std::size_t>(row)],
-                            displacement);
+                const float displacement = active_ && motion_
+                    ? visualDynamics_.frame().springShift[row] : 0.f;
+                drawArtwork(g, springCoils_[row], displacement);
             }
-            meter(g, "ENERGY", 37.f, 152.f, 276.f, energy);
+            meter(g, "ENERGY", 37.f, 152.f, 276.f,
+                  (visualDynamics_.frame().springEnergy[0] +
+                   visualDynamics_.frame().springEnergy[1]) * .5f);
             meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
             return;
         }
@@ -544,10 +543,11 @@ private:
         constexpr int samples = turns * samplesPerTurn;
         constexpr float pi = 3.14159265358979323846f;
 
-        for (int row = 0; row < 3; ++row)
+        for (int row = 0; row < 2; ++row)
         {
-            const float y = 51.f + 40.f * static_cast<float>(row);
-            const float level = pickups_[static_cast<std::size_t>(row)];
+            // The two visual bodies combine all three measured DSP pickups.
+            const float y = 64.f + 60.f * static_cast<float>(row);
+            const float level = visualDynamics_.frame().springEnergy[static_cast<std::size_t>(row)];
             const float phaseOffset = static_cast<float>(row) * 1.7f;
 
             // The spring is fixed at both ends. Movement and reflections are
