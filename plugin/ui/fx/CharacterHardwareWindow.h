@@ -389,7 +389,8 @@ private:
             g.drawImageTransformed(springPhotoCoils_[row],
                 juce::AffineTransform::scale(photoScale).translated(
                     static_cast<float>(photoX),
-                    static_cast<float>(photoY-photoCropY)*photoScale+yShift));
+                    static_cast<float>(photoY)-
+                    static_cast<float>(photoCropY)*photoScale+yShift));
         }
     }
 
