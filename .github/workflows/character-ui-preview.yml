@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Only the newest pending visual capture needs a hosted runner.
+concurrency:
+  group: character-ui-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   screenshot-smoke:
     name: Capture JUCE Character FX views
