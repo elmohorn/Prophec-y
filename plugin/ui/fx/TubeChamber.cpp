@@ -35,17 +35,22 @@ void TubeChamber::paint(juce::Graphics& g)
         // The background is an unlit cavity; emission is a separate UI layer.
         g.setColour(juce::Colours::black.withAlpha(.23f));g.fillRect(opening);
         const auto amber=juce::Colour{0xfff59b40};
+        // Use a compressive illumination curve: real tube input/change
+        // telemetry drives a visible yet non-strobing filament response,
+        // including quieter playing. This does not change hardware geometry.
+        const float heat=active_?std::clamp(.70f*std::sqrt(energy_)+
+                                            .60f*std::sqrt(change_),0.f,1.f):0.f;
         auto halo=[&](float radius,float alpha){g.setGradientFill(juce::ColourGradient(amber.withAlpha(alpha),160,114,amber.withAlpha(0.f),160+radius,114,true));g.fillEllipse(160-radius,114-radius,2*radius,2*radius);};
-        if(active_)halo(108,.06f+.18f*energy_+.13f*change_);
+        if(active_)halo(108,.012f+.36f*heat);
         // Resource has transparent margins. Its pins end at the socket below
         // the aperture lip; the glass tip stays well behind the upper bezel.
         const juce::Rectangle<float> valve(109,15,102,153);
         g.setOpacity(.82f);g.drawImage(valve_,valve);g.setOpacity(1.f);
         if(active_) {
-            halo(28,.06f+.18f*energy_+.2f*change_);
+            halo(35,.025f+.44f*heat);
             for(float offset:{-6.6f,6.6f}) {
-                g.setColour(amber.withAlpha(.18f+.6f*energy_));g.drawLine(160+offset,105,160+offset,123,2.4f);
-                g.setColour(juce::Colour{0xffffd7a3}.withAlpha(.12f+.55f*change_));g.drawLine(160+offset,107,160+offset,120,1.f);
+                g.setColour(amber.withAlpha(.06f+.89f*heat));g.drawLine(160+offset,105,160+offset,123,2.4f);
+                g.setColour(juce::Colour{0xffffd7a3}.withAlpha(.03f+.84f*heat));g.drawLine(160+offset,107,160+offset,120,1.f);
             }
         }
         // Socket's front half occludes the pins, seating the valve in the
