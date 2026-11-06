@@ -32,6 +32,7 @@ set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_sources(P6CorePlugin PRIVATE
     PluginProcessor.cpp
     PluginProcessor.h
+    RealtimeSnapshotMailbox.h
     OutputStage.h
     PresetBankCodec.cpp
     PresetBankCodec.h
@@ -46,6 +47,7 @@ target_sources(P6CorePlugin PRIVATE
     ui/fx/CharacterDeviceView.cpp
     ui/fx/CharacterDeviceView.h
     ui/fx/CharacterHardwareWindow.h
+    ui/fx/CharacterPhotoLayers.h
     ui/fx/CharacterVisualDynamics.h
     ui/fx/TubeChamber.cpp
     ui/fx/TubeChamber.h
@@ -119,5 +121,16 @@ if(P6_BUILD_UI_SMOKE)
         target_compile_options(P6CharacterVisualProbe PRIVATE -UNDEBUG)
     endif()
     add_test(NAME p6_character_visual_dynamics COMMAND P6CharacterVisualProbe)
+
+    find_package(Threads REQUIRED)
+    add_executable(P6TelemetryMailboxProbe ../tests/character_telemetry_mailbox_probe.cpp)
+    target_include_directories(P6TelemetryMailboxProbe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(P6TelemetryMailboxProbe PRIVATE Threads::Threads)
+    if(MSVC)
+        target_compile_options(P6TelemetryMailboxProbe PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(P6TelemetryMailboxProbe PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME p6_character_telemetry_mailbox COMMAND P6TelemetryMailboxProbe)
 endif()
 
