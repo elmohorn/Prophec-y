@@ -174,6 +174,36 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
         refreshVisibility();
     };
     addAndMakeVisible(opticalPreview_);
+    // Optical design preview: real interactive JUCE knobs, not painted dummy
+    // circles. Their values exist solely in this editor, never in APVTS.
+    constexpr std::array<const char*,3> opticalNames{"RATE","DEPTH","RESPONSE"};
+    constexpr std::array<double,3> opticalDefaults{.25,.80,.40};
+    for(std::size_t i=0;i<opticalConcept_.size();++i)
+    {
+        auto& k=opticalConcept_[i];
+        k.slider.setLookAndFeel(&look_);
+        k.slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        k.slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,84,20);
+        k.slider.setRange(0.0,1.0,.01);
+        k.slider.setValue(opticalDefaults[i],juce::dontSendNotification);
+        k.slider.setTitle(juce::String("Optical preview ")+opticalNames[i]);
+        k.slider.setTooltip(juce::String("Visual concept only: ")+opticalNames[i]+
+                            ". Does not modify audio, MIDI, presets or saved state.");
+        k.label.setText(opticalNames[i],juce::dontSendNotification);
+        k.label.setFont(juce::Font(10.5f).boldened());
+        k.label.setJustificationType(juce::Justification::centred);
+        k.label.setColour(juce::Label::textColourId,ink);
+        addAndMakeVisible(k.slider);addAndMakeVisible(k.label);
+    }
+    opticalWave_.setLookAndFeel(&look_);
+    opticalWave_.setTitle("Optical preview LFO waveform");
+    opticalWave_.setTooltip("Visual preview only; choose the animation waveform. No audio processing.");
+    opticalWave_.addItem("SINE",1);
+    opticalWave_.addItem("TRIANGLE",2);
+    opticalWave_.addItem("RAMP",3);
+    opticalWave_.addItem("SQUARE",4);
+    opticalWave_.setSelectedId(1,juce::dontSendNotification);
+    addAndMakeVisible(opticalWave_);
     type_.setTooltip("Select a Character device. Every device retains its own settings.");
     position_.setTooltip("Start: before distortion, FX A and FX B. End: after FX B.");
     fxAType_.setTooltip("Select standard Prophet-6 FX slot A. Use FX ON to enable the standard chain.");
@@ -314,15 +344,27 @@ void P6PluginEditor::timerCallback()
     {
         if(motion_.getToggleState())
         {
-            previewLfoPhase_+=0.085f;
-            if(previewLfoPhase_>juce::MathConstants<float>::twoPi)
-                previewLfoPhase_-=juce::MathConstants<float>::twoPi;
+            const float rate=static_cast<float>(opticalConcept_[0].slider.getValue());
+            const float hz=.25f+3.5f*rate*rate;
+            previewLfoPhase_=std::fmod(previewLfoPhase_+
+                juce::MathConstants<float>::twoPi*hz/30.f,
+                juce::MathConstants<float>::twoPi);
         }
-        const float lfo=.5f+.5f*std::sin(previewLfoPhase_);
-        const float lampDrive=.015f+.985f*lfo*previewAudioLevel_;
+        const float cycle=previewLfoPhase_/juce::MathConstants<float>::twoPi;
+        float lfo=.5f+.5f*std::sin(previewLfoPhase_);
+        switch(opticalWave_.getSelectedId())
+        {
+            case 2: lfo=1.f-std::abs(2.f*cycle-1.f); lfo=1.f-std::abs(2.f*lfo-1.f); break;
+            case 3: lfo=cycle; break;
+            case 4: lfo=cycle<.5f?1.f:0.f; break;
+            default: break;
+        }
+        const float depth=static_cast<float>(opticalConcept_[1].slider.getValue());
+        const float response=static_cast<float>(opticalConcept_[2].slider.getValue());
+        const float lampDrive=previewAudioLevel_*(1.f-depth+depth*lfo);
         hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
                            true,motion_.getToggleState(),
-                           audioRms,audioRms,0.f,{},lampDrive);
+                           audioRms,audioRms,0.f,{},lampDrive,response);
     }
     else if(boundType_==1)
     {
@@ -362,12 +404,20 @@ void P6PluginEditor::refreshVisibility()
     device_.setVisible(!studioView_&&selected>=2&&selected!=3&&!collapsed_&&!opticalPreviewActive_);
     opticalPreview_.setVisible(!studioView_);
     opticalPreview_.setToggleState(opticalPreviewActive_,juce::dontSendNotification);
+    // Preview controls are interactive but intentionally unbound to the host.
+    for(auto& k:opticalConcept_)
+    {
+        k.slider.setVisible(!studioView_&&!collapsed_&&opticalPreviewActive_);
+        k.label.setVisible(k.slider.isVisible());
+    }
+    opticalWave_.setVisible(!studioView_&&!collapsed_&&opticalPreviewActive_);
     // Initialize the selected artwork immediately, not only on a timer tick:
     // unhosted UI-smoke captures and the first frame must be truthful.
     if(opticalPreviewActive_)
         hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
                            true,motion_.getToggleState(),
-                           0.f,0.f,0.f,{},.015f);
+                           0.f,0.f,0.f,{},0.f,
+                           static_cast<float>(opticalConcept_[2].slider.getValue()));
     else if(selected==1)
         hardware_.setState(CharacterHardwareWindow::Mode::Tube,
                            visual_.active,motion_.getToggleState(),
@@ -442,6 +492,15 @@ void P6PluginEditor::resized()
     // Restore the exact original Tube camera proportions and placement.
     chamber_.setBounds(rect(65,720,320,180));
     device_.setBounds(hardware_.getBounds());
+    // Three actual local preview controls and an interactive waveform switch.
+    // No drawn placeholder knobs and no hidden APVTS attachments.
+    for(std::size_t i=0;i<opticalConcept_.size();++i)
+    {
+        const float x=720.f+160.f*static_cast<float>(i);
+        opticalConcept_[i].label.setBounds(rect(x,718,130,18));
+        opticalConcept_[i].slider.setBounds(rect(x,738,130,117));
+    }
+    opticalWave_.setBounds(rect(1220,760,151,30));
     // Existing Tube: preserve original seven-knob single-row module.
     // Spring: keep the approved wider two-row physical-control arrangement.
     for(std::size_t i=0;i<tube_.size();++i)
@@ -543,26 +602,16 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
     g.drawLine(689.f*sx,804.f,1383.f*sx,804.f,1.f);
     if(opticalPreviewActive_)
     {
-        g.setColour(juce::Colour{0xff6d4b29});g.setFont(juce::Font(12.f).boldened());
-        g.drawText("OPTICAL TREMOLO · VISUAL DESIGN PREVIEW · NO AUDIO PROCESSING",
-                   static_cast<int>(688.f*sx),686,static_cast<int>(680.f*sx),19,
+        g.setColour(juce::Colour{0xff6d4b29});
+        g.setFont(juce::Font(12.f).boldened());
+        g.drawText("OPTICAL TREMOLO / VISUAL PREVIEW / NO AUDIO PROCESSING",
+                   static_cast<int>(695.f*sx),686,static_cast<int>(688.f*sx),19,
                    juce::Justification::centred);
-        const std::array<const char*,6> names{"RATE","DEPTH","RESPONSE","STEREO","MIX","OUTPUT"};
-        const std::array<float,6> positions{723.f,865.f,1007.f,1149.f,911.f,1117.f};
-        for(std::size_t i=0;i<names.size();++i)
-        {
-            const bool top=i<4; const float xx=positions[i]*sx;
-            const float y=top?719.f:822.f;
-            g.setColour(ink);g.setFont(juce::Font(10.f).boldened());
-            g.drawText(names[i],static_cast<int>(xx-23.f*sx),static_cast<int>(y-8.f),
-                       static_cast<int>(120.f*sx),16,juce::Justification::centred);
-            const float cx=xx+35.f*sx,cy=y+36.f;
-            g.setColour(juce::Colours::black.withAlpha(.22f));g.fillEllipse(cx-30.f,cy-25.f,65.f,65.f);
-            g.setGradientFill(juce::ColourGradient(juce::Colour{0xff575a55},cx-30.f,cy-30.f,
-                                                     juce::Colour{0xff121614},cx+30.f,cy+30.f,false));
-            g.fillEllipse(cx-27.f,cy-27.f,54.f,54.f);
-            g.setColour(juce::Colour{0xffe0d5bf});g.drawLine(cx,cy-13.f,cx,cy-23.f,2.f);
-        }
+        g.setColour(muted);
+        g.setFont(juce::Font(10.5f));
+        g.drawText("RATE / DEPTH / RESPONSE / LFO SHAPE modify only the illuminated chamber",
+                   static_cast<int>(690.f*sx),868,static_cast<int>(698.f*sx),20,
+                   juce::Justification::centred);
         return;
     }
     // The hardware window owns its IN/OUT (or spring energy/tail) meters.
