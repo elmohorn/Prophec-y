@@ -303,6 +303,34 @@ int main(int argc,char** argv)
                               true,true,.16f,.18f,.09f,springPickups);
         CHECK(screenshot(photoVisual,folder.getChildFile("spring_photo_reactive_probe.png")));
     }
+    // Authored transparent RGBA artwork must take precedence over heuristic
+    // masks extracted from the lossy atlas, preserving exact background
+    // and moving-coil pixels without relying on JPEG chroma thresholds.
+    CharacterHardwareWindow explicitOnly,explicitOverJpeg;
+    explicitOnly.setSize(640,190);explicitOverJpeg.setSize(640,190);
+    explicitOverJpeg.setPhotoAtlas(photoBytes.getData(),
+                                   static_cast<int>(photoBytes.getDataSize()));
+    explicitOnly.setSpringArtwork(springBack,springLayers);
+    explicitOverJpeg.setSpringArtwork(springBack,springLayers);
+    explicitOnly.setState(CharacterHardwareWindow::Mode::Spring,
+                          true,true,.2f,.16f,.1f,springPickups);
+    explicitOverJpeg.setState(CharacterHardwareWindow::Mode::Spring,
+                              true,true,.2f,.16f,.1f,springPickups);
+    const auto springSource=explicitOnly.createComponentSnapshot(explicitOnly.getLocalBounds());
+    const auto springOverride=explicitOverJpeg.createComponentSnapshot(explicitOverJpeg.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(springSource.getPixelAt(x,y)==springOverride.getPixelAt(x,y));
+    explicitOnly.setOpticalArtwork(opticalBack,opticalOff,opticalOn,opticalLdr);
+    explicitOverJpeg.setOpticalArtwork(opticalBack,opticalOff,opticalOn,opticalLdr);
+    explicitOnly.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                          true,true,0.f,0.f,0.f,{},.9f);
+    explicitOverJpeg.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                              true,true,0.f,0.f,0.f,{},.9f);
+    const auto opticalSource=explicitOnly.createComponentSnapshot(explicitOnly.getLocalBounds());
+    const auto opticalOverride=explicitOverJpeg.createComponentSnapshot(explicitOverJpeg.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(opticalSource.getPixelAt(x,y)==opticalOverride.getPixelAt(x,y));
+
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
