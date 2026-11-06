@@ -596,6 +596,41 @@ void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
 void P6PluginEditor::paintTube(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
+    if(boundType_==1&&!opticalPreviewActive_)
+    {
+        // Restore the entire original Tube treatment, not just its chamber:
+        // section labels, meters, borders and placement stay as approved.
+        g.setColour(muted);g.setFont(juce::Font(10.f).boldened());
+        g.drawText(juce::String(p6plugin::kCharacterNames[1]).toUpperCase(),
+                   static_cast<int>(430*sx),696,static_cast<int>(240*sx),18,
+                   juce::Justification::centredLeft);
+        g.drawText("TONE",static_cast<int>(770*sx),696,
+                   static_cast<int>(200*sx),18,juce::Justification::centredLeft);
+        g.drawText("LEVEL",static_cast<int>(1085*sx),696,
+                   static_cast<int>(130*sx),18,juce::Justification::centredLeft);
+        g.drawText("INSERTION",static_cast<int>(1260*sx),789,
+                   static_cast<int>(120*sx),18,juce::Justification::centredLeft);
+        g.setColour(muted.withAlpha(.3f));
+        g.drawLine(405*sx,691,405*sx,898,1);
+        g.drawLine(1238*sx,731,1238*sx,893,1);
+        const std::array<float,3> levels{
+            visual_.inputRms,visual_.outputRms,visual_.changeRms};
+        const std::array<const char*,3> names{"IN","OUT","CHANGE"};
+        for(std::size_t i=0;i<levels.size();++i)
+        {
+            const float x=(430.f+270.f*static_cast<float>(i))*sx;
+            g.setColour(muted);g.setFont(9.f);
+            g.drawText(names[i],static_cast<int>(x),731,70,13,
+                       juce::Justification::centredLeft);
+            g.setColour(ink.withAlpha(.12f));
+            g.fillRoundedRectangle(x+45*sx,735.f,180*sx,4.f,2.f);
+            const float level=std::clamp(
+                (20.f*std::log10(std::max(levels[i],.000001f))+60.f)/60.f,0.f,1.f);
+            g.setColour(amber.darker(.15f));
+            g.fillRoundedRectangle(x+45*sx,735.f,180*sx*level,4.f,2.f);
+        }
+        return;
+    }
     g.setColour(juce::Colour{0xff76726b}.withAlpha(.6f));
     g.drawLine(675.f*sx,702.f,675.f*sx,899.f,1.f);
     g.setColour(juce::Colour{0xff74776f}.withAlpha(.35f));
