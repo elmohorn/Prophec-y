@@ -359,42 +359,41 @@ int main(int argc,char** argv)
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
     CharacterHardwareWindow* hardware=nullptr;
+    TubeChamber* originalTube=nullptr;
     juce::TextButton* fold=nullptr;
     juce::TextButton* optoPreview=nullptr;
     for(auto* child:editor->getChildren()) {
         if(auto* device=dynamic_cast<CharacterHardwareWindow*>(child))hardware=device;
+        if(auto* tube=dynamic_cast<TubeChamber*>(child))originalTube=tube;
         if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
             if(button->getButtonText()=="HIDE")fold=button;
             if(button->getButtonText()=="OPTO PREVIEW")optoPreview=button;
         }
     }
-    if(!(hardware!=nullptr&&hardware->isVisible()&&fold!=nullptr&&optoPreview!=nullptr)) {
-        std::cerr << "Character UI CHECK: hardware=" << (hardware!=nullptr)
-                  << " hardwareVisible=" << (hardware&&hardware->isVisible())
-                  << " fold=" << (fold!=nullptr)
-                  << " opto=" << (optoPreview!=nullptr) << "\\n";
-        for(auto* child : editor->getChildren()) {
-            std::cerr << "CHILD " << child->getTitle().toStdString()
-                      << " visible=" << child->isVisible();
-            if(auto* button=dynamic_cast<juce::TextButton*>(child))
-                std::cerr << " button=" << button->getButtonText().toStdString();
-            std::cerr << "\\n";
-        }
-    }
-    CHECK(hardware!=nullptr&&hardware->isVisible()&&fold!=nullptr&&optoPreview!=nullptr);
+    // The Tube artwork is the original TubeChamber; Spring and optical
+    // previews use the new panoramic photo window instead.
+    CHECK(hardware!=nullptr&&originalTube!=nullptr&&fold!=nullptr&&optoPreview!=nullptr);
+    CHECK(originalTube->isVisible()&&!hardware->isVisible());
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
-    fold->onClick();CHECK(!hardware->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
-    juce::MemoryBlock afterFold;p.getStateInformation(afterFold);CHECK(beforeFold==afterFold);
-    fold->onClick();CHECK(hardware->isVisible());CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
-    // The optical preview is visual only. Toggling it must not alter a single
-    // byte of the musical, host or Character state.
+    fold->onClick();
+    CHECK(!originalTube->isVisible()&&!hardware->isVisible());
+    CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
+    juce::MemoryBlock afterFold;p.getStateInformation(afterFold);
+    CHECK(beforeFold==afterFold);
+    fold->onClick();
+    CHECK(originalTube->isVisible()&&!hardware->isVisible());
+    CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+    // Optical preview must replace Tube VISUALLY but never alter any
+    // musical parameter, preset or wrapper state.
     juce::MemoryBlock beforePreview;p.getStateInformation(beforePreview);
-    optoPreview->onClick();CHECK(hardware->isVisible()&&optoPreview->getToggleState());
+    optoPreview->onClick();
+    CHECK(hardware->isVisible()&&!originalTube->isVisible()&&optoPreview->getToggleState());
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview.png")));
     }
-    optoPreview->onClick();CHECK(hardware->isVisible()&&!optoPreview->getToggleState());
+    optoPreview->onClick();
+    CHECK(!hardware->isVisible()&&originalTube->isVisible()&&!optoPreview->getToggleState());
     juce::MemoryBlock afterPreview;p.getStateInformation(afterPreview);
     CHECK(beforePreview==afterPreview);
     for(int width:{1240,1460,1780}) {
