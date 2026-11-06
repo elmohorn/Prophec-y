@@ -47,6 +47,7 @@ target_sources(P6CorePlugin PRIVATE
     ui/fx/CharacterDeviceView.cpp
     ui/fx/CharacterDeviceView.h
     ui/fx/CharacterHardwareWindow.h
+    ui/fx/CharacterHardwarePrimitives.h
     ui/fx/CharacterProceduralArt.h
     ui/fx/CharacterPhotoLayers.h
     ui/fx/CharacterVisualDynamics.h
