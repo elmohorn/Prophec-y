@@ -111,6 +111,10 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     look_.setColour(juce::ComboBox::arrowColourId,muted);
     setLookAndFeel(&look_);
     hardware_.setValveAsset(BinaryData::tube_glass_png, BinaryData::tube_glass_pngSize);
+#if defined(P6_HAS_CHARACTER_ATLAS)
+    hardware_.setPhotoAtlas(BinaryData::character_cameras_atlas_jpg,
+                             BinaryData::character_cameras_atlas_jpgSize);
+#endif
     addAndMakeVisible(display_);addChildComponent(chamber_);addChildComponent(device_);addChildComponent(hardware_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
