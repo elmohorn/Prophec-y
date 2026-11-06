@@ -283,10 +283,14 @@ void P6PluginEditor::timerCallback()
     staleVisualTicks_=revision==lastVisualRevision_?std::min(30,staleVisualTicks_+1):0;
     lastVisualRevision_=revision;
     const auto sample=processor_.characterTelemetry();
-    visual_.type=sample.type;visual_.device=sample.device;
+    visual_.type=sample.type;
+    // A newly selected module can precede the next audio block. Never show
+    // the former module's pickup data in the new physical chamber.
+    const bool typeMatches=sample.type==boundType_;
+    visual_.device=typeMatches?sample.device:p6plugin::DeviceTelemetry{};
     const bool bypassed=processor_.parameters().getRawParameterValue(p6plugin::kCharacterBypassID)->load()>=.5f;
     const bool live=staleVisualTicks_<4;
-    visual_.active=sample.active&&!bypassed&&live;
+    visual_.active=sample.active&&!bypassed&&live&&typeMatches;
     const auto follow=[](float previous,float target){return previous+(target>previous?.55f:.16f)*(target-previous);};
     visual_.inputRms=follow(visual_.inputRms,live?sample.inputRms:0.f);
     visual_.outputRms=follow(visual_.outputRms,live?sample.outputRms:0.f);
