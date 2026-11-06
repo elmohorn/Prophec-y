@@ -37,7 +37,7 @@ def dim_lamp(image: Image.Image) -> Image.Image:
             attenuation = min(0.48, max(0.0, (warm * 0.47 + brightness * 0.12) *
                                        (0.6 * beam + 0.9 * bulb)))
             factor = max(0.0, 0.75 - attenuation)
-            output_pixels[x, y] = tuple(round(c * factor) for c in (r, g, b))
+            output_pixels[x, y] = tuple(int(c * factor) for c in (r, g, b))
     return result
 
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("--source", type=Path, required=True, help="Approved source PNG")
     parser.add_argument("--output", type=Path,
                         default=Path("plugin/assets/character_cameras_atlas.jpg"))
-    parser.add_argument("--quality", type=int, default=81)
+    parser.add_argument("--quality", type=int, default=63)
     args = parser.parse_args()
     if not 1 <= args.quality <= 100:
         parser.error("--quality must be 1..100")
