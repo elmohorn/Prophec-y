@@ -31,22 +31,13 @@ jobs:
       - name: Build screenshot harness
         run: cmake --build build --target P6UiSmoke P6CharacterVisualProbe --parallel 2
       - name: Check measured DSP-to-visual response without JUCE
-        run: ctest --test-dir build -R '^p6_character_visual_dynamics
+        run: ctest --test-dir build --output-on-failure -R '^p6_character_visual_dynamics$'
+      - name: Capture native Tube, Spring and optical design preview
         run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
-      - name: Upload generated screenshots
+      - name: Upload native editor screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Prophecy-Character-screenshots
-          path: ui-smoke/*.png
-          if-no-files-found: warn
- --output-on-failure
-      - name: Capture Tube, Spring and optical concept
-        run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
-      - name: Upload generated screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Prophecy-Character-screenshots
+          name: ProphecY-Character-native-screenshots
           path: ui-smoke/*.png
           if-no-files-found: warn
