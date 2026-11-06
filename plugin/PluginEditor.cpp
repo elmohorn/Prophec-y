@@ -354,7 +354,7 @@ void P6PluginEditor::timerCallback()
         float lfo=.5f+.5f*std::sin(previewLfoPhase_);
         switch(opticalWave_.getSelectedId())
         {
-            case 2: lfo=1.f-std::abs(2.f*cycle-1.f); lfo=1.f-std::abs(2.f*lfo-1.f); break;
+            case 2: lfo=1.f-std::abs(2.f*cycle-1.f); break;
             case 3: lfo=cycle; break;
             case 4: lfo=cycle<.5f?1.f:0.f; break;
             default: break;
