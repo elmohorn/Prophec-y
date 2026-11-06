@@ -40,7 +40,11 @@ public:
     {
         if (!enabled) { reset(); return; }
         if (!motion) return; // exact freeze including lamp decay and spring phase
-        const float dt=std::clamp(positive(elapsedSeconds),0.f,.10f);
+        // Exact exponential integration for arbitrarily delayed UI ticks:
+        // never discard elapsed time just because the DAW blocked repaint.
+        // The double-precision phase stays stable even after a long suspend.
+        const double dt=std::isfinite(elapsedSeconds)?
+            std::max(0.0,static_cast<double>(elapsedSeconds)):0.0;
 
         const float in = std::sqrt(positive(inputRms));
         const float delta = std::sqrt(positive(changedRms));
@@ -70,7 +74,9 @@ public:
         {
             frame_.springEnergy[i] =
                 follow(frame_.springEnergy[i], target[i], .065f, .300f,dt);
-            phase_[i] = std::fmod(phase_[i] + hz[i] * twoPi * dt, twoPi);
+            phase_[i] = std::fmod(phase_[i] +
+                static_cast<double>(hz[i])*static_cast<double>(twoPi)*dt,
+                static_cast<double>(twoPi));
             frame_.springShift[i] =
                 (2.8f + 1.4f * frame_.springEnergy[i]) *
                 frame_.springEnergy[i] * std::sin(phase_[i]);
@@ -99,14 +105,14 @@ private:
     }
 
     static float follow(float oldValue,float target,
-                        float attackSeconds,float releaseSeconds,float dt) noexcept
+                        float attackSeconds,float releaseSeconds,double dt) noexcept
     {
         const float tau=target>oldValue?attackSeconds:releaseSeconds;
-        const float alpha=-std::expm1(-dt/std::max(.001f,tau));
+        const float alpha=static_cast<float>(-std::expm1(-dt/std::max(.001f,tau)));
         return oldValue + alpha*(target-oldValue);
     }
 
     Frame frame_{};
-    std::array<float, 2> phase_{};
+    std::array<double, 2> phase_{};
 };
 }
