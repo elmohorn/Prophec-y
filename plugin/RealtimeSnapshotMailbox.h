@@ -73,9 +73,18 @@ public:
                    std::memory_order_relaxed))
                 continue;
 
+            // A default-initialized slot is not a published audio frame.
+            // In particular, opening a GUI before prepareToPlay/processBlock
+            // must not count as a fresh Character measurement.
+            const auto capturedGeneration=slots_[index].generation;
+            if(capturedGeneration==0)
+            {
+                states_[index].store(0,std::memory_order_release);
+                return false;
+            }
             // This is a complete, immutable slot while reader-owned.
             value=slots_[index].value;
-            generation=slots_[index].generation;
+            generation=capturedGeneration;
             states_[index].store(0,std::memory_order_release);
             return true;
         }
