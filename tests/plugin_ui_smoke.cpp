@@ -331,6 +331,28 @@ int main(int argc,char** argv)
     for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
         CHECK(opticalSource.getPixelAt(x,y)==opticalOverride.getPixelAt(x,y));
 
+    // A malformed/opaque authored mask must not overwrite the real
+    // photographic fallback. Invalid dimensions and missing alpha should
+    // be rejected, rather than stretched across the camera.
+    CharacterHardwareWindow fallbackOnly,invalidOverride;
+    fallbackOnly.setSize(640,190);
+    invalidOverride.setSize(640,190);
+    fallbackOnly.setPhotoAtlas(photoBytes.getData(),
+                               static_cast<int>(photoBytes.getDataSize()));
+    invalidOverride.setPhotoAtlas(photoBytes.getData(),
+                                  static_cast<int>(photoBytes.getDataSize()));
+    auto invalidLayers=springLayers;
+    invalidLayers[0]=juce::Image(juce::Image::ARGB,32,32,true);
+    invalidOverride.setSpringArtwork(springBack,invalidLayers);
+    fallbackOnly.setState(CharacterHardwareWindow::Mode::Spring,
+                           true,true,.2f,.16f,.1f,springPickups);
+    invalidOverride.setState(CharacterHardwareWindow::Mode::Spring,
+                              true,true,.2f,.16f,.1f,springPickups);
+    const auto fallbackPixels=fallbackOnly.createComponentSnapshot(fallbackOnly.getLocalBounds());
+    const auto rejectedPixels=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(fallbackPixels.getPixelAt(x,y)==rejectedPixels.getPixelAt(x,y));
+
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
