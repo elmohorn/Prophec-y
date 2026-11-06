@@ -117,6 +117,44 @@ Five isolated local C++ mailbox stress runs passed without torn frames;
 **the native JUCE build and DAW screenshot smoke remain unverified**
 because GitHub Actions still fails before starting a runner.
 
+## Priority-medium follow-up: timing, source quality and architecture (2026-11-06)
+
+**UI clock after long DAW stalls.** The prior 100 ms hard cap discarded most
+of a long elapsed interval and changed apparent Spring/Tremolo frequencies.
+The message-thread timer now passes the entire non-negative monotonic elapsed
+interval; `CharacterVisualDynamics` performs analytic attack/release
+integration in seconds and uses double-precision modulo phase. No unbounded
+frame-by-frame replay occurs, including after a one-minute pause. Existing
+MOTION freeze/bypass semantics are retained. The pure C++ probe now checks
+a full 2-second stall, a 60-second suspended interval, and stable 30/120 Hz
+behavior. The optical design preview continues to be **visual-only**, not DSP.
+
+**Image alpha provenance.** The lossy 448×360 JPEG can provide a workable
+study/fallback, but chroma/brightness thresholding is not physically reliable
+for silver wire against highlights. The pre-existing public APIs
+`setSpringArtwork(cleanBackground, twoTransparentCoils)` and
+`setOpticalArtwork(cleanChassis, darkFixture, transparentLampEmission,
+transparentSensorEmission)` are now **preferred over an available JPEG
+atlas**; previously the JPEG silently took precedence and could override
+hand-authored RGBA images. Explicit bulb and LDR alpha layers are animated
+independently, leaving screws and metal stationary. The native smoke test
+asserts identical results for explicit assets *with and without* a JPEG loaded.
+Until approved RGBA layers are supplied, JPEG segmentation remains a
+heuristic; do not claim that its limitations are fully eliminated.
+
+**Renderer organization.** `CharacterProceduralArt.h` now contains the
+vector-only fallback Tube, Spring and Optical art. The hardware window
+retains only the physical bezel, native glass, compositing order, state and
+meters; `CharacterPhotoLayers.h` retains atlas decoding and matte creation;
+`CharacterVisualDynamics.h` retains pure signal-to-motion integration.
+The hardware header shrank from approximately 538 to 356 lines. All paths
+are UI-thread-only; no audio processing, existing parameter IDs, presets,
+state codecs or SysEx were modified.
+
+**Validation:** the isolated C++ visual probe passes after the long-gap
+change. JUCE/VST3 and full native screenshots remain unverified until
+GitHub Actions can schedule jobs and the native smoke has been run.
+
 ## Verification
 
 `P6CharacterVisualProbe` tests measured input/tap response, two coils
