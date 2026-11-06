@@ -112,6 +112,12 @@ if(P6_BUILD_UI_SMOKE)
     # it can run even when no GUI host or VST3 bundle is available.
     add_executable(P6CharacterVisualProbe ../tests/character_visual_dynamics_probe.cpp)
     target_include_directories(P6CharacterVisualProbe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    # Keep 'assert' active in Release screenshot CI as well as Debug.
+    if(MSVC)
+        target_compile_options(P6CharacterVisualProbe PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(P6CharacterVisualProbe PRIVATE -UNDEBUG)
+    endif()
     add_test(NAME p6_character_visual_dynamics COMMAND P6CharacterVisualProbe)
 endif()
 
