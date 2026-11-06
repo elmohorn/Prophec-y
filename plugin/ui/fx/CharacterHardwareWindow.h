@@ -68,7 +68,8 @@ public:
 
     void setState(Mode mode, bool enabled, bool motion, float inputRms, float outputRms,
                   float changeRms, const std::array<float, 3>& springPickups = {},
-                  float previewLamp = 0.6f, float previewResponse = 0.5f)
+                  float previewLamp = 0.6f, float previewResponse = 0.5f,
+                  float elapsedSeconds = 1.f/30.f)
     {
         const auto finite01 = [](float v) {
             return std::isfinite(v) ? std::clamp(v, 0.f, 1.f) : 0.f;
@@ -84,6 +85,8 @@ public:
         for (int i = 0; i < 3; ++i)
             nextSprings[static_cast<std::size_t>(i)] =
                 enabled ? finite01(springPickups[static_cast<std::size_t>(i)] * 8.f) : 0.f;
+        const float dt=std::isfinite(elapsedSeconds)?
+            std::clamp(elapsedSeconds,0.f,.1f):1.f/30.f;
         // Continue repainting a sustained Spring note: the pickup energies
         // control a visual, damped displacement, not a prerecorded animation.
         // The geometry stays still at zero energy and when motion is paused.
@@ -91,7 +94,8 @@ public:
         const bool springAnimating = mode == Mode::Spring && enabled && motion &&
                                      springDrive > 0.005f;
         if (springAnimating)
-            springPhase_ = std::fmod(springPhase_ + 0.23f + 0.17f * springDrive,
+            springPhase_ = std::fmod(springPhase_+
+                                    (0.23f+0.17f*springDrive)*30.f*dt,
                                     6.28318530718f);
         // Motion stops visual time-varying state; bypass always extinguishes it.
         if (!motion && mode == mode_ && enabled && active_)
@@ -106,7 +110,7 @@ public:
         if (mode != mode_) visualDynamics_.reset();
         const auto before = visualDynamics_.frame();
         visualDynamics_.advance(enabled, motion, inputRms, changeRms,
-                                springPickups, nextLamp, previewResponse);
+                                springPickups, nextLamp, previewResponse,dt);
         const auto after = visualDynamics_.frame();
         // The measured RMS can stay constant while a physically damped
         // coil continues to oscillate or a lamp/LDR decays. Repaint for the
