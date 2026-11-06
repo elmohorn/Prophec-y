@@ -70,6 +70,28 @@ int main()
         fastPhoto.advance(true,true,0.f,0.f,{},1.f,1.f);
     }
     assert(fastPhoto.frame().lamp>slowPhoto.frame().lamp);
+    // A busy DAW may deliver 30Hz, 60Hz or 120Hz visual frames. Same
+    // measured energy over the same real second must produce the same
+    // amplitude, envelope and phase independently of refresh rate.
+    CharacterVisualDynamics fps30,fps120;
+    const std::array<float,3> steady{{.03f,.05f,.08f}};
+    for(int tick=0;tick<30;++tick)
+        fps30.advance(true,true,.20f,.07f,steady,.65f,.6f,1.f/30.f);
+    for(int tick=0;tick<120;++tick)
+        fps120.advance(true,true,.20f,.07f,steady,.65f,.6f,1.f/120.f);
+    const auto a=fps30.frame(),b=fps120.frame();
+    assert(std::abs(a.heater-b.heater)<.0001f);
+    assert(std::abs(a.springEnergy[0]-b.springEnergy[0])<.0001f);
+    assert(std::abs(a.springEnergy[1]-b.springEnergy[1])<.0001f);
+    assert(std::abs(a.springShift[0]-b.springShift[0])<.001f);
+    assert(std::abs(a.springShift[1]-b.springShift[1])<.001f);
+    assert(std::abs(a.lamp-b.lamp)<.0001f);
+    // An exceptionally long UI stall is capped instead of jumping forward.
+    CharacterVisualDynamics delayed,reference;
+    delayed.advance(true,true,.20f,.07f,steady,.65f,.6f,20.f);
+    reference.advance(true,true,.20f,.07f,steady,.65f,.6f,.1f);
+    assert(std::abs(delayed.frame().heater-reference.frame().heater)<.00001f);
+    assert(std::abs(delayed.frame().lamp-reference.frame().lamp)<.00001f);
     // Bypass works even while motion is paused, clearing stored energy.
     dynamics.advance(false,false,.9f,.9f,{.9f,.9f,.9f},1.f);
     const auto bypass=dynamics.frame();
