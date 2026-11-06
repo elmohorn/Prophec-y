@@ -237,6 +237,29 @@ int main(int argc,char** argv)
     for(int y=30;y<140;++y)for(int x=75;x<560;++x)
         photoMoved=photoMoved||photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
     CHECK(photoMoved);
+    // Both photographic coil bands must respond, not merely a global meter.
+    bool upperPhotoMoved=false,lowerPhotoMoved=false,fastenersStayedFixed=true;
+    for(int y=45;y<78;++y)for(int x=170;x<485;++x)
+        upperPhotoMoved|=photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
+    for(int y=93;y<138;++y)for(int x=170;x<485;++x)
+        lowerPhotoMoved|=photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
+    for(int y=30;y<140;++y)for(int x=39;x<75;++x)
+        fastenersStayedFixed&=photoA.getPixelAt(x,y)==photoB.getPixelAt(x,y);
+    CHECK(upperPhotoMoved&&lowerPhotoMoved&&fastenersStayedFixed);
+
+    // An extra-wide host editor must LETTERBOX the exact same physical
+    // chamber, not distort the screws, metal bezel or coil pitch.
+    CharacterHardwareWindow photoAspect;
+    photoAspect.setSize(640,190);
+    photoAspect.setPhotoAtlas(photoBytes.getData(),static_cast<int>(photoBytes.getDataSize()));
+    photoAspect.setState(CharacterHardwareWindow::Mode::Spring,true,false,
+                         0.f,0.f,0.f,{});
+    const auto normalAspect=photoAspect.createComponentSnapshot(photoAspect.getLocalBounds());
+    photoAspect.setSize(800,190);
+    const auto wideAspect=photoAspect.createComponentSnapshot(photoAspect.getLocalBounds());
+    for(int y=17;y<183;y+=17)for(int x=30;x<615;x+=19)
+        CHECK(normalAspect.getPixelAt(x,y)==wideAspect.getPixelAt(x+80,y));
+
     photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,false,
                           0.f,0.f,0.f,{});
     const auto photoPaused=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
@@ -262,6 +285,13 @@ int main(int argc,char** argv)
                               true,true,.3f,.3f,0.f,{},1.f);
     const auto photoLampBright=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
     CHECK(photoLampDark.getPixelAt(270,90)!=photoLampBright.getPixelAt(270,90));
+    // Filament and sensor are reactive, fixed socket and chassis are not.
+    CHECK(photoLampDark.getPixelAt(530,94)!=photoLampBright.getPixelAt(530,94));
+    for(int y=35;y<136;y+=11)
+    {
+        CHECK(photoLampDark.getPixelAt(48,y)==photoLampBright.getPixelAt(48,y));
+        CHECK(photoLampDark.getPixelAt(603,y)==photoLampBright.getPixelAt(603,y));
+    }
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};
         CHECK(screenshot(photoVisual,folder.getChildFile("optical_audio_reactive_probe.png")));
@@ -424,30 +454,45 @@ int main(int argc,char** argv)
         p6plugin::kCustomIDs[1][0])->load();
     p.selectCharacterType(3);
     editor.reset(p.createEditor());
-    bool springCamera=false,springDriveBinding=false,springDecayBinding=false;
+    bool springCamera=false;
+    std::array<bool,7> springControlBound{};
+    std::array<float,7> tubeValuesBefore{},springValuesBefore{};
+    for(std::size_t i=0;i<7;++i)
+    {
+        tubeValuesBefore[i]=p.parameters().getRawParameterValue(
+            p6plugin::kTubeIDs[i])->load();
+        springValuesBefore[i]=p.parameters().getRawParameterValue(
+            p6plugin::kCustomIDs[1][i])->load();
+    }
     for(auto* child:editor->getChildren())
     {
         if(auto* camera=dynamic_cast<CharacterHardwareWindow*>(child))
             springCamera=camera->isVisible();
         if(auto* tube=dynamic_cast<TubeChamber*>(child))
             CHECK(!tube->isVisible());
-        if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible())
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()&&
+           slider->getTooltip().contains("Optical Spring"))
         {
-            if(slider->getTitle()=="Drive" &&
-               slider->getTooltip().contains("Optical Spring"))
+            for(std::size_t i=0;i<7;++i)
             {
-                springDriveBinding=true;
-                slider->setValue(.31,juce::sendNotificationSync);
+                if(slider->getTitle()!=p6plugin::kCustomNames[1][i])continue;
+                springControlBound[i]=true;
+                const float testValue=.2f+.085f*static_cast<float>(i);
+                slider->setValue(testValue,juce::sendNotificationSync);
                 CHECK(std::abs(p.parameters().getRawParameterValue(
-                    p6plugin::kCustomIDs[1][0])->load()-.31f)<.002f);
-                slider->setValue(springInitial,juce::sendNotificationSync);
+                    p6plugin::kCustomIDs[1][i])->load()-testValue)<.002f);
+                for(std::size_t j=0;j<7;++j)
+                    CHECK(p.parameters().getRawParameterValue(
+                        p6plugin::kTubeIDs[j])->load()==tubeValuesBefore[j]);
+                slider->setValue(springValuesBefore[i],juce::sendNotificationSync);
             }
-            if(slider->getTitle()=="Decay"&&
-               slider->getTooltip().contains("Optical Spring"))
-                springDecayBinding=true;
         }
     }
-    CHECK(springCamera&&springDriveBinding&&springDecayBinding);
+    CHECK(springCamera);
+    for(bool bound:springControlBound)CHECK(bound);
+    for(std::size_t i=0;i<7;++i)
+        CHECK(std::abs(p.parameters().getRawParameterValue(
+            p6plugin::kCustomIDs[1][i])->load()-springValuesBefore[i])<.002f);
     if(argc>1)
     {
         const juce::File folder{juce::String(argv[1])};
