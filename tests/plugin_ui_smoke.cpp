@@ -97,6 +97,49 @@ int main(int argc,char** argv)
     const auto off=motionTestChamber.createComponentSnapshot(motionTestChamber.getLocalBounds());
     bool differs=false;for(int y=0;y<184;++y)for(int x=0;x<320;++x)differs=differs||(lit.getPixelAt(x,y)!=off.getPixelAt(x,y));
     CHECK(differs);
+    // The Spring coil must react to sustained measured energy, not freeze as
+    // a static helix. MOTION freezes the exact frame; bypass removes the
+    // illumination and displacement without touching processor state.
+    CharacterHardwareWindow springVisual;
+    springVisual.setSize(640, 190);
+    const std::array<float, 3> springPickups{{.022f, .035f, .05f}};
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, true,
+                          .1f, .18f, .08f, springPickups);
+    const auto springFrameA = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, true,
+                          .1f, .18f, .08f, springPickups);
+    const auto springFrameB = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool springMoved = false;
+    for (int y = 0; y < springFrameA.getHeight(); ++y)
+        for (int x = 0; x < springFrameA.getWidth(); ++x)
+            springMoved = springMoved ||
+                          springFrameA.getPixelAt(x, y) != springFrameB.getPixelAt(x, y);
+    CHECK(springMoved);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, false,
+                          .1f, .18f, .08f, springPickups);
+    const auto springPaused = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool springFrozen = true;
+    for (int y = 0; y < springFrameB.getHeight(); ++y)
+        for (int x = 0; x < springFrameB.getWidth(); ++x)
+            springFrozen = springFrozen &&
+                           springFrameB.getPixelAt(x, y) == springPaused.getPixelAt(x, y);
+    CHECK(springFrozen);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, false, false, 0.f, 0.f, 0.f);
+    const auto springBypass = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool springDimmed = false;
+    for (int y = 0; y < springPaused.getHeight(); ++y)
+        for (int x = 0; x < springPaused.getWidth(); ++x)
+            springDimmed = springDimmed ||
+                           springPaused.getPixelAt(x, y) != springBypass.getPixelAt(x, y);
+    CHECK(springDimmed);
+    if (argc > 1) {
+        const juce::File folder{juce::String(argv[1])};
+        folder.createDirectory();
+        CHECK(screenshot(springVisual, folder.getChildFile("spring_tank_bypass.png")));
+        springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, true,
+                              .1f, .18f, .08f, springPickups);
+        CHECK(screenshot(springVisual, folder.getChildFile("spring_tank_active.png")));
+    }
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
