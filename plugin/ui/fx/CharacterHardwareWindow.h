@@ -214,13 +214,24 @@ private:
                         juce::RectanglePlacement::stretchToFit);
     }
 
+    // Each photographic source is 448x120, but its central 448x100 region
+    // holds the entire bulb/two-coil scene. Crop only 14px top and 6px
+    // bottom of the empty rail, never the lower spring. Source and target
+    // are scaled isotropically (130/100=1.3), with lateral pillarboxing.
+    static constexpr float photoScale=1.30f;
+    static constexpr int photoX=29,photoY=14,photoW=582,photoH=130;
+    static constexpr int photoCropY=14,photoCropH=100;
+    static void drawPhotoLayer(juce::Graphics& g,const juce::Image& image)
+    {
+        if(image.isValid())
+            g.drawImage(image,photoX,photoY,photoW,photoH,
+                        0,photoCropY,448,photoCropH);
+    }
     void drawPhotoFrame(juce::Graphics& g, int row)
     {
-        // Crop away baked meters and the alternate mock's bezel. This
-        // preserves the real Tube camera framing and live JUCE meters.
-        if (!cameraAtlas_.isValid()) return;
-        g.drawImage(cameraAtlas_, 12, 14, 616, 130,
-                    0, row * 120, 448, 120);
+        if(!cameraAtlas_.isValid())return;
+        g.drawImage(cameraAtlas_,photoX,photoY,photoW,photoH,
+                    0,row*120+photoCropY,448,photoCropH);
     }
 
     // Load-time extraction only. The original JPEG is one immutable study,
@@ -361,8 +372,7 @@ private:
             drawPhotoFrame(g,0);
             return;
         }
-        constexpr int w=448,h=120;
-        g.drawImage(springPhotoBackdrop_,12,14,616,130,0,0,w,h);
+        drawPhotoLayer(g,springPhotoBackdrop_);
         const auto& frame=visualDynamics_.frame();
         for(std::size_t row=0;row<2;++row)
         {
@@ -372,9 +382,14 @@ private:
             // bolted mountings stationary and avoids hard segment seams.
             const float yShift=active_?frame.springShift[row]:0.f;
             juce::Graphics::ScopedSaveState state(g);
-            g.drawImage(springPhotoCoils_[row],
-                juce::Rectangle<float>{12.f,14.f+yShift,616.f,130.f},
-                juce::RectanglePlacement::stretchToFit);
+            g.reduceClipRegion(juce::Rectangle<int>{
+                photoX,photoY,photoW,photoH});
+            // Precisely one isotropic image transformation per coil.
+            // Top/cropped source pixels remain behind the bezel and glass.
+            g.drawImageTransformed(springPhotoCoils_[row],
+                juce::AffineTransform::scale(photoScale).translated(
+                    static_cast<float>(photoX),
+                    static_cast<float>(photoY-photoCropY)*photoScale+yShift));
         }
     }
 
@@ -466,21 +481,20 @@ private:
         const float sensor=std::clamp(visualDynamics_.frame().ldr,0.f,1.f);
         if (opticalPhotoStill_.isValid())
         {
-            constexpr juce::Rectangle<float> scene{12.f,14.f,616.f,130.f};
-            g.drawImage(opticalPhotoStill_,scene,juce::RectanglePlacement::stretchToFit);
+            drawPhotoLayer(g,opticalPhotoStill_);
             // These transparent light mattes do NOT include the enclosure,
             // mounts or fixed wiring. Lamp and LDR have different inertia.
             if(active_&&l>.001f)
             {
                 juce::Graphics::ScopedSaveState light(g);
                 g.setOpacity(l);
-                g.drawImage(opticalPhotoEmission_,scene,juce::RectanglePlacement::stretchToFit);
+                drawPhotoLayer(g,opticalPhotoEmission_);
             }
             if(active_&&sensor>.001f)
             {
                 juce::Graphics::ScopedSaveState ldr(g);
                 g.setOpacity(sensor);
-                g.drawImage(opticalPhotoSensor_,scene,juce::RectanglePlacement::stretchToFit);
+                drawPhotoLayer(g,opticalPhotoSensor_);
             }
             meter(g,"LAMP",37.f,152.f,265.f,active_ ? l : 0.f);
             meter(g,"LDR",343.f,152.f,254.f,active_ ? sensor : 0.f);
