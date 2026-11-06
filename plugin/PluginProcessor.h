@@ -9,6 +9,7 @@
 #include "p6/ParameterMapper.h"
 #include "p6/VersionedEditMailbox.h"
 #include "CharacterFx.h"
+#include "RealtimeSnapshotMailbox.h"
 #include "OutputStage.h"
 #include "PresetBankCodec.h"
 #include "ui/ParameterPresentation.h"
@@ -71,21 +72,23 @@ public:
         return {selectedCalibration(),apvts_.getRawParameterValue("nrpn_0091")->load()>=.5f};
     }
     float characterExcitation() const noexcept { return characterExcitation_.load(std::memory_order_relaxed); }
+    // Never return a torn audio frame: all 8 device meters and 64 scope
+    // samples come from the same completed processBlock publication.
+    [[nodiscard]] bool readCharacterTelemetry(
+        p6plugin::CharacterTelemetry& out,std::uint32_t& revision) const noexcept
+    {
+        return characterTelemetryMailbox_.tryRead(out,revision);
+    }
     p6plugin::CharacterTelemetry characterTelemetry() const noexcept
     {
-        p6plugin::CharacterTelemetry t;
-        t.inputRms=characterInputRms_.load(std::memory_order_relaxed);
-        t.outputRms=characterOutputRms_.load(std::memory_order_relaxed);
-        t.changeRms=characterChangeRms_.load(std::memory_order_relaxed);
-        t.active=characterActive_.load(std::memory_order_relaxed);
-        t.type=characterActiveType_.load(std::memory_order_relaxed);
-        for(std::size_t i=0;i<8;++i)t.device.values[i]=deviceValues_[i].load(std::memory_order_relaxed);
-        for(std::size_t i=0;i<32;++i){t.device.input[i]=deviceInput_[i].load(std::memory_order_relaxed);t.device.wet[i]=deviceWet_[i].load(std::memory_order_relaxed);}
-        return t;
+        p6plugin::CharacterTelemetry result{};
+        std::uint32_t revision{};
+        (void)readCharacterTelemetry(result,revision);
+        return result;
     }
     int selectedCharacterType() const noexcept;
     void selectCharacterType(int);
-    unsigned characterTelemetryRevision() const noexcept { return characterTelemetryRevision_.load(std::memory_order_relaxed); }
+    unsigned characterTelemetryRevision() const noexcept { return characterTelemetryMailbox_.revision(); }
     p6plugin::OutputReadings consumeOutputReadings() noexcept;
     void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
     unsigned outputRevision() const noexcept { return outputRevision_.load(std::memory_order_relaxed); }
@@ -144,13 +147,10 @@ private:
     std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
     std::atomic<unsigned> outputClips_{},outputRevision_{};
     std::atomic<float> characterExcitation_{};
-    // Independent cosmetic readings; no lock or UI access on the audio thread.
-    std::atomic<float> characterInputRms_{},characterOutputRms_{},characterChangeRms_{};
-    std::atomic<bool> characterActive_{};
-    std::atomic<unsigned> characterTelemetryRevision_{};
-    std::atomic<int> characterActiveType_{};
-    std::array<std::atomic<float>,8> deviceValues_{};
-    std::array<std::atomic<float>,32> deviceInput_{},deviceWet_{};
+    // Single producer on the audio thread; bounded, lock-free snapshot
+    // handoff to the message thread. No separate per-field atomics.
+    p6plugin::RealtimeSnapshotMailbox<p6plugin::CharacterTelemetry>
+        characterTelemetryMailbox_{};
     std::atomic<float>* customType_{};
     std::array<std::array<std::atomic<float>*,7>,4> customParameters_{};
     std::array<std::atomic<float>*, 7> tubeParameters_{};
