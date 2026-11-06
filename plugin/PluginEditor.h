@@ -79,7 +79,7 @@ private:
     unsigned lastVisualRevision_{},lastPitchBendRevision_{};
     int staleVisualTicks_{},pitchDisplayTicks_{},pitchBendRaw14_{8192};
     bool studioView_{},collapsed_{},showTube_{},opticalPreviewActive_{};
-    float previewLfoPhase_{};
+    float previewLfoPhase_{},previewAudioLevel_{};
     juce::Rectangle<int> tubeArea_,displayArea_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(P6PluginEditor)
 };
