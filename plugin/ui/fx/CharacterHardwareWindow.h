@@ -46,6 +46,15 @@ public:
         for (int i = 0; i < 3; ++i)
             nextSprings[static_cast<std::size_t>(i)] =
                 enabled ? finite01(springPickups[static_cast<std::size_t>(i)] * 8.f) : 0.f;
+        // Continue repainting a sustained Spring note: the pickup energies
+        // control a visual, damped displacement, not a prerecorded animation.
+        // The geometry stays still at zero energy and when motion is paused.
+        const float springDrive = std::max({nextSprings[0], nextSprings[1], nextSprings[2]});
+        const bool springAnimating = mode == Mode::Spring && enabled && motion &&
+                                     springDrive > 0.005f;
+        if (springAnimating)
+            springPhase_ = std::fmod(springPhase_ + 0.23f + 0.17f * springDrive,
+                                    6.28318530718f);
         // Motion stops visual time-varying state; bypass always extinguishes it.
         if (!motion && mode == mode_ && enabled)
         {
@@ -54,7 +63,7 @@ public:
         }
         if (mode_ == mode && active_ == enabled && input_ == nextIn &&
             output_ == nextOut && changed_ == nextChanged && lamp_ == nextLamp &&
-            pickups_ == nextSprings) return;
+            pickups_ == nextSprings && !springAnimating) return;
         mode_ = mode; active_ = enabled; input_ = nextIn; output_ = nextOut;
         changed_ = nextChanged; lamp_ = nextLamp; pickups_ = nextSprings;
         repaint();
@@ -229,36 +238,112 @@ private:
 
     void drawSpring(juce::Graphics& g)
     {
-        const auto metal=juce::Colour{0xffceac75};
-        for(int row=0;row<3;++row)
+        // A miniature illuminated mechanical tank, shared with the Tube
+        // chamber's recess / bezel. This is a 2.5D projection of real helix
+        // geometry: the front turns occlude the rear turns and have different
+        // diffuse and specular materials. No web renderer or extra GPU needed.
+        const auto amber = juce::Colour{0xffe9a45d};
+        const auto steel = juce::Colour{0xffbaad93};
+        const float energy = std::clamp((pickups_[0] + pickups_[1] + pickups_[2]) / 3.f, 0.f, 1.f);
+
+        // Constant low-level backlight keeps silent springs readable. Only its
+        // reflected intensity responds to measured pickup energy.
+        g.setGradientFill(juce::ColourGradient(
+            amber.withAlpha(.034f + .15f * energy), 320.f, 107.f,
+            amber.withAlpha(0.f), 560.f, 107.f, true));
+        g.fillEllipse(65.f, 10.f, 510.f, 175.f);
+        g.setColour(juce::Colour{0xff977650}.withAlpha(.10f));
+        g.drawLine(63.f, 30.f, 577.f, 30.f, 1.f);
+        g.setGradientFill(juce::ColourGradient(
+            juce::Colour{0xff181a18}, 320.f, 34.f,
+            juce::Colour{0xff090a09}, 320.f, 149.f, false));
+        g.fillRoundedRectangle(59.f, 33.f, 522.f, 113.f, 5.f);
+
+        // A narrow lamp behind the coils creates tangential highlights and
+        // sense of depth, without flashing the entire tank.
+        g.setGradientFill(juce::ColourGradient(
+            amber.withAlpha(.038f + .11f * energy), 320.f, 87.f,
+            amber.withAlpha(0.f), 320.f, 151.f, false));
+        g.fillRoundedRectangle(82.f, 36.f, 472.f, 108.f, 7.f);
+
+        constexpr int turns = 48;
+        constexpr int samplesPerTurn = 18;
+        constexpr int samples = turns * samplesPerTurn;
+        constexpr float pi = 3.14159265358979323846f;
+
+        for (int row = 0; row < 3; ++row)
         {
-            const float y=55.f+38.f*static_cast<float>(row);
-            const float level=pickups_[static_cast<std::size_t>(row)];
-            g.setColour(juce::Colour{0xff3e3a31});
-            g.fillRoundedRectangle(35.f,y-14.f,40.f,28.f,4.f);
-            g.fillRoundedRectangle(562.f,y-14.f,40.f,28.f,4.f);
-            screw(g,46.f,y); screw(g,590.f,y);
-            g.setColour(juce::Colour{0xff78694c});
-            g.drawLine(74.f,y,564.f,y,2.f);
-            juce::Path spring;
-            for(int j=0;j<=390;++j)
+            const float y = 51.f + 40.f * static_cast<float>(row);
+            const float level = pickups_[static_cast<std::size_t>(row)];
+            const float phaseOffset = static_cast<float>(row) * 1.7f;
+
+            // The spring is fixed at both ends. Movement and reflections are
+            // an illustrative response to the three actual spring pickups.
+            auto point = [&](int index)
             {
-                const float x=79.f+static_cast<float>(j)*1.23f;
-                const float phase=static_cast<float>(j)*.68f;
-                const float amplitude=6.f+level*1.8f;
-                const float yy=y+std::sin(phase)*amplitude;
-                if(j==0)spring.startNewSubPath(x,yy);else spring.lineTo(x,yy);
+                const float t = static_cast<float>(index) / static_cast<float>(samples);
+                const float a = 2.f * pi * static_cast<float>(turns) * t + phaseOffset;
+                const float envelope = std::sin(pi * t);
+                const float wobble = 5.8f * level * envelope *
+                                     std::sin(springPhase_ + 13.f * t + phaseOffset);
+                const float x = 84.f + 470.f * t +
+                                .7f * level * envelope * std::sin(springPhase_ + 8.f * t);
+                return juce::Point<float>{x, y + 7.7f * std::sin(a) + wobble};
+            };
+            // The z coordinate of the helix decides which turns cross in front.
+            // Splitting paths is essential: a thick sine-wave stroke is not a
+            // wound wire, and was the source of the old flat appearance.
+            juce::Path rear, front;
+            bool wasFront = false;
+            for (int i = 0; i <= samples; ++i)
+            {
+                const float t = static_cast<float>(i) / static_cast<float>(samples);
+                const float a = 2.f * pi * static_cast<float>(turns) * t + phaseOffset;
+                const bool isFront = std::cos(a) >= 0.f;
+                const auto p = point(i);
+                auto& current = isFront ? front : rear;
+                if (i == 0 || isFront != wasFront) current.startNewSubPath(p);
+                else current.lineTo(p);
+                wasFront = isFront;
             }
-            g.setColour(juce::Colours::black.withAlpha(.43f));
-            g.strokePath(spring,juce::PathStrokeType(4.4f));
-            g.setColour(metal.withMultipliedBrightness(.55f+.45f*level));
-            g.strokePath(spring,juce::PathStrokeType(2.2f));
-            g.setColour(juce::Colour{0xfff8cf7a}.withAlpha(level*.2f));
-            g.strokePath(spring,juce::PathStrokeType(7.f));
+
+            // Real end clamps: dark rubber blocks, brass washers and steel pins.
+            for (float x : {47.f, 556.f})
+            {
+                g.setGradientFill(juce::ColourGradient(
+                    juce::Colour{0xff5a554b}, x, y - 13.f,
+                    juce::Colour{0xff171a17}, x + 31.f, y + 14.f, false));
+                g.fillRoundedRectangle(x, y - 13.f, 31.f, 26.f, 3.f);
+                g.setColour(juce::Colour{0xff968775});
+                g.drawRoundedRectangle(x + 2.f, y - 11.f, 27.f, 22.f, 2.f, 1.f);
+                screw(g, x + 12.f, y);
+            }
+            g.setColour(steel.withAlpha(.78f));
+            g.drawLine(72.f, y, 86.f, y, 3.f);
+            g.drawLine(551.f, y, 565.f, y, 3.f);
+            g.setColour(juce::Colour{0xffe1b97b}.withAlpha(.65f));
+            for (float x : {82.f, 552.f})
+                g.drawEllipse(x - 2.f, y - 4.f, 4.f, 8.f, 1.2f);
+
+            // Rear segments absorb more light; foreground segments catch an
+            // edge highlight and a fine secondary specular reflection.
+            g.setColour(juce::Colour{0xff2d2923});
+            g.strokePath(rear, juce::PathStrokeType(4.f));
+            g.setColour(juce::Colour{0xff877761});
+            g.strokePath(rear, juce::PathStrokeType(2.4f));
+            g.setColour(juce::Colour{0xff110f0d}.withAlpha(.9f));
+            g.strokePath(front, juce::PathStrokeType(4.8f),
+                         juce::AffineTransform::translation(0.f, .75f));
+            g.setColour(steel.interpolatedWith(amber, .14f + .27f * level));
+            g.strokePath(front, juce::PathStrokeType(3.3f));
+            g.setColour(juce::Colour{0xffffe0ab}.withAlpha(.52f + .38f * level));
+            g.strokePath(front, juce::PathStrokeType(1.15f),
+                         juce::AffineTransform::translation(0.f, -.85f));
+            g.setColour(amber.withAlpha(.05f + .12f * level));
+            g.strokePath(front, juce::PathStrokeType(5.f));
         }
-        const float total=std::clamp((pickups_[0]+pickups_[1]+pickups_[2])/3.f,0.f,1.f);
-        meter(g,"ENERGY",37.f,152.f,276.f,total);
-        meter(g,"TAIL",344.f,152.f,267.f,output_);
+        meter(g, "ENERGY", 37.f, 152.f, 276.f, energy);
+        meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
     }
 
     juce::Image valve_;
@@ -266,4 +351,5 @@ private:
     bool active_{}, motion_{true};
     float input_{}, output_{}, changed_{}, lamp_{.6f};
     std::array<float,3> pickups_{};
+    float springPhase_{};
 };
