@@ -30,12 +30,49 @@ so the native JUCE meters remain independently rendered. The unchanged bezel
 and glass are drawn after the photographic interior. The image generation
 study's panel, knobs, lettering and FX display are deliberately excluded.
 
-## Current limitations
+## Reactive motion (DSP telemetry -> native camera)
 
-- Optical Tremolo is a **visual preview**, not a working audio effect.
-- Spring currently has energy-dependent reflections but not individual
-  transparent moving coil layers; mounts remain fixed within the photo.
-- This generator is deterministic for a particular source file. Final
-  production QA requires actual native JUCE screenshots at 1240, 1460 and
-  1780 widths, plus a bypass and pause/restart visual check.
-- Do not merge the draft PR based solely on an image-crop preview.
+The UI refreshes at **30 Hz**; all work is confined to the message thread. No
+audio algorithm, parameter ID, preset codec or SysEx implementation changes.
+
+- **Tube:** a smoothed physically inspired heater/bloom follows measured
+  Character input RMS and *signal change caused by the effect* (not a random
+  note-on blink). The original 12AX7 art and hardware frame are unchanged.
+- **Optical Spring:** the DSP publishes three real delay-line tap RMS values
+  (`DeviceTelemetry.values[2..4]`). The approved photograph contains **two**
+  physical springs. Weighted combinations of taps (1+2, 2+3) set the energy of
+  those two visible springs; do not synthesize a third nonexistent coil. On
+  atlas load, JUCE derives two masked photographic spring-wire layers and a
+  fixed recessed chassis. A small standing-wave displacement is applied to
+  the wound wire in 32 clipped strips while fixed anchors and the native
+  bezel/glass stay still. Oscillator amplitude is tied to **measured tail
+  energy**, with asymmetric attack/release; the low-frequency visual motion
+  is a display approximation and is not sample-accurate wire vibration.
+- **Optical Tremolo:** remains clearly labelled **DESIGN PREVIEW** with no
+  tremolo DSP or genuine physical LDR model. The visible bulb's demonstration
+  LFO is now *amplitude-gated by actual final output RMS*, and the LDR
+  illumination has slower attack/release than the bulb. With silence, the
+  glass and metal remain visible but the lamp fades. The interface does
+  **not** claim the preview is altering the sound.
+
+All dynamic values are clamped and checked for non-finite telemetry, the
+visual pause freezes the exact image, bypass clears energy immediately, and
+the spring tail decays as real delay-line measurements fall. Cached JPEG
+masks are prepared once, not recomputed in `paint()`.
+
+## Verification
+
+`P6CharacterVisualProbe` tests measured input/tap response, two coils
+receiving three DSP pickups, continued vibration with sustained energy,
+finite graphics state, decay in silence, exact freeze and immediate bypass.
+`P6UiSmoke` exercises the actual native JPEG masking and photo rendering
+path using an internally generated test atlas, with screenshots:
+
+- `spring_photo_reactive_probe.png`
+- `optical_audio_reactive_probe.png`
+
+The real installed photographic atlas is included in the repository.
+Native screens at 1240 / 1460 / 1780 widths, host/DAW rendering, motion
+comparison and Windows/Linux builds still require operational GitHub
+Actions runners. Do **not** substitute a generated visual mock for those
+native screenshots or merge this draft PR based solely on a static image.
