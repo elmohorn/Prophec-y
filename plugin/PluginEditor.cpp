@@ -276,6 +276,14 @@ void P6PluginEditor::setType(int value)
 }
 void P6PluginEditor::timerCallback()
 {
+    // A timer configured at 30Hz does NOT guarantee 33.3ms delivery in a DAW.
+    // Use elapsed real time; clamp long window/sleep gaps rather than catch up
+    // an unbounded number of visual oscillations on the message thread.
+    const double nowMs=juce::Time::getMillisecondCounterHiRes();
+    const float elapsedSeconds=lastUiFrameTimeMs_>0.0?
+        std::clamp(static_cast<float>((nowMs-lastUiFrameTimeMs_)*.001),
+                   0.f,.1f):1.f/30.f;
+    lastUiFrameTimeMs_=nowMs;
     if(!isShowing())return;
     const auto events=processor_.recentMidiEvents();juce::String monitor;
     for(const auto& event:events)if(event.valid) {
@@ -309,10 +317,23 @@ void P6PluginEditor::timerCallback()
         --pitchDisplayTicks_;
         if(pitchDisplayTicks_==0)repaint(displayArea_);
     }
-    const auto revision=processor_.characterTelemetryRevision();
-    staleVisualTicks_=revision==lastVisualRevision_?std::min(30,staleVisualTicks_+1):0;
-    lastVisualRevision_=revision;
-    const auto sample=processor_.characterTelemetry();
+    std::uint32_t revision=lastVisualRevision_;
+    p6plugin::CharacterTelemetry sample{};
+    const bool coherent=processor_.readCharacterTelemetry(sample,revision);
+    if(coherent)
+    {
+        staleVisualTicks_=revision==lastVisualRevision_
+            ?std::min(30,staleVisualTicks_+1):0;
+        lastVisualRevision_=revision;
+        lastCoherentTelemetry_=sample;
+    }
+    else
+    {
+        // Bounded read retries can fail if the producer recycles a slot.
+        // Never blend partial frames; keep the last VALID one and age it out.
+        sample=lastCoherentTelemetry_;
+        staleVisualTicks_=std::min(30,staleVisualTicks_+1);
+    }
     visual_.type=sample.type;
     // A newly selected module can precede the next audio block. Never show
     // the former module's pickup data in the new physical chamber.
@@ -321,7 +342,11 @@ void P6PluginEditor::timerCallback()
     const bool bypassed=processor_.parameters().getRawParameterValue(p6plugin::kCharacterBypassID)->load()>=.5f;
     const bool live=staleVisualTicks_<4;
     visual_.active=sample.active&&!bypassed&&live&&typeMatches;
-    const auto follow=[](float previous,float target){return previous+(target>previous?.55f:.16f)*(target-previous);};
+    const auto follow=[elapsedSeconds](float previous,float target){
+        const float tau=target>previous?.042f:.191f;
+        const float alpha=-std::expm1(-elapsedSeconds/tau);
+        return previous+alpha*(target-previous);
+    };
     visual_.inputRms=follow(visual_.inputRms,live?sample.inputRms:0.f);
     visual_.outputRms=follow(visual_.outputRms,live?sample.outputRms:0.f);
     visual_.changeRms=follow(visual_.changeRms,visual_.active?sample.changeRms:0.f);
@@ -338,7 +363,8 @@ void P6PluginEditor::timerCallback()
         std::max({0.f,readings.rms[0],readings.rms[1]}),0.f,1.f);
     const float targetPreviewEnvelope=std::clamp(
         std::sqrt(audioRms)*2.4f,0.f,1.f);
-    const float previewAlpha=targetPreviewEnvelope>previewAudioLevel_?.48f:.11f;
+    const float previewTau=targetPreviewEnvelope>previewAudioLevel_?.050f:.280f;
+    const float previewAlpha=-std::expm1(-elapsedSeconds/previewTau);
     previewAudioLevel_+=previewAlpha*(targetPreviewEnvelope-previewAudioLevel_);
     if(opticalPreviewActive_)
     {
@@ -347,7 +373,7 @@ void P6PluginEditor::timerCallback()
             const float rate=static_cast<float>(opticalConcept_[0].slider.getValue());
             const float hz=.25f+3.5f*rate*rate;
             previewLfoPhase_=std::fmod(previewLfoPhase_+
-                juce::MathConstants<float>::twoPi*hz/30.f,
+                juce::MathConstants<float>::twoPi*hz*elapsedSeconds,
                 juce::MathConstants<float>::twoPi);
         }
         const float cycle=previewLfoPhase_/juce::MathConstants<float>::twoPi;
@@ -364,13 +390,14 @@ void P6PluginEditor::timerCallback()
         const float lampDrive=previewAudioLevel_*(1.f-depth+depth*lfo);
         hardware_.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
                            true,motion_.getToggleState(),
-                           audioRms,audioRms,0.f,{},lampDrive,response);
+                           audioRms,audioRms,0.f,{},lampDrive,response,elapsedSeconds);
     }
     else if(boundType_==1)
     {
         hardware_.setState(CharacterHardwareWindow::Mode::Tube,
                            visual_.active,motion_.getToggleState(),
-                           visual_.inputRms,visual_.outputRms,visual_.changeRms);
+                           visual_.inputRms,visual_.outputRms,visual_.changeRms,
+                           {},.6f,.5f,elapsedSeconds);
     }
     else if(boundType_==3)
     {
@@ -378,7 +405,7 @@ void P6PluginEditor::timerCallback()
         hardware_.setState(CharacterHardwareWindow::Mode::Spring,
                            visual_.active,motion_.getToggleState(),
                            visual_.inputRms,visual_.outputRms,visual_.changeRms,
-                           {v[2],v[3],v[4]});
+                           {v[2],v[3],v[4]},.6f,.5f,elapsedSeconds);
     }
     updateDevice();
     if((showTube_||opticalPreviewActive_)&&!collapsed_&&!studioView_)repaint(tubeArea_);
