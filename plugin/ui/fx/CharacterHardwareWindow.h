@@ -28,6 +28,31 @@ public:
         repaint();
     }
 
+    // Optional pre-rendered transparent 640x190 layers, aligned to the SAME
+    // recessed Tube camera. Backdrop owns the tank and fixed mounts; each coil
+    // layer contains only one metal spring and can move independently.
+    // An incomplete asset set never replaces the current fallback renderer.
+    void setSpringArtwork(const juce::Image& backdrop,
+                          const std::array<juce::Image, 3>& coils)
+    {
+        springBackdrop_ = backdrop;
+        springCoils_ = coils;
+        repaint();
+    }
+
+    // The lamp off/on images are matched photographic renders: interpolation
+    // occurs at draw time, while socket, LDR, and hardware stay stationary.
+    // All four images use the same transparent 640x190 design canvas.
+    void setOpticalArtwork(const juce::Image& backdrop, const juce::Image& lampOff,
+                           const juce::Image& lampOn, const juce::Image& ldr)
+    {
+        opticalBackdrop_ = backdrop;
+        opticalLampOff_ = lampOff;
+        opticalLampOn_ = lampOn;
+        opticalLdr_ = ldr;
+        repaint();
+    }
+
     void setState(Mode mode, bool enabled, bool motion, float inputRms, float outputRms,
                   float changeRms, const std::array<float, 3>& springPickups = {},
                   float previewLamp = 0.6f)
@@ -56,16 +81,20 @@ public:
             springPhase_ = std::fmod(springPhase_ + 0.23f + 0.17f * springDrive,
                                     6.28318530718f);
         // Motion stops visual time-varying state; bypass always extinguishes it.
-        if (!motion && mode == mode_ && enabled)
+        if (!motion && mode == mode_ && enabled && active_)
         {
+            // Freeze frame while enabled, but NEVER swallow a bypass or
+            // mode change: the off state must still extinguish visual energy.
+            motion_ = false;
             setDescription("Character animation paused; audio is unaffected.");
             return;
         }
-        if (mode_ == mode && active_ == enabled && input_ == nextIn &&
-            output_ == nextOut && changed_ == nextChanged && lamp_ == nextLamp &&
-            pickups_ == nextSprings && !springAnimating) return;
-        mode_ = mode; active_ = enabled; input_ = nextIn; output_ = nextOut;
-        changed_ = nextChanged; lamp_ = nextLamp; pickups_ = nextSprings;
+        if (mode_ == mode && active_ == enabled && motion_ == motion &&
+            input_ == nextIn && output_ == nextOut && changed_ == nextChanged &&
+            lamp_ == nextLamp && pickups_ == nextSprings && !springAnimating) return;
+        mode_ = mode; active_ = enabled; motion_ = motion;
+        input_ = nextIn; output_ = nextOut; changed_ = nextChanged;
+        lamp_ = nextLamp; pickups_ = nextSprings;
         repaint();
     }
 
@@ -108,12 +137,47 @@ public:
             g.fillRect(12.f, 12.f, 616.f, 40.f);
             g.setColour(juce::Colours::black.withAlpha(.64f));
             g.drawRoundedRectangle(cavity, 7.f, 5.f);
+            // The physical glass sits IN FRONT of all three hero objects.
+            // Never bake it into the spring/lamp art or redesign the bezel.
+            drawGlass(g, cavity);
         }
 
         for (float xx : {18.f, 622.f}) for (float yy : {18.f, 172.f}) screw(g, xx, yy);
     }
 
 private:
+    static void drawGlass(juce::Graphics& g, juce::Rectangle<float> cavity)
+    {
+        const auto inner = cavity.reduced(3.f);
+        g.setGradientFill(juce::ColourGradient(
+            juce::Colour{0xffaac2c4}.withAlpha(.045f), 25.f, 20.f,
+            juce::Colours::transparentBlack, 580.f, 170.f, false));
+        g.fillRoundedRectangle(inner, 5.f);
+
+        juce::Path reflection;
+        reflection.startNewSubPath(24.f, 21.f);
+        reflection.lineTo(167.f, 21.f);
+        reflection.lineTo(273.f, 167.f);
+        reflection.lineTo(189.f, 167.f);
+        reflection.closeSubPath();
+        g.setGradientFill(juce::ColourGradient(
+            juce::Colours::white.withAlpha(.055f), 58.f, 23.f,
+            juce::Colours::white.withAlpha(0.f), 271.f, 160.f, false));
+        g.fillPath(reflection);
+        g.setColour(juce::Colour{0xffc8d1c9}.withAlpha(.16f));
+        g.drawRoundedRectangle(inner, 5.f, 0.75f);
+        g.setColour(juce::Colours::white.withAlpha(.09f));
+        g.drawLine(34.f, 22.f, 605.f, 22.f, 0.7f);
+    }
+
+    static void drawArtwork(juce::Graphics& g, const juce::Image& image,
+                            float yShift = 0.f)
+    {
+        if (image.isValid())
+            g.drawImage(image, juce::Rectangle<float>{0.f, yShift, 640.f, 190.f},
+                        juce::RectanglePlacement::stretchToFit);
+    }
+
     static void screw(juce::Graphics& g, float x, float y)
     {
         g.setColour(juce::Colour{0xff161a17}); g.fillEllipse(x-5.f, y-5.f, 10.f, 10.f);
@@ -196,6 +260,21 @@ private:
         // Visual concept only. Lamp drive will be supplied by the future LFO
         // and actual LDR conductance once the optical DSP is implemented.
         const float l=std::clamp(lamp_,0.f,1.f);
+        if (opticalBackdrop_.isValid() && opticalLampOff_.isValid() &&
+            opticalLampOn_.isValid() && opticalLdr_.isValid())
+        {
+            drawArtwork(g, opticalBackdrop_);
+            drawArtwork(g, opticalLampOff_);
+            {
+                juce::Graphics::ScopedSaveState light(g);
+                g.setOpacity(.025f + .975f * l);
+                drawArtwork(g, opticalLampOn_);
+            }
+            drawArtwork(g, opticalLdr_);
+            meter(g,"LAMP",37.f,152.f,265.f,l);
+            meter(g,"LDR",343.f,152.f,254.f,l*.78f);
+            return;
+        }
         for(float x : {42.f,513.f})
         {
             g.setColour(juce::Colour{0xff363833});
@@ -245,6 +324,27 @@ private:
         const auto amber = juce::Colour{0xffe9a45d};
         const auto steel = juce::Colour{0xffbaad93};
         const float energy = std::clamp((pickups_[0] + pickups_[1] + pickups_[2]) / 3.f, 0.f, 1.f);
+
+        if (springBackdrop_.isValid() &&
+            std::all_of(springCoils_.begin(), springCoils_.end(),
+                        [](const juce::Image& image) { return image.isValid(); }))
+        {
+            drawArtwork(g, springBackdrop_);
+            for (int row = 0; row < 3; ++row)
+            {
+                // The mounts are part of the fixed tank layer. The spring-only
+                // overlay moves at most 2 px: energy comes from its own pickup.
+                const float drive = active_ && motion_
+                    ? pickups_[static_cast<std::size_t>(row)] : 0.f;
+                const float displacement = 2.f * drive *
+                    std::sin(springPhase_ + 1.7f * static_cast<float>(row));
+                drawArtwork(g, springCoils_[static_cast<std::size_t>(row)],
+                            displacement);
+            }
+            meter(g, "ENERGY", 37.f, 152.f, 276.f, energy);
+            meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
+            return;
+        }
 
         g.setGradientFill(juce::ColourGradient(
             juce::Colour{0xff181a18}, 320.f, 34.f,
@@ -348,6 +448,9 @@ private:
     }
 
     juce::Image valve_;
+    juce::Image springBackdrop_;
+    std::array<juce::Image, 3> springCoils_{};
+    juce::Image opticalBackdrop_, opticalLampOff_, opticalLampOn_, opticalLdr_;
     Mode mode_{Mode::Tube};
     bool active_{}, motion_{true};
     float input_{}, output_{}, changed_{}, lamp_{.6f};
