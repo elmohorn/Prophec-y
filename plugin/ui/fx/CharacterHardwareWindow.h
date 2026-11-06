@@ -67,7 +67,7 @@ public:
 
     void setState(Mode mode, bool enabled, bool motion, float inputRms, float outputRms,
                   float changeRms, const std::array<float, 3>& springPickups = {},
-                  float previewLamp = 0.6f)
+                  float previewLamp = 0.6f, float previewResponse = 0.5f)
     {
         const auto finite01 = [](float v) {
             return std::isfinite(v) ? std::clamp(v, 0.f, 1.f) : 0.f;
@@ -105,7 +105,7 @@ public:
         if (mode != mode_) visualDynamics_.reset();
         const auto before = visualDynamics_.frame();
         visualDynamics_.advance(enabled, motion, inputRms, changeRms,
-                                springPickups, nextLamp);
+                                springPickups, nextLamp, previewResponse);
         const auto after = visualDynamics_.frame();
         // The measured RMS can stay constant while a physically damped
         // coil continues to oscillate or a lamp/LDR decays. Repaint for the
@@ -141,12 +141,16 @@ public:
         const juce::Rectangle<float> cavity(12, 12, 616, 164);
         g.setColour(juce::Colours::black.withAlpha(.28f));
         g.fillRoundedRectangle(outer.translated(1.f, 2.f), 14.f);
-        g.setGradientFill(juce::ColourGradient(juce::Colour{0xffe5e0d4}, 0.f, 0.f,
-                                                 juce::Colour{0xff77796d}, 0.f, 189.f, false));
+        // Match the APPROVED TubeChamber hardware language: same brushed
+        // aluminum gradient, graphite inset and machined edge. Only the
+        // panoramic aperture and its interchangeable physical contents differ.
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff0ede3},0.f,0.f,
+                                                 juce::Colour{0xff747771},0.f,190.f,false));
         g.fillRoundedRectangle(outer, 13.f);
-        g.setColour(juce::Colour{0xff242622}); g.fillRoundedRectangle(outer.reduced(5), 10.f);
-        g.setColour(juce::Colour{0xff878579});
-        g.drawRoundedRectangle(outer.reduced(7), 9.f, 1.5f);
+        g.setColour(juce::Colour{0xff30332f}); g.fillRoundedRectangle(outer.reduced(4), 10.f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xff575a52},0.f,6.f,
+                                                 juce::Colour{0xffbab9aa},0.f,188.f,false));
+        g.drawRoundedRectangle(outer.reduced(6), 9.f, 1.5f);
 
         {
             juce::Graphics::ScopedSaveState inner(g);
