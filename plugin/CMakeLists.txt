@@ -46,6 +46,7 @@ target_sources(P6CorePlugin PRIVATE
     ui/fx/CharacterDeviceView.cpp
     ui/fx/CharacterDeviceView.h
     ui/fx/CharacterHardwareWindow.h
+    ui/fx/CharacterVisualDynamics.h
     ui/fx/TubeChamber.cpp
     ui/fx/TubeChamber.h
     ui/display/OutputMeter.cpp
@@ -106,5 +107,11 @@ if(P6_BUILD_UI_SMOKE)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/P6UiSmoke_artefacts/$<CONFIG>")
     target_include_directories(P6UiSmoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(P6UiSmoke PRIVATE P6CorePlugin p6character juce::juce_audio_processors)
+
+    # JUCE-free deterministic test for measured telemetry -> physical motion;
+    # it can run even when no GUI host or VST3 bundle is available.
+    add_executable(P6CharacterVisualProbe ../tests/character_visual_dynamics_probe.cpp)
+    target_include_directories(P6CharacterVisualProbe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME p6_character_visual_dynamics COMMAND P6CharacterVisualProbe)
 endif()
 
