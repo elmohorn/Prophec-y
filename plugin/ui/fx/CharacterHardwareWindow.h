@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "CharacterVisualDynamics.h"
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -35,6 +36,7 @@ public:
     void setPhotoAtlas(const void* data, int bytes)
     {
         cameraAtlas_ = juce::ImageCache::getFromMemory(data, bytes);
+        buildSpringPhotoLayers();
         repaint();
     }
 
@@ -100,9 +102,26 @@ public:
             setDescription("Character animation paused; audio is unaffected.");
             return;
         }
+        if (mode != mode_) visualDynamics_.reset();
+        const auto before = visualDynamics_.frame();
+        visualDynamics_.advance(enabled, motion, inputRms, changeRms,
+                                springPickups, nextLamp);
+        const auto after = visualDynamics_.frame();
+        // The measured RMS can stay constant while a physically damped
+        // coil continues to oscillate or a lamp/LDR decays. Repaint for the
+        // *visible* frame change, not only for raw telemetry changes.
+        const bool visualChanged =
+            std::abs(before.heater - after.heater) > .0005f ||
+            std::abs(before.lamp - after.lamp) > .0005f ||
+            std::abs(before.ldr - after.ldr) > .0005f ||
+            std::abs(before.springShift[0] - after.springShift[0]) > .0005f ||
+            std::abs(before.springShift[1] - after.springShift[1]) > .0005f ||
+            std::abs(before.springEnergy[0] - after.springEnergy[0]) > .0005f ||
+            std::abs(before.springEnergy[1] - after.springEnergy[1]) > .0005f;
         if (mode_ == mode && active_ == enabled && motion_ == motion &&
             input_ == nextIn && output_ == nextOut && changed_ == nextChanged &&
-            lamp_ == nextLamp && pickups_ == nextSprings && !springAnimating) return;
+            lamp_ == nextLamp && pickups_ == nextSprings &&
+            !springAnimating && !visualChanged) return;
         mode_ = mode; active_ = enabled; motion_ = motion;
         input_ = nextIn; output_ = nextOut; changed_ = nextChanged;
         lamp_ = nextLamp; pickups_ = nextSprings;
@@ -198,6 +217,86 @@ private:
                     0, row * 120, 448, 97);
     }
 
+    void buildSpringPhotoLayers()
+    {
+        springPhotoBackdrop_ = {};
+        springPhotoCoils_ = {};
+        if (!cameraAtlas_.isValid() || cameraAtlas_.getWidth() < 448 ||
+            cameraAtlas_.getHeight() < 120) return;
+        // Split the approved photographic tank into a still chassis and
+        // TWO translucent wound-wire masks. This happens once on UI init,
+        // not on each paint frame or anywhere on the audio thread.
+        constexpr int width = 448, height = 97;
+        springPhotoBackdrop_ = juce::Image(juce::Image::ARGB,width,height,true);
+        for(auto& image : springPhotoCoils_)
+            image = juce::Image(juce::Image::ARGB,width,height,true);
+        constexpr std::array<float,2> centers{37.f,83.f};
+        for(int y=0;y<height;++y) for(int x=0;x<width;++x)
+        {
+            const auto original = cameraAtlas_.getPixelAt(x,y);
+            auto background = original;
+            for(std::size_t i=0;i<2;++i)
+            {
+                const float cy = centers[i];
+                const float horizontal = std::clamp(
+                    std::min((static_cast<float>(x)-82.f)/17.f,
+                             (373.f-static_cast<float>(x))/17.f),0.f,1.f);
+                const float vertical = std::clamp(
+                    std::min((static_cast<float>(y)-cy+19.f)/6.f,
+                             (cy+19.f-static_cast<float>(y))/6.f),0.f,1.f);
+                const float brightness = std::max({original.getFloatRed(),
+                                                 original.getFloatGreen(),
+                                                 original.getFloatBlue()});
+                const float wire = std::clamp((brightness-.12f)*4.f,0.f,1.f);
+                const float mask = horizontal*vertical*wire;
+                springPhotoCoils_[i].setPixelAt(x,y,original.withAlpha(mask));
+                if(mask>0.f)
+                {
+                    const int sampleRow = i==0 ? 56 : 107;
+                    const auto ambient = cameraAtlas_.getPixelAt(x,sampleRow)
+                                                   .withMultipliedBrightness(.58f);
+                    background = background.interpolatedWith(ambient,mask*.94f);
+                }
+            }
+            springPhotoBackdrop_.setPixelAt(x,y,background);
+        }
+    }
+
+    void drawAnimatedPhotoSprings(juce::Graphics& g)
+    {
+        if (!springPhotoBackdrop_.isValid())
+        {
+            drawPhotoFrame(g,0);
+            return;
+        }
+        constexpr float dstX=12.f,dstY=14.f,dstW=616.f,dstH=130.f;
+        g.drawImage(springPhotoBackdrop_,12,14,616,130,0,0,448,97);
+        constexpr int segments=32;
+        const auto& f=visualDynamics_.frame();
+        for(std::size_t row=0;row<2;++row)
+        {
+            const auto& layer = springPhotoCoils_[row];
+            if(!layer.isValid()) continue;
+            for(int segment=0;segment<segments;++segment)
+            {
+                const float t=(static_cast<float>(segment)+.5f)/segments;
+                const float dx=dstX+dstW*static_cast<float>(segment)/segments;
+                const float dx2=dstX+dstW*static_cast<float>(segment+1)/segments;
+                // Attachment clamps do not move; a standing wave of measured
+                // amplitude displaces only the wound wire between them.
+                const float shift=f.springShift[row]*std::sin(3.141592653589793f*t)*
+                                  std::cos(6.283185307179586f*t+row*.7f);
+                juce::Graphics::ScopedSaveState clipping(g);
+                g.reduceClipRegion(juce::Rectangle<int>{
+                    static_cast<int>(std::floor(dx)),14,
+                    static_cast<int>(std::ceil(dx2-dx))+2,130});
+                g.drawImageTransformed(layer,
+                    juce::AffineTransform::scale(dstW/448.f,dstH/97.f)
+                                                   .translated(dstX,dstY+shift));
+            }
+        }
+    }
+
     static void screw(juce::Graphics& g, float x, float y)
     {
         g.setColour(juce::Colour{0xff161a17}); g.fillEllipse(x-5.f, y-5.f, 10.f, 10.f);
@@ -245,7 +344,10 @@ private:
             g.fillRoundedRectangle(x,65.f,72.f,72.f,8.f);
             screw(g,x+12.f,77.f); screw(g,x+59.f,124.f);
         }
-        const float radiance=active_ ? std::clamp(.25f+.55f*input_+.2f*changed_,0.f,1.f) : .05f;
+        // Heater bloom follows measured RMS and the DIFFERENCE caused by the
+        // tube algorithm. Camera brightness is not a random or note-on blink.
+        const float radiance=active_
+            ? .04f+.96f*visualDynamics_.frame().heater : .02f;
         auto halo=[&](float radius, float alpha)
         {
             g.setGradientFill(juce::ColourGradient(warm.withAlpha(alpha*radiance),320.f,102.f,
@@ -279,7 +381,8 @@ private:
     {
         // Visual concept only. Lamp drive will be supplied by the future LFO
         // and actual LDR conductance once the optical DSP is implemented.
-        const float l=std::clamp(lamp_,0.f,1.f);
+        const float l=std::clamp(visualDynamics_.frame().lamp,0.f,1.f);
+        const float sensor=std::clamp(visualDynamics_.frame().ldr,0.f,1.f);
         if (cameraAtlas_.isValid())
         {
             drawPhotoFrame(g, 1);
@@ -288,8 +391,19 @@ private:
                 g.setOpacity(active_ ? l : 0.f);
                 drawPhotoFrame(g, 2);
             }
+            // Localized physical illumination on the filament and sensor,
+            // rather than brightening the entire photograph or bezel.
+            const auto amber=juce::Colour{0xffffb45c};
+            g.setGradientFill(juce::ColourGradient(
+                amber.withAlpha(.19f*l),273.f,94.f,
+                amber.withAlpha(0.f),415.f,94.f,true));
+            g.fillEllipse(180.f,15.f,300.f,160.f);
+            g.setGradientFill(juce::ColourGradient(
+                amber.withAlpha(.19f*sensor),530.f,96.f,
+                amber.withAlpha(0.f),590.f,96.f,true));
+            g.fillEllipse(475.f,51.f,116.f,90.f);
             meter(g,"LAMP",37.f,152.f,265.f,active_ ? l : 0.f);
-            meter(g,"LDR",343.f,152.f,254.f,active_ ? l*.78f : 0.f);
+            meter(g,"LDR",343.f,152.f,254.f,active_ ? sensor : 0.f);
             return;
         }
         if (opticalBackdrop_.isValid() && opticalLampOff_.isValid() &&
@@ -359,21 +473,23 @@ private:
 
         if (cameraAtlas_.isValid())
         {
-            drawPhotoFrame(g, 0);
-            // Light dances across the already-real metallic winding instead
-            // of replacing it with a diagram. Each reflection is driven by
-            // its actual pickup telemetry, not a fake note-on animation.
-            for (int row = 0; row < 3; ++row)
+            drawAnimatedPhotoSprings(g);
+            const auto& f=visualDynamics_.frame();
+            // Backlight shimmers with the *two visible* coils, each receiving
+            // a weighted mix of the three actual spring FDN pickup energies.
+            constexpr std::array<float,2> centerY{63.f,127.f};
+            for (std::size_t row=0;row<2;++row)
             {
-                const float drive = active_ ? pickups_[static_cast<std::size_t>(row)] : 0.f;
-                const float y = 41.f + 40.f * static_cast<float>(row);
-                const float x = 320.f + 43.f * std::sin(springPhase_ + row*1.4f);
+                const float level=active_ ? f.springEnergy[row] : 0.f;
+                const float y=centerY[row];
+                const float x=320.f+55.f*std::sin(springPhase_+row*1.8f);
                 g.setGradientFill(juce::ColourGradient(
-                    amber.withAlpha(.10f * drive),x,y,
-                    amber.withAlpha(0.f),x+160.f,y,true));
-                g.fillEllipse(x-180.f,y-17.f,360.f,34.f);
+                    amber.withAlpha(.22f*level),x,y,
+                    amber.withAlpha(0.f),x+175.f,y,true));
+                g.fillEllipse(x-165.f,y-15.f,330.f,30.f);
             }
-            meter(g,"ENERGY",37.f,152.f,276.f,energy);
+            meter(g,"ENERGY",37.f,152.f,276.f,
+                  (f.springEnergy[0]+f.springEnergy[1])*.5f);
             meter(g,"TAIL",344.f,152.f,267.f,output_);
             return;
         }
@@ -499,7 +615,10 @@ private:
         meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
     }
 
+    p6plugin::ui::CharacterVisualDynamics visualDynamics_;
     juce::Image cameraAtlas_;
+    juce::Image springPhotoBackdrop_;
+    std::array<juce::Image,2> springPhotoCoils_{};
     juce::Image valve_;
     juce::Image springBackdrop_;
     std::array<juce::Image, 3> springCoils_{};
