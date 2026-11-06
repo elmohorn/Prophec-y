@@ -207,6 +207,68 @@ int main(int argc,char** argv)
         CHECK(screenshot(springVisual,folder.getChildFile("spring_layered_asset_probe.png")));
         CHECK(screenshot(opticalVisual,folder.getChildFile("optical_layered_asset_probe.png")));
     }
+    // Exercise the actual JPEG atlas composition path (not the vector
+    // fallback): measured spring taps move the metallic foreground under
+    // a fixed hardware bezel; pause freezes and bypass stops movement.
+    juce::Image syntheticPhoto(juce::Image::RGB,448,360,true);
+    {
+        juce::Graphics g(syntheticPhoto);
+        g.fillAll(juce::Colour{0xff1a100a});
+        g.setColour(juce::Colour{0xffd8c3a3});
+        for(int row=0;row<2;++row)
+            for(int x=90;x<370;x+=8)
+                g.fillRect(x,23+row*45,3,25);
+        g.setColour(juce::Colour{0xffffc05e});
+        g.fillEllipse(160.f,165.f,95.f,70.f);
+        g.fillEllipse(160.f,285.f,95.f,70.f);
+    }
+    juce::MemoryOutputStream photoBytes;
+    CHECK(juce::JPEGImageFormat().writeImageToStream(syntheticPhoto,photoBytes));
+    CharacterHardwareWindow photoVisual;
+    photoVisual.setSize(640,190);
+    photoVisual.setPhotoAtlas(photoBytes.getData(),static_cast<int>(photoBytes.getDataSize()));
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .16f,.18f,.09f,springPickups);
+    const auto photoA=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .16f,.18f,.09f,springPickups);
+    const auto photoB=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    bool photoMoved=false;
+    for(int y=30;y<140;++y)for(int x=75;x<560;++x)
+        photoMoved=photoMoved||photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
+    CHECK(photoMoved);
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,false,
+                          0.f,0.f,0.f,{});
+    const auto photoPaused=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    bool photoHolds=true;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        photoHolds=photoHolds&&(photoB.getPixelAt(x,y)==photoPaused.getPixelAt(x,y));
+    CHECK(photoHolds);
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,false,false,
+                          0.f,0.f,0.f,{});
+    const auto photoBypassed=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    bool photoBypassWorks=false;
+    for(int y=30;y<140;++y)for(int x=75;x<560;++x)
+        photoBypassWorks=photoBypassWorks||
+            photoPaused.getPixelAt(x,y)!=photoBypassed.getPixelAt(x,y);
+    CHECK(photoBypassWorks);
+    // Lamp and LDR have distinct response times in the same photograph;
+    // the test's preview value stands in for the real-output-gated LFO.
+    photoVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                          true,true,0.f,0.f,0.f,{},0.f);
+    const auto photoLampDark=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    for(int n=0;n<5;++n)
+        photoVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                              true,true,.3f,.3f,0.f,{},1.f);
+    const auto photoLampBright=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    CHECK(photoLampDark.getPixelAt(270,90)!=photoLampBright.getPixelAt(270,90));
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};
+        CHECK(screenshot(photoVisual,folder.getChildFile("optical_audio_reactive_probe.png")));
+        photoVisual.setState(CharacterHardwareWindow::Mode::Spring,
+                              true,true,.16f,.18f,.09f,springPickups);
+        CHECK(screenshot(photoVisual,folder.getChildFile("spring_photo_reactive_probe.png")));
+    }
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
