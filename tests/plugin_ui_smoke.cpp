@@ -388,6 +388,28 @@ int main(int argc,char** argv)
     juce::MemoryBlock beforePreview;p.getStateInformation(beforePreview);
     optoPreview->onClick();
     CHECK(hardware->isVisible()&&!originalTube->isVisible()&&optoPreview->getToggleState());
+    // Interactive concept knobs and waveform must be visible but must NEVER
+    // mutate any actual audio/host parameter or saved preset.
+    int livePreviewControls=0;
+    bool liveWaveform=false;
+    for(auto* child:editor->getChildren())
+    {
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);
+           slider&&slider->getTitle().startsWith("Optical preview "))
+        {
+            CHECK(slider->isVisible());
+            ++livePreviewControls;
+            slider->setValue(.72,juce::sendNotificationSync);
+        }
+        if(auto* wave=dynamic_cast<juce::ComboBox*>(child);
+           wave&&wave->getTitle()=="Optical preview LFO waveform")
+        {
+            CHECK(wave->isVisible()&&wave->getNumItems()==4);
+            wave->setSelectedId(2,juce::sendNotificationSync);
+            liveWaveform=true;
+        }
+    }
+    CHECK(livePreviewControls==3&&liveWaveform);
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview.png")));
@@ -396,6 +418,43 @@ int main(int argc,char** argv)
     CHECK(!hardware->isVisible()&&originalTube->isVisible()&&!optoPreview->getToggleState());
     juce::MemoryBlock afterPreview;p.getStateInformation(afterPreview);
     CHECK(beforePreview==afterPreview);
+    // Selecting Spring must expose the Spring camera and reuse all seven
+    // parameter attachments with Spring parameter IDs, never the Tube IDs.
+    const float springInitial=p.parameters().getRawParameterValue(
+        p6plugin::kCustomIDs[1][0])->load();
+    p.selectCharacterType(3);
+    editor.reset(p.createEditor());
+    bool springCamera=false,springDriveBinding=false,springDecayBinding=false;
+    for(auto* child:editor->getChildren())
+    {
+        if(auto* camera=dynamic_cast<CharacterHardwareWindow*>(child))
+            springCamera=camera->isVisible();
+        if(auto* tube=dynamic_cast<TubeChamber*>(child))
+            CHECK(!tube->isVisible());
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible())
+        {
+            if(slider->getTitle()=="Drive" &&
+               slider->getTooltip().contains("Optical Spring"))
+            {
+                springDriveBinding=true;
+                slider->setValue(.31,juce::sendNotificationSync);
+                CHECK(std::abs(p.parameters().getRawParameterValue(
+                    p6plugin::kCustomIDs[1][0])->load()-.31f)<.002f);
+                slider->setValue(springInitial,juce::sendNotificationSync);
+            }
+            if(slider->getTitle()=="Decay"&&
+               slider->getTooltip().contains("Optical Spring"))
+                springDecayBinding=true;
+        }
+    }
+    CHECK(springCamera&&springDriveBinding&&springDecayBinding);
+    if(argc>1)
+    {
+        const juce::File folder{juce::String(argv[1])};
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_spring.png")));
+    }
+    p.selectCharacterType(1);
+    editor.reset(p.createEditor());
     for(int width:{1240,1460,1780}) {
         editor->setSize(width,P6PluginEditor::expandedHeight);
         for(auto* child:editor->getChildren()) if(child->isVisible()) {
