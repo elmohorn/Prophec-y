@@ -55,6 +55,21 @@ int main()
     assert(std::isfinite(finite.springShift[0]));
     assert(std::isfinite(finite.springShift[1]));
     assert(std::isfinite(finite.lamp) && std::isfinite(finite.ldr));
+    // Visual RESPONSE is real: a high-response lamp heats more quickly,
+    // while the LDR still lags behind it. Both are visual-only state.
+    CharacterVisualDynamics slowPhoto,fastPhoto;
+    slowPhoto.advance(true,true,0.f,0.f,{},1.f,0.f);
+    fastPhoto.advance(true,true,0.f,0.f,{},1.f,1.f);
+    assert(fastPhoto.frame().lamp>slowPhoto.frame().lamp);
+    assert(fastPhoto.frame().ldr>slowPhoto.frame().ldr);
+    assert(fastPhoto.frame().ldr<fastPhoto.frame().lamp);
+    assert(slowPhoto.frame().ldr<slowPhoto.frame().lamp);
+    for(int step=0;step<5;++step)
+    {
+        slowPhoto.advance(true,true,0.f,0.f,{},1.f,0.f);
+        fastPhoto.advance(true,true,0.f,0.f,{},1.f,1.f);
+    }
+    assert(fastPhoto.frame().lamp>slowPhoto.frame().lamp);
     // Bypass works even while motion is paused, clearing stored energy.
     dynamics.advance(false,false,.9f,.9f,{.9f,.9f,.9f},1.f);
     const auto bypass=dynamics.frame();
