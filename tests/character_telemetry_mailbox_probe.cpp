@@ -32,9 +32,10 @@ int main()
 {
     p6plugin::RealtimeSnapshotMailbox<TestFrame> mailbox;
     TestFrame frame{};
+    frame.tag=31337; // unsuccessful reads cannot modify caller-owned output
     std::uint32_t generation=99;
-    assert(mailbox.tryRead(frame,generation));
-    assert(generation==0 && frame.tag==0);
+    assert(!mailbox.tryRead(frame,generation));
+    assert(generation==99 && frame.tag==31337);
     assert(mailbox.publish(makeFrame(1)));
     assert(mailbox.tryRead(frame,generation));
     validate(frame);
@@ -79,6 +80,10 @@ int main()
     validate(frame);
     assert(generation>=lastRevision);
     assert(mailbox.revision()==generation);
+    // The producer finished: the final published frame is authoritative,
+    // and the full 72-element payload must still match its generation.
+    assert(frame.tag==generation);
+    assert(frame.tag>=2 && frame.tag<=50001);
     assert(failedWrites.load(std::memory_order_relaxed)<50000);
     std::cout<<"Coherent Character mailbox: concurrent publication and "
              <<"72 correlated values per frame; no torn data\n";
