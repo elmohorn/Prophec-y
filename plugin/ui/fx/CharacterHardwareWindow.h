@@ -41,10 +41,10 @@ public:
         repaint();
     }
 
-    // Optional pre-rendered transparent layers aligned to the recessed bezel.
-    // The first TWO coil layers represent the two approved physical springs.
-    // A legacy third image is ignored; missing coil layers use the procedural
-    // two-spring fallback. Backdrop owns the fixed supports and tank.
+    // Preferred production artwork: the CLEAN full-size background and TWO
+    // transparent coil layers aligned to the 640x190 chamber. These OVERRIDE
+    // JPEG-extracted color-threshold masks if present. Mounts remain inside
+    // the fixed backdrop; an optional legacy third coil is never rendered.
     void setSpringArtwork(const juce::Image& backdrop,
                           const std::array<juce::Image, 3>& coils)
     {
@@ -53,9 +53,10 @@ public:
         repaint();
     }
 
-    // The lamp off/on images are matched photographic renders: interpolation
-    // occurs at draw time, while socket, LDR, and hardware stay stationary.
-    // All four images use the same transparent 640x190 design canvas.
+    // Preferred production artwork: static backdrop, dark lamp fixture,
+    // TRANSPARENT lamp emission and TRANSPARENT LDR emission, all on the same
+    // 640x190 design canvas. No crossfade of the whole photographed housing.
+    // This takes precedence over the approximate JPEG segmentation.
     void setOpticalArtwork(const juce::Image& backdrop, const juce::Image& lampOff,
                            const juce::Image& lampOn, const juce::Image& ldr)
     {
@@ -259,13 +260,10 @@ private:
         // and actual LDR conductance once the optical DSP is implemented.
         const float l=std::clamp(visualDynamics_.frame().lamp,0.f,1.f);
         const float sensor=std::clamp(visualDynamics_.frame().ldr,0.f,1.f);
-        if(photo_.hasOptical())
-        {
-            photo_.drawOptical(g,active_?l:0.f,active_?sensor:0.f);
-            meter(g,"LAMP",37.f,152.f,265.f,active_ ? l : 0.f);
-            meter(g,"LDR",343.f,152.f,254.f,active_ ? sensor : 0.f);
-            return;
-        }
+        // Explicit, professionally isolated RGBA layers are the preferred
+        // photographic source. Keep the metal/lampholder in still images;
+        // lampOn and LDR must be TRANSPARENT light layers. JPEG-derived
+        // threshold masks are only a compatibility fallback.
         if (opticalBackdrop_.isValid() && opticalLampOff_.isValid() &&
             opticalLampOn_.isValid() && opticalLdr_.isValid())
         {
@@ -273,12 +271,23 @@ private:
             drawArtwork(g, opticalLampOff_);
             {
                 juce::Graphics::ScopedSaveState light(g);
-                g.setOpacity(.025f + .975f * l);
+                g.setOpacity(active_?l:0.f);
                 drawArtwork(g, opticalLampOn_);
             }
-            drawArtwork(g, opticalLdr_);
-            meter(g,"LAMP",37.f,152.f,265.f,l);
-            meter(g,"LDR",343.f,152.f,254.f,l*.78f);
+            {
+                juce::Graphics::ScopedSaveState ldrLight(g);
+                g.setOpacity(active_?sensor:0.f);
+                drawArtwork(g, opticalLdr_);
+            }
+            meter(g,"LAMP",37.f,152.f,265.f,active_?l:0.f);
+            meter(g,"LDR",343.f,152.f,254.f,active_?sensor:0.f);
+            return;
+        }
+        if(photo_.hasOptical())
+        {
+            photo_.drawOptical(g,active_?l:0.f,active_?sensor:0.f);
+            meter(g,"LAMP",37.f,152.f,265.f,active_ ? l : 0.f);
+            meter(g,"LDR",343.f,152.f,254.f,active_ ? sensor : 0.f);
             return;
         }
         CharacterProceduralArt::drawOptical(g,l,sensor);
@@ -294,6 +303,27 @@ private:
         const auto steel = juce::Colour{0xffbaad93};
         const auto& springFrame = visualDynamics_.frame();
         const float energy = std::clamp((springFrame.springEnergy[0] + springFrame.springEnergy[1]) * .5f, 0.f, 1.f);
+
+        // A clean background plus two alpha-separated coils are superior to
+        // heuristics inferred from a lossy JPEG. Prefer authored artwork.
+        if (springBackdrop_.isValid() && springCoils_[0].isValid() &&
+            springCoils_[1].isValid())
+        {
+            drawArtwork(g, springBackdrop_);
+            // Legacy layered assets may include a third image, but the approved
+            // hardware has TWO coils. Never paint a phantom third spring.
+            for (std::size_t row = 0; row < 2; ++row)
+            {
+                const float displacement = active_ && motion_
+                    ? visualDynamics_.frame().springShift[row] : 0.f;
+                drawArtwork(g, springCoils_[row], displacement);
+            }
+            meter(g, "ENERGY", 37.f, 152.f, 276.f,
+                  (visualDynamics_.frame().springEnergy[0] +
+                   visualDynamics_.frame().springEnergy[1]) * .5f);
+            meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
+            return;
+        }
 
         if(photo_.hasAtlas())
         {
@@ -319,25 +349,6 @@ private:
             meter(g,"TAIL",344.f,152.f,267.f,output_);
             return;
         }
-        if (springBackdrop_.isValid() && springCoils_[0].isValid() &&
-            springCoils_[1].isValid())
-        {
-            drawArtwork(g, springBackdrop_);
-            // Legacy layered assets may include a third image, but the approved
-            // hardware has TWO coils. Never paint a phantom third spring.
-            for (std::size_t row = 0; row < 2; ++row)
-            {
-                const float displacement = active_ && motion_
-                    ? visualDynamics_.frame().springShift[row] : 0.f;
-                drawArtwork(g, springCoils_[row], displacement);
-            }
-            meter(g, "ENERGY", 37.f, 152.f, 276.f,
-                  (visualDynamics_.frame().springEnergy[0] +
-                   visualDynamics_.frame().springEnergy[1]) * .5f);
-            meter(g, "TAIL", 344.f, 152.f, 267.f, output_);
-            return;
-        }
-
         CharacterProceduralArt::drawSpring(g,springFrame,springPhase_,energy,output_);
     }
 
