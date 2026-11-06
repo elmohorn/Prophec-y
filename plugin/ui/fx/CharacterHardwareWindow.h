@@ -246,6 +246,11 @@ private:
         const auto steel = juce::Colour{0xffbaad93};
         const float energy = std::clamp((pickups_[0] + pickups_[1] + pickups_[2]) / 3.f, 0.f, 1.f);
 
+        g.setGradientFill(juce::ColourGradient(
+            juce::Colour{0xff181a18}, 320.f, 34.f,
+            juce::Colour{0xff090a09}, 320.f, 149.f, false));
+        g.fillRoundedRectangle(59.f, 33.f, 522.f, 113.f, 5.f);
+
         // Constant low-level backlight keeps silent springs readable. Only its
         // reflected intensity responds to measured pickup energy.
         g.setGradientFill(juce::ColourGradient(
