@@ -693,14 +693,9 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     outputClips_.fetch_or(readings.clips,std::memory_order_relaxed);outputRevision_.fetch_add(1,std::memory_order_relaxed);
     characterExcitation_.store(character_.excitation(),std::memory_order_relaxed);
     const auto visual=character_.telemetry();
-    characterInputRms_.store(visual.inputRms,std::memory_order_relaxed);
-    characterOutputRms_.store(visual.outputRms,std::memory_order_relaxed);
-    characterChangeRms_.store(visual.changeRms,std::memory_order_relaxed);
-    characterActive_.store(visual.active,std::memory_order_relaxed);
-    characterActiveType_.store(visual.type,std::memory_order_relaxed);
-    for(std::size_t i=0;i<8;++i)deviceValues_[i].store(visual.device.values[i],std::memory_order_relaxed);
-    for(std::size_t i=0;i<32;++i){deviceInput_[i].store(visual.device.input[i],std::memory_order_relaxed);deviceWet_[i].store(visual.device.wet[i],std::memory_order_relaxed);}
-    characterTelemetryRevision_.fetch_add(1,std::memory_order_relaxed);
+    // One complete telemetry frame per audio block. The producer never
+    // waits for the UI and no MIDI/audio/preset state flows back this way.
+    (void)characterTelemetryMailbox_.publish(visual);
 }
 
 p6plugin::OutputReadings P6AudioProcessor::consumeOutputReadings() noexcept
