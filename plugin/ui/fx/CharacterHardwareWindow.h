@@ -259,10 +259,6 @@ private:
         g.fillEllipse(65.f, 10.f, 510.f, 175.f);
         g.setColour(juce::Colour{0xff977650}.withAlpha(.10f));
         g.drawLine(63.f, 30.f, 577.f, 30.f, 1.f);
-        g.setGradientFill(juce::ColourGradient(
-            juce::Colour{0xff181a18}, 320.f, 34.f,
-            juce::Colour{0xff090a09}, 320.f, 149.f, false));
-        g.fillRoundedRectangle(59.f, 33.f, 522.f, 113.f, 5.f);
 
         // A narrow lamp behind the coils creates tangential highlights and
         // sense of depth, without flashing the entire tank.
