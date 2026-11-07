@@ -529,8 +529,26 @@ int main(int argc,char** argv)
         }
     }
     CHECK(livePreviewControls==3&&liveWaveform);
+    // Exercise the exact installed atlas in the actual editor (not only a
+    // synthetic isolated fixture). A visual preview can light the filament
+    // without mutating host state or enabling nonexistent optical DSP.
+    const auto actualDark=hardware->createComponentSnapshot(hardware->getLocalBounds());
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview_dark.png")));
+    }
+    for(int step=0;step<24;++step)
+        hardware->setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,.2f,.2f,0.f,{},1.f,.72f,1.f/30.f);
+    const auto actualLit=hardware->createComponentSnapshot(hardware->getLocalBounds());
+    bool actualLampChanged=false;
+    for(int y=25;y<actualDark.getHeight()-35;y+=3)
+        for(int x=35;x<actualDark.getWidth()-35;x+=3)
+            actualLampChanged |= actualDark.getPixelAt(x,y)!=actualLit.getPixelAt(x,y);
+    CHECK(actualLampChanged);
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};folder.createDirectory();
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview_lit.png")));
         CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview.png")));
         for (int width:{1240,1780})
         {
