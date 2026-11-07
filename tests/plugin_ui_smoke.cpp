@@ -259,6 +259,9 @@ int main(int argc,char** argv)
         }
         const float sx=static_cast<float>(width)/1460.f;
         const juce::Rectangle<int> header(juce::roundToInt(43.f*sx),19,juce::roundToInt(550.f*sx),70);
+        const juce::Rectangle<int> console(juce::roundToInt(37.f*sx),8,juce::roundToInt(1163.f*sx),84);
+        CHECK(console.contains(master->getBounds()));
+        CHECK(console.contains(header));
         CHECK(header.contains(presets->getBounds()));
         CHECK(header.contains(midiReadout->getBounds()));
         CHECK(!presets->getBounds().intersects(midiReadout->getBounds()));
