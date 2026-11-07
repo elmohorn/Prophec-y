@@ -38,6 +38,7 @@ private:
     void setType(int);
     void bindDevice(int);
     void updateDevice();
+    void paintFxBay(juce::Graphics&);
     void paintCharacterPanel(juce::Graphics&);
     void paintSurface(juce::Graphics&);
     void refreshDisplay();
