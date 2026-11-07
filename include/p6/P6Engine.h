@@ -1,6 +1,7 @@
 #pragma once
 
 #include "p6/P6Effects.h"
+#include "p6/ExperimentalGlobalDriveOversampler.h"
 #include "p6/P6Voice.h"
 #include "p6/P6LFO.h"
 #include "p6/P6PatchState.h"
@@ -31,6 +32,12 @@ public:
     void setPanSpread(double amount01);
     void setProgramVolume(double amount01);
     void setDistortion(double amount01);
+    // Diagnostic-only; call with audio stopped. This never appears as an
+    // APVTS parameter or stored preset and defaults to legacy 1x behavior.
+    void setExperimentalGlobalDriveOversampling(int factor) noexcept;
+    int experimentalGlobalDriveLatencySamples() const noexcept {
+        return experimentalGlobalDrive_.latencySamples();
+    }
     void setSlop(double amount01, SlopMode mode);
     void setChannelPressure(double pressure01);
     void setModWheel(double amount01);
@@ -130,6 +137,8 @@ private:
     double programVolume_{1.0};
     double midiVolume_{1.0};
     double distortion_{};
+    int experimentalGlobalDriveFactor_{1};
+    ExperimentalGlobalDriveOversampler experimentalGlobalDrive_{};
     P6Effects effects_{};
     void* insertContext_{};
     InsertCallback insertCallback_{};
