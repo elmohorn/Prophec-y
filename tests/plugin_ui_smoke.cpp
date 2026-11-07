@@ -200,13 +200,24 @@ int main(int argc,char** argv)
     set(p,"nrpn_0078",previousAttack);set(p,"wrapper_calibration",0.f);
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
+    // The screwed-on header is a separate surface: its controls must not
+    // collide with each other or with Master at any supported editor width.
     TubeChamber* chamber=nullptr;
     juce::TextButton* fold=nullptr;
+    juce::TextButton* presets=nullptr;
+    juce::Label* midiReadout=nullptr;
+    juce::Slider* master=nullptr;
     for(auto* child:editor->getChildren()) {
         if(auto* device=dynamic_cast<TubeChamber*>(child))chamber=device;
-        if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getButtonText()=="HIDE")fold=button;
+        if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
+            if(button->getButtonText()=="HIDE")fold=button;
+            if(button->getTitle()=="Preset browser")presets=button;
+        }
+        if(auto* label=dynamic_cast<juce::Label*>(child);label&&label->getTitle()=="Recent MIDI input")midiReadout=label;
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="Master Output")master=slider;
     }
     CHECK(chamber!=nullptr&&chamber->isVisible()&&fold!=nullptr);
+    CHECK(presets!=nullptr&&midiReadout!=nullptr&&master!=nullptr);
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
     fold->onClick();CHECK(!chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
     juce::MemoryBlock afterFold;p.getStateInformation(afterFold);CHECK(beforeFold==afterFold);
@@ -218,6 +229,13 @@ int main(int argc,char** argv)
             CHECK(child->getRight()<=editor->getWidth());
             CHECK(child->getBottom()<=editor->getHeight()-28);
         }
+        const float sx=static_cast<float>(width)/1460.f;
+        const juce::Rectangle<int> header(juce::roundToInt(43.f*sx),19,juce::roundToInt(550.f*sx),70);
+        CHECK(header.contains(presets->getBounds()));
+        CHECK(header.contains(midiReadout->getBounds()));
+        CHECK(!presets->getBounds().intersects(midiReadout->getBounds()));
+        CHECK(master->getX()>header.getRight());
+        CHECK(!presets->getBounds().intersects(master->getBounds()));
     }
     editor->setSize(1460,P6PluginEditor::expandedHeight);
 
