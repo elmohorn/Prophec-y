@@ -5,7 +5,8 @@ juce::String level(float x){return x<.000001f?juce::String("-inf"):juce::String(
 }
 void OutputMeter::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour{0xff1c2726});
+    // The meter is part of the approved single continuous header screen.
+    // Paint transparently over the parent OLED instead of a separate box.
     const float width=static_cast<float>(getWidth());
     g.setFont(9.f);g.setColour(juce::Colour{0xffa5b3ab});
     g.drawText("OUTPUT / SAMPLE PEAK + RMS",8,2,getWidth()-100,13,juce::Justification::centredLeft);
