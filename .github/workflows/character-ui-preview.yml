@@ -41,3 +41,10 @@ jobs:
           name: ProphecY-Character-native-screenshots
           path: ui-smoke/*.png
           if-no-files-found: error
+      - name: Archive approved source atlas for RGBA layer audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-Character-atlas-source
+          path: plugin/assets/character_cameras_atlas.jpg
+          if-no-files-found: error
