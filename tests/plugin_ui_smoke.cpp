@@ -134,7 +134,8 @@ int main(int argc,char** argv)
         box->setSelectedId(2,juce::sendNotificationSync);CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);
     }
     CHECK(foundPlasmaMode);
-    for(auto* child:editor->getChildren())if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="Prophec-y effect")box->setSelectedId(1,juce::sendNotificationSync);
+    // Restore Tube, which subsequent chamber checks exercise.
+    for(auto* child:editor->getChildren())if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="Prophec-y effect")box->setSelectedId(2,juce::sendNotificationSync);
     bool foundMidiSelector=false,foundMidiMonitor=false;
     for(auto* child:editor->getChildren()) {
         if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="MIDI input channel") {
