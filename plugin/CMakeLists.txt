@@ -150,6 +150,14 @@ if(P6_BUILD_UI_SMOKE)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/P6UiSmoke_artefacts/$<CONFIG>")
     target_include_directories(P6UiSmoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(P6UiSmoke PRIVATE P6CorePlugin p6character juce::juce_audio_processors)
+    # Verify that installed RGBA artwork, not only test fixtures, is bound
+    # to the shipping editor whenever a complete asset set is present.
+    if(P6_SPRING_RGBA_COMPLETE)
+        target_compile_definitions(P6UiSmoke PRIVATE P6_HAS_SPRING_RGBA=1)
+    endif()
+    if(P6_OPTICAL_RGBA_COMPLETE)
+        target_compile_definitions(P6UiSmoke PRIVATE P6_HAS_OPTICAL_RGBA=1)
+    endif()
 
     # JUCE-free deterministic test for measured telemetry -> physical motion;
     # it can run even when no GUI host or VST3 bundle is available.
