@@ -1,7 +1,11 @@
 #include "p6/P6Engine.h"
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PerformanceScheduler.h"
+#include <cstdint>
+void p6MailboxTestHook(int stage, std::uint16_t value);
+#define P6_MAILBOX_TEST_HOOK(stage, value) p6MailboxTestHook(stage, value)
 #include "p6/VersionedEditMailbox.h"
+#undef P6_MAILBOX_TEST_HOOK
 
 #include <array>
 #include <atomic>
@@ -9,6 +13,20 @@
 #include <cstdlib>
 #include <iostream>
 #include <thread>
+
+namespace {
+std::atomic<int> mailboxPauseStage {0};
+std::atomic<bool> mailboxPaused {false}, mailboxResume {false};
+}
+
+void p6MailboxTestHook(int stage, std::uint16_t value)
+{
+    if (mailboxPauseStage.load(std::memory_order_acquire) == stage &&
+        (stage != 1 || value == 11)) {
+        mailboxPaused.store(true, std::memory_order_release);
+        while (!mailboxResume.load(std::memory_order_acquire)) std::this_thread::yield();
+    }
+}
 
 namespace {
 
@@ -96,6 +114,29 @@ void testVersionedMailboxNeverRegressesAcrossThreads()
     host.join();
 
     P6_CHECK(mailbox.latestGeneration(0) == maximumGeneration.load());
+}
+
+void testVersionedMailboxForcedInterleavings()
+{
+    for (int stage : {1, 2}) {
+        p6::VersionedEditMailbox<1> mailbox;
+        mailboxPaused.store(false);
+        mailboxResume.store(false);
+        mailboxPauseStage.store(stage);
+        std::thread older([&] {
+            if (stage == 1) static_cast<void>(mailbox.publishMidi(0, 11));
+            else mailbox.clear();
+        });
+        while (!mailboxPaused.load(std::memory_order_acquire)) std::this_thread::yield();
+        const auto newest = mailbox.publishMidi(0, 22);
+        mailboxResume.store(true, std::memory_order_release);
+        older.join();
+        mailboxPauseStage.store(0);
+        const auto canonical = mailbox.takeCanonicalIfLatest(0);
+        const auto mirror = mailbox.takeMirrorIfLatest(0);
+        P6_CHECK(canonical && canonical->generation == newest && canonical->value == 22);
+        P6_CHECK(mirror && mirror->generation == newest && mirror->value == 22);
+    }
 }
 
 void testSustainSeparatesPhysicalKeysFromSoundingVoices()
@@ -413,6 +454,7 @@ int main()
     testVersionedMailboxLastWriterWins();
     testVersionedMailboxClearIsAGenerationBarrier();
     testVersionedMailboxNeverRegressesAcrossThreads();
+    testVersionedMailboxForcedInterleavings();
     testSustainSeparatesPhysicalKeysFromSoundingVoices();
     testSustainDoesNotExtendGeneratedNoteOwnership();
     testUnisonSustainReleasesAsOneStack();

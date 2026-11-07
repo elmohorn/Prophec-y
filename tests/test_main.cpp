@@ -26,6 +26,10 @@
 #include <string>
 #include <vector>
 
+#ifdef NDEBUG
+#error "p6core_tests requires assertions to be enabled"
+#endif
+
 using namespace p6;
 
 static P6PatchState makePatch(const std::string& name)
@@ -635,6 +639,11 @@ static void testNrpnDecoder()
     assert(u->parameter == 45);
     assert(u->value == 138);
 
+    // Preserve the currently supported fine-only update until hardware
+    // evidence justifies a different NRPN transaction policy.
+    const auto fine = d.processCC(38, 11);
+    assert(fine && fine->parameter == 45 && fine->value == 139);
+
     P6PatchState patch;
     applyRawNrpn(patch, *u);
     assert(patch.rawParameters.size() == 1);
@@ -644,6 +653,13 @@ static void testNrpnDecoder()
     // Clamp through official registry.
     applyRawNrpn(patch, NrpnUpdate{45, 500});
     assert(patch.rawParameters[0].raw == 164);
+    assert(patch.rawParameters[0].normalized == 1.0f);
+
+    // Sequence notes have a nonzero lower bound; out-of-range MIDI is clamped.
+    applyRawNrpn(patch, NrpnUpdate{256, 0});
+    const auto sequence = std::find_if(patch.rawParameters.begin(), patch.rawParameters.end(),
+                                       [](const auto& parameter) { return parameter.id == 256; });
+    assert(sequence != patch.rawParameters.end() && sequence->raw == 12 && sequence->normalized == 0.0f);
 }
 
 static void testSixVoiceAllocator()
@@ -901,6 +917,19 @@ static void testSysexStreamBankDecode()
     assert(decoded.entries[0].patch.bank == 5 && decoded.entries[0].patch.program == 0);
     assert(decoded.entries[1].patch.name == "BANK B");
     assert(decoded.entries[2].kind == SysexKind::EditBuffer);
+
+    // A packed SysEx payload is seven-bit clean. Do not silently strip the
+    // high bit from corrupt data; still recover the following valid message.
+    for (std::uint8_t bad : {std::uint8_t{0x80}, std::uint8_t{0xf0}, std::uint8_t{0xf7}}) {
+        auto corrupt = sa;
+        corrupt[20] = bad;
+        assert(!SysexCodec::decode(corrupt).ok);
+        corrupt.insert(corrupt.end(), sb.begin(), sb.end());
+        const auto recovered = decodeP6SysexStream(corrupt);
+        assert(!recovered.errors.empty());
+        assert(recovered.entries.size() == 1);
+        assert(recovered.entries[0].patch.program == 1);
+    }
 }
 
 static void testSequenceCodecAndNrpnMapping()

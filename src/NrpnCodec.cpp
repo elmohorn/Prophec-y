@@ -73,8 +73,9 @@ void upsertRawParameter(P6PatchState& patch,
                         std::uint16_t minimum,
                         std::uint16_t maximum)
 {
+    const auto bounded = std::clamp(value, minimum, maximum);
     const auto normalized = maximum > minimum
-        ? static_cast<float>(value - minimum) / static_cast<float>(maximum - minimum)
+        ? static_cast<float>(bounded - minimum) / static_cast<float>(maximum - minimum)
         : 0.0f;
 
     for (auto& p : patch.rawParameters) {

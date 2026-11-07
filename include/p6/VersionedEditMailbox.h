@@ -43,9 +43,12 @@ public:
         if (!advanceLatest(index, generation))
             return generation;
 
+#ifdef P6_MAILBOX_TEST_HOOK
+        P6_MAILBOX_TEST_HOOK(1, value);
+#endif
         const auto packed = pack(generation, value);
-        canonical_[index].store(packed, std::memory_order_release);
-        mirror_[index].store(packed, std::memory_order_release);
+        storeIfNewer(canonical_[index], packed, generation);
+        storeIfNewer(mirror_[index], packed, generation);
         return generation;
     }
 
@@ -83,16 +86,14 @@ public:
     void clear() noexcept
     {
         // Clearing may race an audio-thread MIDI publisher during a host state
-        // load. Allocate a barrier generation and empty the queues first. Then
-        // advance every slot to at least that barrier. An older publisher that
-        // resumes afterwards is stale; a newer publisher survives. The global
-        // generation counter is intentionally never reset during the object's
-        // lifetime, avoiding ABA/reused-generation ambiguity.
+        // load. A generation barrier invalidates older queue entries without
+        // erasing an edit published after the barrier was allocated. Stale
+        // queue entries are discarded lazily by takeIfLatest. The global
+        // counter is never reset during the object's lifetime.
         const auto barrier = nextGeneration();
-        for (auto& value : canonical_)
-            value.store(0, std::memory_order_relaxed);
-        for (auto& value : mirror_)
-            value.store(0, std::memory_order_relaxed);
+#ifdef P6_MAILBOX_TEST_HOOK
+        P6_MAILBOX_TEST_HOOK(2, 0);
+#endif
         for (std::size_t i = 0; i < N; ++i)
             static_cast<void>(advanceLatest(i, barrier));
     }
@@ -127,6 +128,16 @@ private:
     [[nodiscard]] static std::uint64_t pack(std::uint64_t generation, std::uint16_t value) noexcept
     {
         return (generation << kValueBits) | static_cast<std::uint64_t>(value);
+    }
+
+    static void storeIfNewer(std::atomic<std::uint64_t>& slot, std::uint64_t packed,
+                             std::uint64_t generation) noexcept
+    {
+        auto current = slot.load(std::memory_order_relaxed);
+        while ((current >> kValueBits) < generation &&
+               !slot.compare_exchange_weak(current, packed,
+                                            std::memory_order_release,
+                                            std::memory_order_relaxed)) {}
     }
 
     [[nodiscard]] static Edit unpack(std::uint64_t packed) noexcept
