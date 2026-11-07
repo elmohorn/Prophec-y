@@ -119,8 +119,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     type_.getProperties().set("characterPlate",true);position_.getProperties().set("characterPlate",true);
     position_.addItem("START OF FX",1);position_.addItem("END OF FX",2);position_.setTitle("Effect position");
     keyTrack_.addItem("OFF",1);keyTrack_.addItem("HALF",2);keyTrack_.addItem("FULL",3);keyTrack_.setTitle("Low-pass keyboard tracking");
-    fxAType_.addItemList(juce::StringArray{"A · OFF","A · BBD DELAY","A · DIGITAL DELAY","A · CHORUS","A · PHASER 1","A · PHASER 2"},1);
-    fxBType_.addItemList(juce::StringArray{"B · OFF","B · BBD DELAY","B · DIGITAL DELAY","B · CHORUS","B · PHASER 1","B · PHASER 2","B · HALL","B · ROOM","B · PLATE","B · SPRING"},1);
+    fxAType_.addItemList(juce::StringArray{"A: OFF","A: BBD DELAY","A: DIGITAL DELAY","A: CHORUS","A: PHASER 1","A: PHASER 2"},1);
+    fxBType_.addItemList(juce::StringArray{"B: OFF","B: BBD DELAY","B: DIGITAL DELAY","B: CHORUS","B: PHASER 1","B: PHASER 2","B: HALL","B: ROOM","B: PLATE","B: SPRING"},1);
     fxAType_.setTitle("Standard FX A type");fxBType_.setTitle("Standard FX B type");
     midiInputChannel_.setLookAndFeel(&look_);midiInputChannel_.setTitle("MIDI input channel");
     midiInputChannel_.setTooltip("MIDI input: Omni or channel 1–16. Changing channel silences notes, clears standard FX tails and resets controllers.");
@@ -334,14 +334,14 @@ void P6PluginEditor::resized()
     knob(13,1016,115,76,68);knob(14,1108,115,76,68);
     knob(15,1016,224,62,65);knob(16,1090,224,62,65);knob(17,1164,224,62,65);
     for(std::size_t i=0;i<4;++i){knob(18+i,1030+94.f*static_cast<float>(i),344,75,68);knob(22+i,1030+94.f*static_cast<float>(i),444,75,68);}
-    knob(26,553,535,72,65);knob(27,653,535,72,65);knob(28,753,535,72,65);knob(29,1302,539,89,78);
-    for(std::size_t i=0;i<2;++i)knob(30+i,1032+88.f*static_cast<float>(i),549,65,58);
+    knob(26,553,535,72,65);knob(27,653,535,72,65);knob(28,753,535,72,65);knob(29,1301,548,83,62);
+    for(std::size_t i=0;i<2;++i)knob(30+i,1110+94.f*static_cast<float>(i),548,76,62);
     for(std::size_t i=0;i<4;++i){synth_[32+i].slider.setBounds(rect(72+84.f*static_cast<float>(i),463,55,117));synth_[32+i].label.setBounds(rect(64+84.f*static_cast<float>(i),583,71,18));}
     switches_[0].button.setBounds(rect(70,373,71,36));switches_[1].button.setBounds(rect(171,373,71,36));switches_[2].button.setBounds(rect(265,373,71,36));
-    switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(558,607,70,19));switches_[5].button.setBounds(rect(795,446,98,24));
-    switches_[6].button.setBounds(rect(916,552,76,36));switches_[7].button.setBounds(rect(1288,273,65,24));
+    switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(484,600,69,27));switches_[5].button.setBounds(rect(795,446,98,24));
+    switches_[6].button.setBounds(rect(925,553,92,26));switches_[7].button.setBounds(rect(1288,273,65,24));
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
-    fxAType_.setBounds(rect(916,590,100,18));fxBType_.setBounds(rect(916,611,100,18));
+    fxAType_.setBounds(rect(923,582,171,20));fxBType_.setBounds(rect(923,607,171,20));
     keyTrack_.setBounds(rect(587,446,132,24));
     const bool expanded=showTube_&&!collapsed_;
     previous_.setBounds(rect(66,expanded?689:652,25,23));type_.setBounds(rect(99,expanded?689:652,158,23));next_.setBounds(rect(265,expanded?689:652,25,23));
@@ -411,6 +411,41 @@ void P6PluginEditor::refreshDisplay()
     }
     display_.setContent(std::move(content));
 }
+void P6PluginEditor::paintFxBay(juce::Graphics& g)
+{
+    // Separate, flush-mounted hardware bay for the actual Prophet-6 FX A/B chain.
+    // This is strictly a presentation change: no DSP, APVTS or slot-order change.
+    const float sx=static_cast<float>(getWidth())/designWidth;
+    const juce::Rectangle<float> rim(906.f*sx,528.f,496.f*sx,104.f);
+    g.setColour(juce::Colours::black.withAlpha(.28f));
+    g.fillRoundedRectangle(rim.translated(0.f,2.f),5.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff6b726d},rim.getX(),rim.getY(),
+                                           juce::Colour{0xff434b46},rim.getRight(),rim.getBottom(),false));
+    g.fillRoundedRectangle(rim,5.f);
+    const auto face=rim.reduced(3.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffdeded6},face.getX(),face.getY(),
+                                           juce::Colour{0xffb0b5ae},face.getX(),face.getBottom(),false));
+    g.fillRoundedRectangle(face,3.f);
+    g.setColour(juce::Colours::white.withAlpha(.65f));g.drawRoundedRectangle(face.reduced(.5f),3.f,1.f);
+    g.setColour(juce::Colour{0xff303c35});
+    g.setFont(juce::Font(10.f).boldened().withExtraKerningFactor(.1f));
+    g.drawText("FX CHAIN",juce::roundToInt(924.f*sx),532,juce::roundToInt(160.f*sx),16,juce::Justification::centredLeft);
+    g.setColour(juce::Colour{0xff6c7970});
+    g.setFont(juce::Font(8.f).withExtraKerningFactor(.1f));
+    g.drawText("A / B",juce::roundToInt(1044.f*sx),533,juce::roundToInt(48.f*sx),15,juce::Justification::centredRight);
+    for(const float x:{1100.f,1200.f,1296.f}) {
+        g.setColour(juce::Colour{0xff6c746d}.withAlpha(.22f));
+        g.drawLine(x*sx,546.f,x*sx,624.f,1.f);
+    }
+    for(const float x:{914.f,1394.f})for(const float y:{536.f,624.f}) {
+        const float px=x*sx;
+        g.setColour(juce::Colours::black.withAlpha(.35f));g.fillEllipse(px-3.7f,y-3.7f,7.4f,7.4f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff7f7ef},px-2.7f,y-2.7f,
+                                               juce::Colour{0xff757f77},px+2.7f,y+2.7f,false));
+        g.fillEllipse(px-2.7f,y-2.7f,5.4f,5.4f);
+        g.setColour(juce::Colour{0xff48534a});g.drawLine(px-1.6f,y+.7f,px+1.6f,y-.7f,1.f);
+    }
+}
 void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
@@ -448,7 +483,7 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 }
 void P6PluginEditor::paint(juce::Graphics& g)
 {
-    paintSurface(g);const float sx=static_cast<float>(getWidth())/designWidth;
+    paintSurface(g);paintFxBay(g);const float sx=static_cast<float>(getWidth())/designWidth;
     // A self-contained, screwed-on header display. All horizontal coordinates
     // use the same 1460-unit design scale as its JUCE children, avoiding the
     // previous title/subtitle collision with Master and other header controls.
@@ -485,7 +520,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
     g.drawText("POLYPHONIC SYNTHESIZER",juce::roundToInt(75.f*sx),64,juce::roundToInt(258.f*sx),12,juce::Justification::centredLeft);
     if(studioView_)return;
     section(g,"OSCILLATOR 1",56,90,360);section(g,"OSCILLATOR 2",56,240,360);section(g,"MIXER",56,431,360);
-    section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);section(g,"FX",916,528,315);
+    section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);
     section(g,"POLY MOD",1020,85,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,316,373);section(g,"AMPLIFIER ENVELOPE",1020,426,373);
     g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
 
