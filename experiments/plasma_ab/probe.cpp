@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
   }
   p6plugin::CharacterFx fx;fx.prepare(sr);p6plugin::CharacterState state;state.type=2;
   if(variant=="new_defaults"){state.custom[0][1]=.10f;state.custom[0][5]=.5f;state.custom[0][6]=.35f;}
+  if(variant=="hybrid")state.custom[0][5]=.5f;
   fx.setState(state);double ip=0,op=0,pk=0,step=0,prev=0;std::ofstream file;
   if(sr==48000&&(scenario==4||scenario==6))file.open(dir+"/"+variant+"_"+(scenario==4?"ramp":"chord")+".f32",std::ios::binary);
   for(int n=0;n<frames;++n){fx.advanceRoute();auto y=fx.process(in[n]);if(!std::isfinite(y.left)||!std::isfinite(y.right))return 1;if(n>=sr/4){ip+=(in[n].left*in[n].left+in[n].right*in[n].right)*.5;op+=(y.left*y.left+y.right*y.right)*.5;pk=std::max({pk,std::abs(y.left),std::abs(y.right)});step=std::max(step,std::abs(y.left-prev));}prev=y.left;if(file){float s[2]{float(y.left),float(y.right)};file.write(reinterpret_cast<char*>(s),sizeof s);}}

@@ -16,7 +16,7 @@ original='channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channe
 assert source.count(original)==2
 # Compensate the nominal small-signal slope from drive, saturation and output.
 regulated='channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output/std::max(1.f,p.drive*(2.f+8.f*character)*p.output);'
-variants={'legacy':source,'soft_knee':source.replace(needle,soft),'gain_comp':source.replace(original,regulated,1),'new_defaults':source}
+variants={'legacy':source,'soft_knee':source.replace(needle,soft),'gain_comp':source.replace(original,regulated,1),'new_defaults':source,'hybrid':source.replace(needle,soft).replace(original,regulated,1)}
 cpp=['plugin/CharacterFx.cpp','third_party/DaisySP/Source/Effects/wavefolder.cpp','third_party/DaisySP/Source/Filters/svf.cpp','third_party/DaisySP/Source/Utility/dcblock.cpp']
 core=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else root/'build/libp6core.a'
 if not core.is_file(): raise SystemExit('Build the core library and pass its path as the second argument; see experiment README.')
