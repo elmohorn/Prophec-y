@@ -26,6 +26,17 @@ public:
                        "except in the explicitly labelled optical tremolo design preview.");
     }
 
+    [[nodiscard]] bool hasSpringArtwork() const noexcept
+    {
+        return springBackdrop_.isValid() && springCoils_[0].isValid() &&
+               springCoils_[1].isValid();
+    }
+    [[nodiscard]] bool hasOpticalArtwork() const noexcept
+    {
+        return opticalBackdrop_.isValid() && opticalLampOff_.isValid() &&
+               opticalLampOn_.isValid() && opticalLdr_.isValid();
+    }
+
     void setValveAsset(const void* memory, int byteCount)
     {
         valve_ = juce::ImageCache::getFromMemory(memory, byteCount);
