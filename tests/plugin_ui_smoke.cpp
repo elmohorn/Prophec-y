@@ -191,6 +191,9 @@ int main(int argc,char** argv)
         juce::Graphics g(opticalOn);
         g.setColour(juce::Colours::orange);
         g.fillEllipse(170.f,58.f,65.f,65.f);
+        juce::Graphics sensor(opticalLdr);
+        sensor.setColour(juce::Colours::orange.withAlpha(.45f));
+        sensor.fillEllipse(395.f,66.f,28.f,28.f);
     }
     CharacterHardwareWindow opticalVisual;
     opticalVisual.setSize(640,190);
@@ -353,6 +356,38 @@ int main(int argc,char** argv)
     for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
         CHECK(fallbackPixels.getPixelAt(x,y)==rejectedPixels.getPixelAt(x,y));
 
+    // A fully opaque mask stored in ARGB is NOT valid alpha artwork.
+    // Rejected material must leave the photographic atlas unchanged.
+    juce::Image opaqueArgb(juce::Image::ARGB,640,190,true);
+    {
+        juce::Graphics paint(opaqueArgb);
+        paint.fillAll(juce::Colours::red);
+    }
+    auto opaqueLayers=springLayers;
+    opaqueLayers[0]=opaqueArgb;
+    invalidOverride.setSpringArtwork(springBack,opaqueLayers);
+    const auto rejectedOpaque=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(fallbackPixels.getPixelAt(x,y)==rejectedOpaque.getPixelAt(x,y));
+
+    // A fully transparent mask is invalid as well; it cannot animate.
+    auto emptyLayers=springLayers;
+    emptyLayers[0]=juce::Image(juce::Image::ARGB,640,190,true);
+    invalidOverride.setSpringArtwork(springBack,emptyLayers);
+    const auto rejectedEmpty=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(fallbackPixels.getPixelAt(x,y)==rejectedEmpty.getPixelAt(x,y));
+
+    fallbackOnly.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                          true,true,.2f,.2f,0.f,{},.7f);
+    invalidOverride.setOpticalArtwork(opticalBack,opticalOff,opaqueArgb,opticalLdr);
+    invalidOverride.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                             true,true,.2f,.2f,0.f,{},.7f);
+    const auto opticalFallback=fallbackOnly.createComponentSnapshot(fallbackOnly.getLocalBounds());
+    const auto rejectedOptical=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(opticalFallback.getPixelAt(x,y)==rejectedOptical.getPixelAt(x,y));
+
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
@@ -497,6 +532,13 @@ int main(int argc,char** argv)
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview.png")));
+        for (int width:{1240,1780})
+        {
+            editor->setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(screenshot(*editor,folder.getChildFile(
+                "module_optical_tremolo_preview_"+juce::String(width)+".png")));
+        }
+        editor->setSize(1460,P6PluginEditor::expandedHeight);
     }
     optoPreview->onClick();
     CHECK(!hardware->isVisible()&&originalTube->isVisible()&&!optoPreview->getToggleState());
@@ -551,6 +593,13 @@ int main(int argc,char** argv)
     {
         const juce::File folder{juce::String(argv[1])};
         CHECK(screenshot(*editor,folder.getChildFile("module_optical_spring.png")));
+        for (int width:{1240,1780})
+        {
+            editor->setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(screenshot(*editor,folder.getChildFile(
+                "module_optical_spring_"+juce::String(width)+".png")));
+        }
+        editor->setSize(1460,P6PluginEditor::expandedHeight);
     }
     p.selectCharacterType(1);
     editor.reset(p.createEditor());
@@ -603,6 +652,13 @@ int main(int argc,char** argv)
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         CHECK(screenshot(*editor,folder.getChildFile("module_tube.png")));
+        for (int width:{1240,1780})
+        {
+            editor->setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(screenshot(*editor,folder.getChildFile(
+                "module_tube_"+juce::String(width)+".png")));
+        }
+        editor->setSize(1460,P6PluginEditor::expandedHeight);
         // Capture the actual contextual display and prove selection alone
         // preserves both the canonical patch and complete wrapper state.
         const auto oldA=p.parameters().getRawParameterValue("nrpn_0067")->load();
