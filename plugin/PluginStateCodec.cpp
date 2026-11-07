@@ -65,6 +65,7 @@ std::vector<std::uint8_t> encodeState(const WrapperState& state)
     }
     out.push_back(static_cast<std::uint8_t>(std::clamp(state.character.type<2?state.character.type:state.character.legacyType,0,1)));
     out.push_back(static_cast<std::uint8_t>(std::min<int>(state.midiInputChannel,16)));
+    out.push_back(static_cast<std::uint8_t>(std::clamp(state.character.plasmaMode,0,1)));
     return out;
 }
 
@@ -76,10 +77,11 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
 
     std::size_t offset = kStateMagic.size();
     const auto version=getU16(bytes, offset);
-    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kV3StateBytes) || (version==4 && bytes.size()<kV4StateBytes) || (version==5 && bytes.size()<kEncodedStateBytes))
+    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kV3StateBytes) || (version==4 && bytes.size()<kV4StateBytes) || (version==5 && bytes.size()<kV5StateBytes) || (version==6 && bytes.size()<kEncodedStateBytes))
         return false;
 
     WrapperState decoded;
+    decoded.character.plasmaMode=0; // Historical Plasma sessions retain Legacy DSP.
     decoded.masterOutputDb=0.f; // v1/v2 must retain the historical unity output
 
     decoded.patch.bank = static_cast<std::int16_t>(getU16(bytes, offset));
@@ -123,6 +125,7 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
     decoded.character.legacyType=decoded.character.type<2?decoded.character.type:0;
     if(version>=4){const auto legacy=bytes[offset++];if(legacy>1)return false;decoded.character.legacyType=legacy;}
     if(version>=5){decoded.midiInputChannel=bytes[offset++];if(decoded.midiInputChannel>16)return false;}
+    if(version>=6){decoded.character.plasmaMode=bytes[offset++];if(decoded.character.plasmaMode>1)return false;}
     state = std::move(decoded);
     return true;
 }

@@ -18,6 +18,7 @@ inline constexpr const char* kCharacterBypassID = "character_bypass";
 
 inline constexpr int kCharacterTypes=6;
 inline constexpr const char* kCustomTypeID="character_custom_type";
+inline constexpr const char* kPlasmaModeID="character_plasma_mode";
 inline constexpr std::array<const char*,6> kCharacterNames{"None","Tube","Plasma","Optical Spring","Ferrofluid","Neon Wavefolder"};
 inline constexpr std::array<std::array<const char*,7>,4> kCustomIDs{{
     {"character_plasma_drive","character_plasma_ignition","character_plasma_sustain","character_plasma_character","character_plasma_tone","character_plasma_mix","character_plasma_output"},
@@ -32,7 +33,7 @@ inline constexpr std::array<std::array<const char*,7>,4> kCustomNames{{
     {"Drive","Folds","Symmetry","Bias","Tone","Mix","Output"}
 }};
 inline constexpr std::array<std::array<float,7>,4> kCustomDefaults{{
-    {.35f,.25f,.4f,.35f,.65f,1.f,.5f},
+    {.35f,.25f,.4f,.35f,.65f,.5f,.5f},
     {.5f,.5f,.5f,.5f,.5f,.35f,.5f},
     {.55f,.3f,.5f,.4f,1.f,1.f,.5f},
     {.3f,.3f,.5f,.5f,.65f,1.f,.5f}
@@ -47,6 +48,7 @@ struct CharacterState {
     int legacyType{}; // underlying None/Tube automation while a custom device is selected
     int position{1}; // 0 start; 1 end
     bool bypass{};
+    int plasmaMode{1}; // 0 Legacy, 1 Hybrid
     std::array<float, 7> tube{kTubeDefaults};
     std::array<std::array<float,7>,4> custom{kCustomDefaults};
 };

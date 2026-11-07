@@ -31,6 +31,7 @@ int main()
         }
         CHECK(version>=21?std::abs(state.masterOutputDb+23.4f)<.001f:state.masterOutputDb==0.f);
         CHECK(state.midiInputChannel==0); // v1-v4 migrate to Omni
+        CHECK(state.character.plasmaMode==0); // historical sessions preserve Legacy
         const auto upgraded=p6plugin::encodeState(state);
         p6plugin::WrapperState again;CHECK(p6plugin::decodeState(upgraded,again));
         CHECK(again.patch.rawPayload==state.patch.rawPayload);CHECK(again.extras==state.extras);
@@ -49,5 +50,16 @@ int main()
     for(int type=0;type<6;++type){custom.character.type=type;custom.character.legacyType=1;auto bytes=p6plugin::encodeState(custom);p6plugin::WrapperState decoded;CHECK(p6plugin::decodeState(bytes,decoded));CHECK(decoded.character.type==type);CHECK(decoded.character.legacyType==(type<2?type:1));CHECK(decoded.character.custom==custom.character.custom);}
     custom.character.type=1;auto bytes=p6plugin::encodeState(custom);bytes[4]=3;bytes.resize(p6plugin::kV3StateBytes);
     p6plugin::WrapperState decoded;CHECK(p6plugin::decodeState(bytes,decoded));CHECK(decoded.character.type==1);CHECK(std::abs(decoded.masterOutputDb+23.4f)<.001f);CHECK(decoded.character.custom==p6plugin::kCustomDefaults);
+    // The v5 layout has no Plasma algorithm byte and must migrate to Legacy.
+    p6plugin::WrapperState plasma;plasma.character.type=2;plasma.character.plasmaMode=1;
+    const auto v6=p6plugin::encodeState(plasma);CHECK(p6plugin::decodeState(v6,decoded));CHECK(decoded.character.plasmaMode==1);
+    auto v5=v6;v5[4]=5;v5.resize(p6plugin::kV5StateBytes);CHECK(p6plugin::decodeState(v5,decoded));CHECK(decoded.character.type==2&&decoded.character.plasmaMode==0);
+    const auto migrated=p6plugin::encodeState(decoded);p6plugin::WrapperState reopened;CHECK(p6plugin::decodeState(migrated,reopened));CHECK(reopened.character.plasmaMode==0);
+    auto invalid=v6;invalid.back()=2;CHECK(!p6plugin::decodeState(invalid,reopened));CHECK(reopened.character.plasmaMode==0);
+    // Independent fixture emitted by the unchanged codec v5 implementation.
+    std::ifstream v5file(std::string(P6_STATE_FIXTURE_DIR)+"/v020_codec5_plasma.state",std::ios::binary);CHECK(v5file.good());
+    const std::vector<std::uint8_t> oldPlasma{std::istreambuf_iterator<char>(v5file),std::istreambuf_iterator<char>()};
+    CHECK(oldPlasma.size()==p6plugin::kV5StateBytes);CHECK(p6plugin::decodeState(oldPlasma,reopened));
+    CHECK(reopened.character.type==2&&reopened.character.plasmaMode==0&&reopened.midiInputChannel==7);CHECK(std::abs(reopened.character.custom[0][5]-.8f)<1.e-6f);
     std::cout<<"Historical encoder fixtures v0.17-v0.20: payload, wrapper, migration and rejection verified\n";
 }

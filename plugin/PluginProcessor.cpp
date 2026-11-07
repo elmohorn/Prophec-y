@@ -102,6 +102,7 @@ P6AudioProcessor::P6AudioProcessor()
         tubeParameters_[i]=apvts_.getRawParameterValue(p6plugin::kTubeIDs[i]);
     masterDb_=apvts_.getRawParameterValue(p6plugin::kMasterOutputID);
     midiInputChannel_=apvts_.getRawParameterValue(p6plugin::kMidiInputChannelID);
+    plasmaMode_=apvts_.getRawParameterValue(p6plugin::kPlasmaModeID);
     customType_=apvts_.getRawParameterValue(p6plugin::kCustomTypeID);
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)customParameters_[d][i]=apvts_.getRawParameterValue(p6plugin::kCustomIDs[d][i]);
     characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
@@ -279,6 +280,7 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
             juce::String(p6plugin::kCharacterNames[d+2])+" "+p6plugin::kCustomNames[d][i],juce::NormalisableRange<float>{0.f,1.f,.001f},p6plugin::kCustomDefaults[d][i]));
     juce::StringArray midiChannels{"Omni"};for(int channel=1;channel<=16;++channel)midiChannels.add(juce::String(channel));
     layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{p6plugin::kMidiInputChannelID,1},"MIDI Input Channel",midiChannels,0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{p6plugin::kPlasmaModeID,1},"Plasma Algorithm",juce::StringArray{"Legacy","Hybrid"},1));
     return layout;
 }
 
@@ -648,6 +650,7 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
             characterState.type=selectedCharacterType();
             characterState.position=static_cast<int>(characterParameters_[1]->load());
             characterState.bypass=characterParameters_[2]->load()>=.5f;
+            characterState.plasmaMode=static_cast<int>(plasmaMode_->load());
             for(std::size_t i=0;i<tubeParameters_.size();++i)characterState.tube[i]=tubeParameters_[i]->load();
             for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)characterState.custom[d][i]=customParameters_[d][i]->load();
             character_.setState(characterState);
@@ -782,6 +785,7 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.character.legacyType=static_cast<int>(characterParameters_[0]->load());
     state.character.position=static_cast<int>(characterParameters_[1]->load());
     state.character.bypass=characterParameters_[2]->load()>=.5f;
+    state.character.plasmaMode=static_cast<int>(plasmaMode_->load());
     for(std::size_t i=0;i<tubeParameters_.size();++i) state.character.tube[i]=tubeParameters_[i]->load();
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)state.character.custom[d][i]=customParameters_[d][i]->load();
     state.masterOutputDb=masterDb_->load(std::memory_order_relaxed);
@@ -825,6 +829,7 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual (kCalibrationID, std::clamp<int> (state.extras[6], 0, 1));
     setActual (kSequencePlayID, state.extras[7] != 0);
     setActual(p6plugin::kMidiInputChannelID,state.midiInputChannel);
+    setActual(p6plugin::kPlasmaModeID,state.character.plasmaMode);
     setActual(p6plugin::kCharacterTypeID,state.character.type<2?state.character.type:state.character.legacyType);
     setActual(p6plugin::kCustomTypeID,state.character.type>=2?state.character.type-1:0);
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)

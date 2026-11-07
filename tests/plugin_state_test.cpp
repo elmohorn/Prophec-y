@@ -55,6 +55,7 @@ int main()
     a.extras = { 3, 2, 1, 1, 0, 1, 1, 1 };
     a.midiInputChannel=16;
     a.character.type=1;a.character.position=0;a.character.bypass=true;
+    a.character.plasmaMode=1;
     a.character.tube={.123f,.456f,.789f,.1f,.2f,.3f,.9f};
 
     const auto bytes = p6plugin::encodeState(a);
@@ -70,6 +71,7 @@ int main()
     P6_CHECK(b.extras == a.extras);
     P6_CHECK(b.midiInputChannel==16);
     P6_CHECK(b.character.type==1 && b.character.position==0 && b.character.bypass);
+    P6_CHECK(b.character.plasmaMode==1);
     for(std::size_t i=0;i<a.character.tube.size();++i)
         P6_CHECK(std::abs(b.character.tube[i]-a.character.tube[i])<.00001f);
     // Previous sessions contain no extension and must reopen with None.

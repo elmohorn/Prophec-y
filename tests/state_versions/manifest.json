@@ -62,6 +62,16 @@
       "master_output_db": -23.4,
       "size_bytes": 1126,
       "sha256": "87389dce520847c8c737d567f536573332a7ffa551b047362c835de69f63c46a"
+    },
+    {
+      "file": "v020_codec5_plasma.state",
+      "source_ref": "fd188cf5ec486e326f3e0e122200fc9b80144b57",
+      "encoder_git_blob": "6f630f6ddb9093b2559060d908824b4942795374",
+      "encoder_sha256": "8d392fff838e2d56af8b7231860a8e5a5c225e861e6dd0d463c21fcf022520cb",
+      "generator": "generate_plasma_v5.cpp",
+      "state_format_version": 5,
+      "size_bytes": 1127,
+      "sha256": "8785da38fa04aa900ad0e4e624ddd049783580acae3ab1e83c42a1e43ecd057d"
     }
   ]
 }

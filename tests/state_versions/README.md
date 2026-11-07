@@ -9,3 +9,5 @@ Reproduction: fetch `plugin/PluginStateCodec.cpp` and `.h` at the recorded sourc
 The C++ compatibility test reads the committed bytes, verifies all 1024 payload bytes, wrapper extras, bank/program/name, sequence controls and Character defaults/migration, then rejects every truncated prefix and an unknown future version without modifying the caller's state. It does not regenerate its own test inputs.
 
 These fixtures establish serialized-format compatibility. Captured projects and multi-host session migration remain separate DAW validation work.
+
+The v5 Plasma fixture uses the unchanged encoder at fd188cf and `generate_plasma_v5.cpp`, with Plasma selected, mix 0.8 and MIDI channel 7. Compile the historical codec/header and this generator; verify the manifest hash. The v6 decoder must migrate it to Legacy without altering those values.
