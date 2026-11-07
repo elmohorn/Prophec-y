@@ -26,6 +26,39 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_cameras_atlas.jpg")
     list(APPEND P6_PANEL_ASSETS assets/character_cameras_atlas.jpg)
     set(P6_HAS_CHARACTER_ATLAS TRUE)
 endif()
+
+# Authored/interim RGBA camera layers are independently replaceable. A
+# complete four-layer set is required for each module; incomplete installs
+# always fall back to the embedded approved JPEG or procedural rendering.
+set(P6_CHARACTER_RGBA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_rgba")
+set(P6_SPRING_RGBA
+    spring_backplate.png spring_upper_coil.png
+    spring_lower_coil.png spring_reflection_overlay.png)
+set(P6_OPTICAL_RGBA
+    optical_backplate.png optical_lamp_off.png
+    optical_lamp_on.png optical_ldr_overlay.png)
+set(P6_SPRING_RGBA_COMPLETE TRUE)
+set(P6_OPTICAL_RGBA_COMPLETE TRUE)
+foreach(asset IN LISTS P6_SPRING_RGBA)
+    if(NOT EXISTS "${P6_CHARACTER_RGBA_DIR}/${asset}")
+        set(P6_SPRING_RGBA_COMPLETE FALSE)
+    endif()
+endforeach()
+foreach(asset IN LISTS P6_OPTICAL_RGBA)
+    if(NOT EXISTS "${P6_CHARACTER_RGBA_DIR}/${asset}")
+        set(P6_OPTICAL_RGBA_COMPLETE FALSE)
+    endif()
+endforeach()
+if(P6_SPRING_RGBA_COMPLETE)
+    foreach(asset IN LISTS P6_SPRING_RGBA)
+        list(APPEND P6_PANEL_ASSETS "assets/character_rgba/${asset}")
+    endforeach()
+endif()
+if(P6_OPTICAL_RGBA_COMPLETE)
+    foreach(asset IN LISTS P6_OPTICAL_RGBA)
+        list(APPEND P6_PANEL_ASSETS "assets/character_rgba/${asset}")
+    endforeach()
+endif()
 juce_add_binary_data(P6PanelAssets SOURCES ${P6_PANEL_ASSETS})
 set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -62,6 +95,12 @@ target_sources(P6CorePlugin PRIVATE
 
 if(P6_HAS_CHARACTER_ATLAS)
     target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_CHARACTER_ATLAS=1)
+endif()
+if(P6_SPRING_RGBA_COMPLETE)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_SPRING_RGBA=1)
+endif()
+if(P6_OPTICAL_RGBA_COMPLETE)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_OPTICAL_RGBA=1)
 endif()
 
 target_compile_definitions(P6CorePlugin
