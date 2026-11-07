@@ -492,6 +492,16 @@ int main(int argc,char** argv)
     // The Tube artwork is the original TubeChamber; Spring and optical
     // previews use the new panoramic photo window instead.
     CHECK(hardware!=nullptr&&originalTube!=nullptr&&fold!=nullptr&&optoPreview!=nullptr);
+#if defined(P6_HAS_SPRING_RGBA)
+    CHECK(hardware->hasSpringArtwork());
+#else
+    CHECK(!hardware->hasSpringArtwork());
+#endif
+#if defined(P6_HAS_OPTICAL_RGBA)
+    CHECK(hardware->hasOpticalArtwork());
+#else
+    CHECK(!hardware->hasOpticalArtwork());
+#endif
     CHECK(originalTube->isVisible()&&!hardware->isVisible());
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
     fold->onClick();
