@@ -14,12 +14,19 @@ for node in ast.parse((root/'experiments/plasma_ab/run.py').read_text()).body:
 source=(root/'plugin/CustomCharacter.cpp').read_text()
 if source.count(values['needle'])!=1 or source.count(values['original'])!=2: raise SystemExit('Production source changed; review the experiment.')
 hybrid=source.replace(values['needle'],values['soft']).replace(values['original'],values['regulated'],1)
+# Precompute fixed 2x Plasma envelope coefficients during prepare().
+fields='float springDecay{},springDamping{},plasmaAttack{},ferroAttack{};'
+initial='    p.delay=std::max(0,latency-p.os.getLatency());'
+rates='(1.f-std::exp(-1.f/(.002f*static_cast<float>(p.highRate)))) : (1.f-std::exp(-1.f/(.030f*static_cast<float>(p.highRate))))'
+if hybrid.count(fields)!=1 or hybrid.count(initial)!=1 or hybrid.count(rates)!=1: raise SystemExit('Hybrid source changed; review coefficient caching.')
+cached=hybrid.replace(fields,'float springDecay{},springDamping{},plasmaAttack{},ferroAttack{},hybridGateAttack{},hybridGateRelease{};')
+cached=cached.replace(initial,'    p.hybridGateAttack=1.f-std::exp(-1.f/(.002f*static_cast<float>(p.highRate)));p.hybridGateRelease=1.f-std::exp(-1.f/(.030f*static_cast<float>(p.highRate)));\n'+initial).replace(rates,'p.hybridGateAttack : p.hybridGateRelease')
 common=['plugin/CharacterFx.cpp','third_party/DaisySP/Source/Effects/wavefolder.cpp','third_party/DaisySP/Source/Filters/svf.cpp','third_party/DaisySP/Source/Utility/dcblock.cpp']
 with tempfile.TemporaryDirectory(prefix='p6-hybrid-') as tmp:
- temp=Path(tmp); candidate=temp/'CustomCharacter_hybrid.cpp';candidate.write_text(hybrid)
+ temp=Path(tmp); candidate=temp/'CustomCharacter_hybrid.cpp';candidate.write_text(hybrid); cached_candidate=temp/'CustomCharacter_cached.cpp';cached_candidate.write_text(cached)
  for probe in ('automation','cpu','alias'):
-  for variant in (('hybrid',) if probe=='automation' else ('legacy','hybrid')):
-   src=candidate if variant=='hybrid' else root/'plugin/CustomCharacter.cpp';exe=temp/(probe+'_'+variant)
+  for variant in (('hybrid','hybrid_cached') if probe=='automation' else ('legacy','hybrid','hybrid_cached')):
+   src=cached_candidate if variant=='hybrid_cached' else candidate if variant=='hybrid' else root/'plugin/CustomCharacter.cpp';exe=temp/(probe+'_'+variant)
    cmd=['g++','-std=c++20','-O3','-DNDEBUG','-pthread','-Iinclude','-Iplugin','-Ithird_party/DSPark','-Ithird_party/DaisySP','-Ithird_party/DaisySP/Source',f'experiments/plasma_ab/{probe}_probe.cpp',*common,str(src),str(core),'-o',str(exe)]
    subprocess.run(cmd,cwd=root,check=True)
    if probe=='alias': subprocess.run([str(exe),str(out/(probe+'_'+variant+'.f64'))],check=True)

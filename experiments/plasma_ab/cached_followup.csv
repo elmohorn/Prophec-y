@@ -1,0 +1,10 @@
+variant,run,elapsed_seconds,realtime_equivalent_percent,checksum
+legacy,1,0.13751,1.3751,97.6942
+legacy,2,0.136645,1.36645,97.6942
+legacy,3,0.1372,1.372,97.6942
+hybrid,1,0.146777,1.46777,11.1215
+hybrid,2,0.147045,1.47045,11.1215
+hybrid,3,0.146986,1.46986,11.1215
+hybrid_cached,1,0.146885,1.46885,11.1215
+hybrid_cached,2,0.15234,1.5234,11.1215
+hybrid_cached,3,0.147024,1.47024,11.1215

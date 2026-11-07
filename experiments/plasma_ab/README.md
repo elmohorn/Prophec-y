@@ -93,3 +93,19 @@ python3 experiments/plasma_ab/run_robust.py /tmp/p6-hybrid-robust build/libp6cor
 The results are exploratory and not a new product mode. A production proposal
 must preserve legacy preset/session output via explicit versioned state and
 expose the distinction clearly; it must not silently change sound on restore.
+
+### Coefficient-cache follow-up
+
+An experimental `hybrid_cached` variant precomputes the fixed 2x Plasma gate
+attack/release coefficients in prepare(). In a 21-scenario render grid at
+44.1/48/96 kHz its reported metrics matched Hybrid, and the 48 kHz ramp and
+chord float32 sample streams were bit-identical. The automated-stress metrics
+and 48 kHz high-frequency spectral sample stream also matched in a separate
+run. This verifies only the examined cases, not all settings or hosts.
+
+The first local timing suggested a reduction, but a second sequential benchmark
+showed no consistent improvement: median real-time equivalents were about
+1.37% Legacy, 1.47% Hybrid and 1.47% Hybrid cached. Do not claim an assured
+CPU win from these noisy short tests. Caching is still a reasonable design
+choice to evaluate in a fully profiled implementation, but no production
+change is made. `run_robust.py` reproduces both versions.
