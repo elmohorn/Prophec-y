@@ -10,6 +10,7 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
 {
     sampleRate_ = std::max(8000.0, sampleRate);
     oversampleFactor_ = (oversampleFactor == 1 || oversampleFactor == 2 || oversampleFactor == 4 || oversampleFactor == 8) ? oversampleFactor : 2;
+    experimentalGlobalDrive_.prepare(sampleRate_, experimentalGlobalDriveFactor_);
     for (std::size_t i = 0; i < voices_.size(); ++i) {
         voices_[i].voice.prepare(sampleRate_, static_cast<std::uint32_t>(0x9e3779b9u * (i + 1)), oversampleFactor_);
         voices_[i].voice.setDiagnostics(diagnostics_);
@@ -124,6 +125,13 @@ void P6Engine::setMidiVolume(double amount01)
 void P6Engine::setDistortion(double amount01)
 {
     distortion_ = std::clamp(amount01, 0.0, 1.0);
+}
+
+void P6Engine::setExperimentalGlobalDriveOversampling(int factor) noexcept
+{
+    // Diagnostic only. Caller must stop audio before changing quality.
+    experimentalGlobalDriveFactor_ = (factor == 2 || factor == 4) ? factor : 1;
+    experimentalGlobalDrive_.prepare(sampleRate_, experimentalGlobalDriveFactor_);
 }
 
 void P6Engine::setSlop(double amount01, SlopMode mode)
@@ -567,8 +575,16 @@ StereoSample P6Engine::process()
     out.right *= performanceGain;
     if (insertCallback_ != nullptr && insertBeforeEffects_)
         out = insertCallback_(insertContext_, out);
-    out.left = applyCandidateDistortion(out.left, distDcL_);
-    out.right = applyCandidateDistortion(out.right, distDcR_);
+    if (experimentalGlobalDriveFactor_ > 1) {
+        const auto driven=experimentalGlobalDrive_.process(out.left,out.right,distortion_);
+        out.left=driven[0];
+        out.right=driven[1];
+    } else {
+        // Preserve the exact legacy 1x signal path and state when the new
+        // diagnostic mode is not explicitly enabled.
+        out.left = applyCandidateDistortion(out.left, distDcL_);
+        out.right = applyCandidateDistortion(out.right, distDcR_);
+    }
 
     // Prophet-6 digital effects are a serial global path: Effect A feeds
     // Effect B. The single P6Effects instance owns that order and its true
