@@ -113,6 +113,12 @@ target_link_libraries(p6_character_benchmark PRIVATE p6character)
 add_executable(p6_character_level_matrix tools/character_level_matrix.cpp)
 target_link_libraries(p6_character_level_matrix PRIVATE p6character)
 
+add_executable(p6_plasma_threshold_probe tools/plasma_threshold_probe.cpp)
+target_link_libraries(p6_plasma_threshold_probe PRIVATE p6character)
+
+add_executable(p6_voice_sync_polymod_probe tools/voice_sync_polymod_probe.cpp)
+target_link_libraries(p6_voice_sync_polymod_probe PRIVATE p6core)
+
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
 add_executable(p6_inspect tools/inspect_sysex.cpp)
