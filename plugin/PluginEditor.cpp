@@ -674,7 +674,10 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
                    juce::Justification::centred);
         g.setColour(muted);
         g.setFont(juce::Font(10.5f));
-        g.drawText("RATE / DEPTH / RESPONSE / LFO SHAPE modify only the illuminated chamber",
+        const auto activeAudioName=juce::String(
+            p6plugin::kCharacterNames[static_cast<std::size_t>(
+                std::clamp(boundType_,0,p6plugin::kCharacterTypes-1))]).toUpperCase();
+        g.drawText("VISUAL CONTROLS ONLY / AUDIO STILL USES: "+activeAudioName,
                    static_cast<int>(690.f*sx),868,static_cast<int>(698.f*sx),20,
                    juce::Justification::centred);
         return;
