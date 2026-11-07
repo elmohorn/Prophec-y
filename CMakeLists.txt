@@ -147,8 +147,8 @@ target_link_libraries(p6_perf_benchmark PRIVATE p6core)
 # path. Runs at base rate and ideal 2x/4x for comparison; not a DSP change.
 add_executable(p6_global_distortion_alias_probe tools/global_distortion_alias_probe.cpp)
 target_link_libraries(p6_global_distortion_alias_probe PRIVATE p6core)
-add_test(NAME p6_global_distortion_alias_probe
-         COMMAND p6_global_distortion_alias_probe --self-test)
+# Not part of generic ctest: an explicit CI audit runs this computational
+# measurement to avoid slowing sanitizer and every pluginval matrix.
 add_executable(p6_dsp_fingerprint tools/dsp_fingerprint.cpp)
 target_link_libraries(p6_dsp_fingerprint PRIVATE p6core)
 
