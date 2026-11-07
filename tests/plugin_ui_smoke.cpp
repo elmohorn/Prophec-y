@@ -218,6 +218,34 @@ int main(int argc,char** argv)
     }
     CHECK(chamber!=nullptr&&chamber->isVisible()&&fold!=nullptr);
     CHECK(presets!=nullptr&&midiReadout!=nullptr&&master!=nullptr);
+    // This test protects the cramped FX and Performance controls that were
+    // previously intersecting at the bottom edge of the synth panel.
+    juce::ComboBox* fxA=nullptr;
+    juce::ComboBox* fxB=nullptr;
+    juce::ToggleButton* fxOn=nullptr;
+    juce::ToggleButton* glideOn=nullptr;
+    juce::Label* glideLabel=nullptr;
+    juce::Slider* mixA=nullptr;
+    juce::Slider* mixB=nullptr;
+    juce::Slider* programVol=nullptr;
+    for(auto* child:editor->getChildren()) {
+        if(auto* combo=dynamic_cast<juce::ComboBox*>(child)) {
+            if(combo->getTitle()=="Standard FX A type")fxA=combo;
+            if(combo->getTitle()=="Standard FX B type")fxB=combo;
+        }
+        if(auto* toggle=dynamic_cast<juce::ToggleButton*>(child)) {
+            if(toggle->getButtonText()=="FX ON")fxOn=toggle;
+            if(toggle->getButtonText()=="GLIDE ON")glideOn=toggle;
+        }
+        if(auto* label=dynamic_cast<juce::Label*>(child);label&&label->getText()=="GLIDE")glideLabel=label;
+        if(auto* slider=dynamic_cast<juce::Slider*>(child)) {
+            if(slider->getTitle()=="MIX A")mixA=slider;
+            if(slider->getTitle()=="MIX B")mixB=slider;
+            if(slider->getTitle()=="PROGRAM VOL")programVol=slider;
+        }
+    }
+    CHECK(fxA&&fxB&&fxOn&&glideOn&&glideLabel&&mixA&&mixB&&programVol);
+    CHECK(fxA->getItemText(0)=="A: OFF"&&fxB->getItemText(0)=="B: OFF");
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
     fold->onClick();CHECK(!chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
     juce::MemoryBlock afterFold;p.getStateInformation(afterFold);CHECK(beforeFold==afterFold);
@@ -236,6 +264,18 @@ int main(int argc,char** argv)
         CHECK(!presets->getBounds().intersects(midiReadout->getBounds()));
         CHECK(master->getX()>header.getRight());
         CHECK(!presets->getBounds().intersects(master->getBounds()));
+        // Two FX rows, status toggle and all three controls fit in the bay.
+        const juce::Rectangle<int> fxBay(juce::roundToInt(906.f*sx),528,juce::roundToInt(496.f*sx),104);
+        for(auto* fx:std::array<juce::Component*,6>{fxA,fxB,fxOn,mixA,mixB,programVol})
+            CHECK(fxBay.contains(fx->getBounds()));
+        CHECK(fxA->getWidth()>=juce::roundToInt(165.f*sx));
+        CHECK(fxB->getWidth()>=juce::roundToInt(165.f*sx));
+        CHECK(!fxA->getBounds().intersects(fxB->getBounds()));
+        CHECK(!fxA->getBounds().intersects(mixA->getBounds()));
+        CHECK(!fxB->getBounds().intersects(mixA->getBounds()));
+        CHECK(!mixA->getBounds().intersects(mixB->getBounds()));
+        CHECK(!mixB->getBounds().intersects(programVol->getBounds()));
+        CHECK(!glideOn->getBounds().intersects(glideLabel->getBounds()));
     }
     editor->setSize(1460,P6PluginEditor::expandedHeight);
 
