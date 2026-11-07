@@ -25,8 +25,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Configure core-only regression harness
         run: cmake -S . -B build-alias -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=OFF
-      - name: Build analysis tool
-        run: cmake --build build-alias --target p6_global_distortion_alias_probe --parallel 3
+      - name: Build analysis and real-time regression targets
+        run: cmake --build build-alias --target p6_global_distortion_alias_probe p6_realtime_contract_tests p6_dsp_fingerprint --parallel 3
+      - name: Check allocation contract and exact default DSP fingerprint
+        run: |
+          ctest --test-dir build-alias -C Release --output-on-failure -R '^p6_realtime_contract_tests
+        run: ./build-alias/p6_global_distortion_alias_probe --self-test | tee distortion-alias-measurements.csv
+      - name: Upload inspectable measurement data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-global-distortion-alias-measurements
+          path: distortion-alias-measurements.csv
+          if-no-files-found: warn
+
+          ./build-alias/p6_dsp_fingerprint > default-dsp-fingerprint.csv
+          python3 tools/check_dsp_fingerprint.py tests/reference/dsp_metrics_v020.csv default-dsp-fingerprint.csv
       - name: Run distortion alias measurement and sensitivity check
         run: ./build-alias/p6_global_distortion_alias_probe --self-test | tee distortion-alias-measurements.csv
       - name: Upload inspectable measurement data
