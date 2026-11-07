@@ -37,6 +37,54 @@ recessed/glass construction but use a wider camera to fit the physical
 objects. The image generation study's alternate panel, knobs and lettering
 are deliberately excluded.
 
+## Explicit RGBA artwork — implemented on PR #7 (November 7, 2026)
+
+The eight **640x190 PNG RGBA** layers now live in
+`plugin/assets/character_rgba/`. `plugin/CMakeLists.txt` detects each
+complete four-file family and embeds it as JUCE BinaryData. `PluginEditor`
+loads it with `setSpringArtwork()` or `setOpticalArtwork()` **after** the
+approved atlas fallback. No PNG file is loaded or decoded in the audio thread.
+
+Spring:
+- `spring_backplate.png` — fixed metal, mounting, sockets and dark cavity.
+- `spring_upper_coil.png`, `spring_lower_coil.png` — exactly two distinct
+  moving alpha masks responding to the three measured DSP pickups.
+- `spring_reflection_overlay.png` — **stationary** amber highlight with
+  intensity tied to the two spring energies. Not a third coil.
+
+Optical (visual-only preview, not tremolo DSP):
+- `optical_backplate.png` — fixed photographed metal and chamber.
+- `optical_lamp_off.png` — still glass/filament texture.
+- `optical_lamp_on.png` — alpha-separated filament and light emission,
+  modulated by the UI LFO and measured final-output envelope.
+- `optical_ldr_overlay.png` — separate sensor response, with lag relative
+  to the lamp.
+
+The sets are **independent**: if either four-file family is missing, the
+corresponding module falls back to the approved JPEG or procedural view.
+The renderer validates full-size artwork, real transparency and nonempty
+moving/emission layers. Native UI smoke asserts that both *installed*
+RGBA families loaded, alongside existing freeze/bypass, coherent-telemetry,
+presets and SysEx isolation tests.
+
+The current PNGs are reproducibly extracted from the approved photographic
+JPEG using Pillow (interim source material, *not* manually perfected alpha
+mattes). To rebuild a copy intentionally:
+
+```bash
+python3 -m pip install Pillow
+python3 tools/build_character_rgba.py \
+  --source plugin/assets/character_cameras_atlas.jpg \
+  --output-dir /tmp/character_rgba_review
+```
+
+Review the output before manually replacing the committed files.
+The CI workflow only **verifies** the committed RGBA and never regenerates
+or overwrites them. An optional manual `character-rgba-bake` workflow
+produces a separate artifact without committing it. Professional hand-cut
+coil transparency, backdrop inpainting and light emission can therefore be
+upgraded incrementally without changing the C++ source or the file contract.
+
 ## Reactive motion (DSP telemetry -> native camera)
 
 The UI refreshes at **30 Hz**; all work is confined to the message thread. No
@@ -49,9 +97,9 @@ audio algorithm, parameter ID, preset codec or SysEx implementation changes.
   (`DeviceTelemetry.values[2..4]`). The approved photograph contains **two**
   physical springs. Weighted combinations of taps (1+2, 2+3) set their
   independent energy and movement; do not synthesize a third nonexistent coil.
-  **During atlas initialization only**, JUCE prepares a clean, stationary
-  chassis plus two spatially feathered wire mattes with metal-specific chroma
-  extraction. It removes the central wire silhouettes from the chassis using
+  The preferred embedded RGBA assets provide a stationary chassis and two
+  movable transparent coils. JPEG-only fallback continues to prepare
+  spatially feathered wire mattes once during atlas initialization. It removes the central wire silhouettes from the chassis using
   neighboring-row reconstruction. The **fixed end sockets and the front glass
   never move**. Each 30Hz frame requires exactly **two moving image draws**,
   down from 64 full-image transforms/clipped strips, so there are no hard
@@ -132,9 +180,9 @@ MOTION freeze/bypass semantics are retained. The pure C++ probe now checks
 a full 2-second stall, a 60-second suspended interval, and stable 30/120 Hz
 behavior. The optical design preview continues to be **visual-only**, not DSP.
 
-**Image alpha provenance.** The lossy 448×360 JPEG can provide a workable
-study/fallback, but chroma/brightness thresholding is not physically reliable
-for silver wire against highlights. The pre-existing public APIs
+**Image alpha provenance.** The lossy 448×360 JPEG remains a fallback and
+reproducible interim source for the eight committed PNG layers; automatic
+chroma/brightness extraction is still imperfect for silver wire highlights. The pre-existing public APIs
 `setSpringArtwork(cleanBackground, twoTransparentCoils)` and
 `setOpticalArtwork(cleanChassis, darkFixture, transparentLampEmission,
 transparentSensorEmission)` are now **preferred over an available JPEG
@@ -142,8 +190,9 @@ atlas**; previously the JPEG silently took precedence and could override
 hand-authored RGBA images. Malformed artwork dimensions (must be 640x190) or missing alpha in moving/emissive layers are rejected, preserving the JPEG/procedural fallback. Explicit bulb and LDR alpha layers are animated
 independently, leaving screws and metal stationary. The native smoke test
 asserts identical results for explicit assets *with and without* a JPEG loaded.
-Until approved RGBA layers are supplied, JPEG segmentation remains a
-heuristic; do not claim that its limitations are fully eliminated.
+The committed interim PNGs are separated layers, but their extraction
+still uses heuristics: do not mistake them for manually cut, verified
+transparent source artwork or claim the ghosting problem is fully eliminated.
 
 **Renderer organization.** `CharacterProceduralArt.h` now contains the
 vector-only fallback Tube, Spring and Optical art. The hardware window
@@ -178,8 +227,9 @@ fixture, with screenshots:
 
 The real installed photographic atlas is included in the repository.
 The native smoke captures 1240 / 1460 / 1780 width variants for the
-Tube, Spring and Optical Preview views (new capture coverage pending
-confirmation by CI for this follow-up change). Host/DAW animation,
-cross-platform visual inspection and hand-authored RGBA artwork are
-still required before this draft PR is merge-ready. Do **not** substitute
+Tube, Spring and Optical Preview views. The first RGBA-aware JUCE screenshot
+workflow passed and committed the eight PNGs on November 7, 2026. The
+post-commit Windows/Linux plugin-ci gate and real DAW-hosted animation
+acceptance remain separate. Hand-cut photo masks should still replace the
+interim JPEG-derived layers before claiming final mockup fidelity. Do **not** substitute
 a generated visual mock for those native screenshots.
