@@ -487,6 +487,26 @@ void P6PluginEditor::paint(juce::Graphics& g)
     // A self-contained, screwed-on header display. All horizontal coordinates
     // use the same 1460-unit design scale as its JUCE children, avoiding the
     // previous title/subtitle collision with Master and other header controls.
+    // One hardware console carries the screen, master, meters and MIDI.
+    // The older disconnected header made those elements look accidental.
+    const juce::Rectangle<float> topConsole(37.f*sx,8.f,1163.f*sx,84.f);
+    g.setColour(juce::Colours::black.withAlpha(.32f));
+    g.fillRoundedRectangle(topConsole.translated(0.f,2.f),7.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffdadcd5},topConsole.getX(),topConsole.getY(),
+                                           juce::Colour{0xff848f86},topConsole.getRight(),topConsole.getBottom(),false));
+    g.fillRoundedRectangle(topConsole,7.f);
+    g.setColour(juce::Colour{0xfff2f3ed}.withAlpha(.8f));
+    g.drawRoundedRectangle(topConsole.reduced(.7f),6.f,1.f);
+    for(const float x:{711.f,1078.f}) {
+        g.setColour(juce::Colour{0xff4c5750}.withAlpha(.24f));
+        g.drawLine(x*sx,18.f,x*sx,82.f,1.f);
+    }
+    for(const float x:{46.f,1191.f})for(const float y:{17.f,83.f}) {
+        const float px=x*sx;
+        g.setColour(juce::Colour{0xff4a544c});g.fillEllipse(px-3.5f,y-3.5f,7.f,7.f);
+        g.setColour(juce::Colour{0xffe3e6db});g.fillEllipse(px-2.5f,y-2.5f,5.f,5.f);
+        g.setColour(juce::Colour{0xff4c564d});g.drawLine(px-1.5f,y+.5f,px+1.5f,y-.5f,1.f);
+    }
     const juce::Rectangle<float> bezel(43.f*sx,19.f,550.f*sx,70.f);
     g.setColour(juce::Colours::black.withAlpha(.28f));
     g.fillRoundedRectangle(bezel.translated(0.f,2.f),6.f);
