@@ -135,13 +135,18 @@ Result runScenario(const Scenario& scenario)
 
 int main()
 {
-    constexpr std::array<Scenario, 9> scenarios{{
+    // Six-voice 4x/8x points quantify scalar path CPU headroom before any
+    // speculative SoA/SIMD rewrite or global distortion oversampling.
+    constexpr std::array<Scenario, 12> scenarios{{
         {"48k_1x_1voice_dry", 48000.0, 1, 1, false, 64},
         {"48k_2x_1voice_dry", 48000.0, 2, 1, false, 64},
         {"48k_2x_6voice_dry", 48000.0, 2, 6, false, 64},
         {"48k_2x_6voice_pan", 48000.0, 2, 6, false, 64, 1.0},
         {"48k_2x_6voice_fx", 48000.0, 2, 6, true, 64},
+        {"48k_4x_6voice_dry", 48000.0, 4, 6, false, 64},
         {"48k_4x_6voice_fx", 48000.0, 4, 6, true, 64},
+        {"48k_8x_6voice_dry", 48000.0, 8, 6, false, 64},
+        {"48k_8x_6voice_fx", 48000.0, 8, 6, true, 64},
         {"96k_1x_6voice_fx", 96000.0, 1, 6, true, 64},
         {"96k_2x_6voice_dry", 96000.0, 2, 6, false, 64},
         {"96k_2x_6voice_fx", 96000.0, 2, 6, true, 64},
