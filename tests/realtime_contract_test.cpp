@@ -4,6 +4,7 @@
 #include "p6/P6PerformanceScheduler.h"
 #include "p6/ParameterMapper.h"
 #include "p6/ProgramLayout.h"
+#include "p6/VersionedEditMailbox.h"
 
 #include <array>
 #include <atomic>
@@ -188,12 +189,32 @@ void testPreparedActiveEffectsDoNotAllocate()
     P6_CHECK(allocations == 0);
 }
 
+void testMailboxRealtimeOperationsDoNotAllocate()
+{
+    p6::VersionedEditMailbox<16> mailbox;
+    std::size_t allocations = 0;
+    {
+        AllocationScope guard;
+        for (int i = 0; i < 1000; ++i) {
+            const auto index = static_cast<std::size_t>(i % 16);
+            static_cast<void>(mailbox.publishMidi(index, static_cast<std::uint16_t>(i % 128)));
+            static_cast<void>(mailbox.takeCanonicalIfLatest(index));
+            static_cast<void>(mailbox.takeMirrorIfLatest(index));
+            static_cast<void>(mailbox.markHost(index));
+            if (i % 100 == 0) mailbox.clear();
+        }
+        allocations = guard.count();
+    }
+    P6_CHECK(allocations == 0);
+}
+
 } // namespace
 
 int main()
 {
     testCoreRealtimePathDoesNotAllocateAfterPrepare();
     testPreparedActiveEffectsDoNotAllocate();
+    testMailboxRealtimeOperationsDoNotAllocate();
     std::cout << "p6 v0.18 realtime allocation contract passed\n";
     return 0;
 }
