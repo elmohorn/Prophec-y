@@ -1,0 +1,17 @@
+wave,start_s,oversampling,pitches_hz,included_partials,harmonic_rmse_floor60_db,mr_log_spectral_mae_db,log_band_shape_rmse_db,wav
+Saw,1.5,2,"[130.625, 155.375, 184.875]",45,0.32846443311269585,5.1494011184980915,9.553032297355642,reference_private/sync_comparison/controls/Saw_1.5_os2.wav
+Saw,1.5,8,"[130.625, 155.375, 184.875]",45,0.3032835540463331,5.198861643501023,9.537732835783713,reference_private/sync_comparison/controls/Saw_1.5_os8.wav
+Saw,6.5,2,"[146.625, 174.5, 207.5]",45,0.3475184230658538,4.988000315787346,11.586329191261353,reference_private/sync_comparison/controls/Saw_6.5_os2.wav
+Saw,6.5,8,"[146.625, 174.5, 207.5]",45,0.32041597183949183,5.033457436524805,13.700198718421605,reference_private/sync_comparison/controls/Saw_6.5_os8.wav
+Saw,10.5,2,"[130.625, 155.375, 184.875]",45,0.36546050886220677,5.370312610994944,9.804629041647493,reference_private/sync_comparison/controls/Saw_10.5_os2.wav
+Saw,10.5,8,"[130.625, 155.375, 184.875]",45,0.34036312906904614,5.41802846326604,9.790965881449058,reference_private/sync_comparison/controls/Saw_10.5_os8.wav
+Saw,15.5,2,"[146.625, 174.5, 207.5]",45,0.3593283882757153,4.978653445607247,11.529477652632169,reference_private/sync_comparison/controls/Saw_15.5_os2.wav
+Saw,15.5,8,"[146.625, 174.5, 207.5]",45,0.33216031183034683,5.020269852007928,13.737772164191657,reference_private/sync_comparison/controls/Saw_15.5_os8.wav
+Pulse,1.5,2,"[130.625, 155.375, 184.875]",45,23.208143963086922,7.5149477928933015,13.767977182940108,reference_private/sync_comparison/controls/Pulse_1.5_os2.wav
+Pulse,1.5,8,"[130.625, 155.375, 184.875]",45,23.207149756055863,7.55157355731225,13.77454697429805,reference_private/sync_comparison/controls/Pulse_1.5_os8.wav
+Pulse,6.5,2,"[146.625, 174.5, 207.5]",45,22.769235005514968,7.7916522874772625,17.560680378077326,reference_private/sync_comparison/controls/Pulse_6.5_os2.wav
+Pulse,6.5,8,"[146.625, 174.5, 207.5]",45,22.768231640043002,7.83031293424605,17.599194069424406,reference_private/sync_comparison/controls/Pulse_6.5_os8.wav
+Pulse,10.5,2,"[130.625, 155.375, 184.875]",45,23.189277753056267,7.586313809350588,13.594945611205445,reference_private/sync_comparison/controls/Pulse_10.5_os2.wav
+Pulse,10.5,8,"[130.625, 155.375, 184.875]",45,23.188270581923422,7.624933640474566,13.602083411074203,reference_private/sync_comparison/controls/Pulse_10.5_os8.wav
+Pulse,15.5,2,"[146.625, 174.5, 207.5]",45,22.773876621676965,7.734596841206198,17.165670702408377,reference_private/sync_comparison/controls/Pulse_15.5_os2.wav
+Pulse,15.5,8,"[146.625, 174.5, 207.5]",45,22.77288364064875,7.774384299831465,17.20327417546717,reference_private/sync_comparison/controls/Pulse_15.5_os8.wav

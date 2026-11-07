@@ -1,0 +1,3 @@
+mode,sample_rate,frames,core_percent,limitation
+None,48000,192000,0.150368,Shared cloud executor; concurrent UI build; one-sample adapter only
+Tube,48000,192000,9.13028,Shared cloud executor; concurrent UI build; one-sample adapter only

@@ -1,0 +1,18 @@
+{
+  "renders": 114,
+  "isolated_renders": 102,
+  "phrase_renders": 8,
+  "candidate_selected_on_audiofanzine": "time10_curve3",
+  "production_changes": false,
+  "source_hashes": {
+    "507-SyncLead-Uni.mp3": "33dffe80ff149fdb27a56697f889db8ac613ce3d1d15241ee14a0322d914a6a5",
+    "Audiofanzine_507.mp3": "edf4bcece100270e76ad54246ffab3c9d1b1c1f93b1f1801dea0d9f2cdd4f2fb"
+  },
+  "renderer_sha256": "0fe0e053f421b6bce716298c51218a47757902f135a9a960cee25d7107f6e678",
+  "script_sha256": "d065a5348d66faf4274133e55caeb4d9a654a52ddecfe3900b006272efbc1bae",
+  "pm_shape_ablation_six_wavs_byte_identical": true,
+  "validation": "102 isolated +8 phrase rows finite; Python compilation passed; no DSP change",
+  "preliminary_analysis_failure": "First analysis attempt used100ms windows incompatible with existing8192-point STFT overlap. Discarded and rerun with200ms windows; not counted as additional validated configurations.",
+  "late_gate_renders": 4,
+  "late_gate_sensitivity": "Added adaptively after RMS plot showed AMAZONA energy beyond assumed14.1s note-off; gates15.1/16.1, no candidate retuning."
+}

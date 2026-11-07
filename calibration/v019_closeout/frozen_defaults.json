@@ -1,0 +1,43 @@
+{
+  "profile": "Default",
+  "release_version": "0.19.0",
+  "filter": {
+    "base_hz": 8.1757989156,
+    "semitones_per_raw": 1,
+    "LP_resonance_scale": 1,
+    "HP_resonance_scale": 1,
+    "HP_law": "inherits Default base and semitone slope",
+    "env_range_octaves": 10.5833333333
+  },
+  "envelopes": {
+    "amp_max_ADR_seconds": 10,
+    "filter_max_ADR_seconds": 10,
+    "amp_raw_time_exponent": 3.5,
+    "filter_raw_time_exponent": 3.5,
+    "minimum_seconds": 0.0005
+  },
+  "oscillator": {
+    "sync_reset_phase": 0,
+    "sync_trigger_phase": 0,
+    "slope_correction": false,
+    "pulse_width_safety_clamp": [
+      0.04,
+      0.96
+    ],
+    "pulse_mean_normalization": 1
+  },
+  "poly_mod": {
+    "pitch_octaves": 4,
+    "shape_range": 0.5,
+    "pulse_width_range": 0.48,
+    "filter_octaves": 6
+  },
+  "unpromoted": [
+    "Reference A v0.9 remains optional experimental profile",
+    "filter_env_depth12_v019",
+    "time10_curve3 for preset507",
+    "global triangle/PW offsets",
+    "step+slope hard-sync correction"
+  ],
+  "identifiability": "Freeze implementation for release and UI, not a claim of physically identified hardware laws."
+}

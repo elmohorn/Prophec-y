@@ -1,0 +1,52 @@
+{
+  "source_branch": "v0.19-sound-matching",
+  "source_sha": "540b1dd6534e865cc5b659a83586bd0343ec46d3",
+  "renderer_sha256": "c651a07be53c8e33a67281fbbeab15678cdee98c1efb425b0cd10f74a247356e",
+  "profiles_file_sha256": "f5b2aeff6af0c7e92fe23d75450b53c92f5cc4bd06e7a6c606bfade4deb5bd34",
+  "prerolls": [
+    0.0,
+    0.5,
+    1.5,
+    3.0
+  ],
+  "oversampling": 2,
+  "sample_rate": 48000,
+  "analysis_band_hz": [
+    40,
+    12000
+  ],
+  "fft_sizes": [
+    512,
+    2048,
+    8192
+  ],
+  "limits": [
+    "single recording source, not independent hardware replications",
+    "VCO pre-roll changes phase and Slop realization together",
+    "relative gain only: recovered listening references were RMS-normalized",
+    "inferred events, not recorded MIDI; sync envelope intentionally excluded",
+    "no engine defaults changed"
+  ],
+  "assets": {
+    "RA024_gate025": {
+      "reference": "8bd77b5e85d82fd243501ca0ad072761bd3cbf27ef9ff962b6bc4b79a94b08c8",
+      "sysex": "836f98acddb868a826533e0d623cdfc50b6faa41bce250001df92b1b3a97e7fd",
+      "events": "559bc94fcf2c12e71894ae9aa73b2e577927d2857984ebe0a9eb17217cad6aaa"
+    },
+    "RA024_gate050": {
+      "reference": "8bd77b5e85d82fd243501ca0ad072761bd3cbf27ef9ff962b6bc4b79a94b08c8",
+      "sysex": "836f98acddb868a826533e0d623cdfc50b6faa41bce250001df92b1b3a97e7fd",
+      "events": "7c1643a506a17cfe5995b25364a548241d5564010a4fc621e4d85c2fdcc9c3bb"
+    },
+    "RA024_gate075": {
+      "reference": "8bd77b5e85d82fd243501ca0ad072761bd3cbf27ef9ff962b6bc4b79a94b08c8",
+      "sysex": "836f98acddb868a826533e0d623cdfc50b6faa41bce250001df92b1b3a97e7fd",
+      "events": "d9fa07e1c1b2eeed761cfb3838d53a6aa7325c84c8a7d2ccd7ac5b2b56d4f981"
+    },
+    "RA024_gate100": {
+      "reference": "8bd77b5e85d82fd243501ca0ad072761bd3cbf27ef9ff962b6bc4b79a94b08c8",
+      "sysex": "836f98acddb868a826533e0d623cdfc50b6faa41bce250001df92b1b3a97e7fd",
+      "events": "b25d8daedb9af78548fc393b0656c137c530863f91125aee7da0baad1551524e"
+    }
+  }
+}

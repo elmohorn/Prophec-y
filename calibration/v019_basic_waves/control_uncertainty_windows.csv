@@ -1,0 +1,9 @@
+case_id,shape,pulse_width,start_s,duration_s,nominal_midi_note
+control_triangle_n48,.07,.5,3.6,0.25,48
+control_triangle_n60,.07,.5,4.6,0.25,60
+control_triangle_n72,.07,.5,5.6,0.25,72
+control_triangle_n84,.07,.5,6.8,0.25,84
+control_square_n48,1,.515,27.6,0.25,48
+control_square_n60,1,.515,28.6,0.25,60
+control_square_n72,1,.515,29.8,0.25,72
+control_square_n84,1,.515,31.6,0.25,84

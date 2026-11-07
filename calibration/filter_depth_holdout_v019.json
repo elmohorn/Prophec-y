@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "frozen_utc": "2026-10-31",
+  "engine_base": "23dc4d7d0e641f5fcdd7aa25738bf30c5c3a1bde",
+  "factory_bank_sha256": "b46ee1b907b77fdfa17a358e9541722b5a1e021b0a5512d53b0fe9d50c620f19",
+  "status": "registered-not-run",
+  "baseline_profile": "current",
+  "candidate_profile": "filter_env_depth12_v019",
+  "oversample": 2,
+  "preroll_s": [
+    0,
+    0.5,
+    1.5,
+    3
+  ],
+  "planned_renders_if_all_eligible": 64,
+  "selection": "Eight dry, no-distortion, polyphonic, no-sync factory programs; noise <=8; slop <=30; nonzero bipolar filter envelope. Chosen from SysEx without new audio or candidate metrics. Musical labels are not acoustic evidence.",
+  "excluded_programs_used_in_previous_work": [
+    0,
+    24,
+    67,
+    99,
+    266,
+    413,
+    416,
+    422,
+    425,
+    443,
+    445
+  ],
+  "programs": [
+    {
+      "program": 2,
+      "name": "Thick Low Brass",
+      "sysex_sha256": "7ae3e3ea814738b0d65dc1b5970091dbaa2eee87602941575e32a4f253e34668",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 0,
+        "filter_env_amount": 190
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 6,
+      "name": "HollowWords",
+      "sysex_sha256": "1c6810fcaec557baa97af059a3665037bd832bce91360f59b20ffd028cac4dcf",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 30,
+        "filter_env_amount": 178
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 36,
+      "name": "Dowowowowow",
+      "sysex_sha256": "cd73c70f2d13cc8b40e1e058f002e6f4a7db5b89e62c7cb73d27a58bdc263348",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 0,
+        "filter_env_amount": 180
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 43,
+      "name": "Brassy Pad",
+      "sysex_sha256": "2abc971051b9b2d1d44782b5cdf38d44866d98860564a88994fd4a433dc41fd9",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 16,
+        "filter_env_amount": 141
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 69,
+      "name": "Soft Brass",
+      "sysex_sha256": "520c32ec6d91fb2aff3594ca4da101f115d3f7db0eeb15326f9691237a374cd3",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 17,
+        "filter_env_amount": 181
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 115,
+      "name": "Clean Brass",
+      "sysex_sha256": "41c05bb0d7213fea8682e40aa94840ea10320e398447611346fd4710b0756d80",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 18,
+        "filter_env_amount": 224
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 177,
+      "name": "Plucky Clav",
+      "sysex_sha256": "a8ca2ca5106b91b2689bdaca1b618b09dcc9b90de27b74ccfce4e87a8bb16aae",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 27,
+        "filter_env_amount": 173
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    },
+    {
+      "program": 293,
+      "name": "Circus Triangles",
+      "sysex_sha256": "3ec6e23629b12ec69347a35c2718cb1662969a2b785865878ca5dc93d2c52de2",
+      "raw_fields": {
+        "fx_on": 0,
+        "distortion": 0,
+        "unison": 0,
+        "sync": 0,
+        "noise": 0,
+        "slop": 8,
+        "filter_env_amount": 219
+      },
+      "status": "awaiting-verified-audio-and-performance"
+    }
+  ],
+  "eligibility_before_candidate_metrics": [
+    "Verified decoded Prophet-6 audio and checked program identity; matching SysEx bank version.",
+    "Manually checked segment boundaries; coarse period grid alone is insufficient.",
+    "Freeze events, ambiguity report, excerpt hash and all exclusions before candidate rendering; polyphonic or uncertain performance is not accepted through the monophonic tracker.",
+    "Reference processing, unknown velocity and gate uncertainty documented; reject cases where these dominate the comparison. No gate shortening to favor a model."
+  ],
+  "evaluation": [
+    "Only current versus the already-selected depth12 profile; no parameter search on holdouts.",
+    "Report paired MR spectral error, broad log-band shape and envelope error per program over all four prerolls. Prerolls are sensitivity checks, not independent samples.",
+    "Summarize by program, retain every eligible result, and publish excluded cases with reasons chosen before scores.",
+    "A patch holdout from Reference A is not an independent recording. Default promotion additionally requires a separate controlled source with known settings and performance.",
+    "No promotion decision while audio/performance eligibility is unresolved. A failed candidate returns to development; previously tested programs cease to be holdouts."
+  ]
+}

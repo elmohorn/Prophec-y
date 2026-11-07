@@ -1,0 +1,33 @@
+{
+  "local_ctest": {
+    "passed": 9,
+    "total": 9
+  },
+  "local_python": {
+    "passed": 19,
+    "total": 19
+  },
+  "new_renders": 100,
+  "hardware_files_fully_decoded": 8,
+  "baseline_paired_metric_rows": 20,
+  "baseline_max_metric_delta": 0,
+  "production_acoustic_changes": false,
+  "functional_commit": "3e148b6c9d1002178ca294fc4613943fa7533ee6",
+  "full_ci_run": 41268532229,
+  "full_ci_status": "success",
+  "prior_full_ci_run": 41257295713,
+  "prior_full_ci_status": "success",
+  "manual_DAW_test": false,
+  "public_release_created": false,
+  "known_acoustic_limits_remain": true,
+  "ci_artifacts": [
+    {
+      "name": "P6-Core-v0.19-Linux-VST3",
+      "artifact_id": 13068845196
+    },
+    {
+      "name": "P6-Core-v0.19-Windows-VST3",
+      "artifact_id": 13068456135
+    }
+  ]
+}

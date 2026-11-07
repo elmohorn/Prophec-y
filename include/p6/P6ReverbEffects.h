@@ -26,6 +26,8 @@ public:
                                                 double primary01,
                                                 double secondary01) noexcept;
 
+    [[nodiscard]] const std::array<double,4>& pickupTaps() const noexcept {return pickupTaps_;}
+
 private:
     static constexpr std::size_t kLines = 4;
 
@@ -57,6 +59,7 @@ private:
                                   double primary,
                                   double secondary) noexcept;
 
+    std::array<double,4> pickupTaps_{};
     double sampleRate_{48000.0};
     std::array<Line, kLines> lines_{};
     std::vector<double> early_{};
@@ -66,3 +69,4 @@ private:
 };
 
 } // namespace p6
+

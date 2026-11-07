@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "status": "inputs-frozen-before-render",
+  "source_sha": "ab5170d2de9463a4ee4b9bb31917108bf48c944a",
+  "source_url": "https://forum.sequential.com/index.php/topic,2772.0.html",
+  "audio_url": "https://forum.sequential.com/index.php?action=dlattach;attach=1834",
+  "sysex_url": "https://forum.sequential.com/index.php?action=dlattach;attach=1835",
+  "audio": {
+    "file": "forum_audio.wav",
+    "bytes": 13057746,
+    "sha256": "36456cbb31865f3b2da4030d2548a595ed041c846ae10f05caef0af399a28099",
+    "codec": "pcm_s24le",
+    "sample_rate": 96000,
+    "channels": 2,
+    "decoded_frames": 2173331,
+    "decoded_duration_s": 22.638864583333334,
+    "pcm_f32le_sha256": "46dfb6a0fc4734fd2ec51aaae235bef48eb2a8fd47794c4977af8d770b60594f",
+    "peak": 0.1579042673110962,
+    "rms": 0.016080324954133588,
+    "integrity": "full-decode-passed",
+    "patch_identity_verified": false
+  },
+  "sweep_audio": {
+    "file": "forum_filter_sweep.wav",
+    "bytes": 1719838,
+    "sha256": "9c0487f04c73ddc06c5bb90cfbabe7b5e6768fa92543b4f5839a48da487884ce",
+    "codec": "pcm_s16le",
+    "sample_rate": 44100,
+    "channels": 1,
+    "decoded_frames": 859536,
+    "decoded_duration_s": 19.49061224489796,
+    "pcm_f32le_sha256": "39b397cd4267c329680a7c3efccd277829f6cf63f09f50a48c6bca9497b75bac",
+    "peak": 0.999969482421875,
+    "rms": 0.5509935916990552,
+    "integrity": "full-decode-passed",
+    "patch_identity_verified": false
+  },
+  "sweep_source_url": "https://forum.sequential.com/index.php?topic=274.0",
+  "sweep_audio_url": "https://forum.sequential.com/index.php?action=dlattach;attach=288",
+  "sysex_sha256": "b3f9e1dcd1cb867e73be01b3f396c94e21f14c5e40dfc6f6d5b560c05c3e8611",
+  "phrase_sha256": "b5f8f6ba329b55ee578ecbf8380b5d1af8220849f73a43fa65e06cfc30516369",
+  "bank004_raw_differences": 161,
+  "patch_name": "Dark Octave Bass",
+  "profiles": [
+    "current",
+    "filter_env_depth12_v019"
+  ],
+  "prerolls_s": [
+    0,
+    0.5,
+    1.5,
+    3
+  ],
+  "oversampling": 2,
+  "planned_renders": 24,
+  "source_window_s": [
+    0,
+    8.6
+  ],
+  "event_assumptions": {
+    "note": 60,
+    "velocity": 1.0,
+    "onsets_s": [
+      0.0,
+      1.73,
+      3.0,
+      4.35,
+      5.99,
+      7.33
+    ],
+    "gate_hypotheses_s": [
+      0.25,
+      0.5,
+      0.75
+    ],
+    "onset_uncertainty": "approximate waveform amplitude/spectral attack positions; not captured MIDI",
+    "tracker_rejection": "tracker merged six repeated notes into long held events; release and FX energy are not held keys"
+  },
+  "limits": [
+    "One independent recording/patch with six repeated attacks, NOT six independent programs.",
+    "Source posted to investigate suspected hardware glitch; cannot establish normal hardware transfer laws.",
+    "Exact attached SysEx differs from stock factory004; includes sync, glide and FX.",
+    "No patch/control edits to improve match; no depth search; all gate hypotheses retained.",
+    "Gates, velocity, prior FX buffer and precise note onsets unknown.",
+    "Full-recording inference failed repeated-note separation; discarded as event ground truth.",
+    "Filter sweep has no synchronized knob values or SysEx; assess relative plateau spacing only.",
+    "Neither source discharges the frozen eight-program holdout or independent controlled promotion requirement."
+  ]
+}

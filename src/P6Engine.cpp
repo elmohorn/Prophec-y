@@ -323,7 +323,7 @@ void P6Engine::releaseUnison()
     unisonSustainHeld_ = false;
 }
 
-void P6Engine::retargetUnison(bool retrigger)
+void P6Engine::retargetUnison(bool retrigger, bool resetEnvelopeFromZero)
 {
     const auto* winner = winningHeldKey();
     if (!winner) {
@@ -352,7 +352,7 @@ void P6Engine::retargetUnison(bool retrigger)
         s.keyDown = true;
         s.sustainHeld = false;
         s.age = clock_;
-        s.voice.noteOn(s.note, winner->velocity, retrigger, retrigger);
+        s.voice.noteOn(s.note, winner->velocity, retrigger, retrigger && resetEnvelopeFromZero);
     }
     for (std::size_t i = stack; i < voices_.size(); ++i) {
         auto& s = voices_[i];
@@ -428,9 +428,14 @@ void P6Engine::noteOnOwned(int midiNote, double velocity01, std::uint32_t owner)
         unisonSustainHeld_ = false;
         for (auto& slot : voices_)
             slot.sustainHeld = false;
+        const bool firstHeldKey = heldCount_ == 0;
         rememberHeld(midiNote, velocity01);
         ++clock_;
-        retargetUnison(keyMode_ >= 3);
+        // A release tail is still an active voice, but it is not a held-key
+        // legato phrase. Re-attack the first new key from the current level;
+        // only explicit retrigger key modes demand a reset from zero.
+        const bool retriggerMode = keyMode_ >= 3;
+        retargetUnison(retriggerMode || firstHeldKey, retriggerMode);
         return;
     }
 
@@ -558,8 +563,12 @@ StereoSample P6Engine::process()
     }
 
     const double performanceGain = programVolume_ * midiVolume_;
-    out.left = applyCandidateDistortion(out.left * performanceGain, distDcL_);
-    out.right = applyCandidateDistortion(out.right * performanceGain, distDcR_);
+    out.left *= performanceGain;
+    out.right *= performanceGain;
+    if (insertCallback_ != nullptr && insertBeforeEffects_)
+        out = insertCallback_(insertContext_, out);
+    out.left = applyCandidateDistortion(out.left, distDcL_);
+    out.right = applyCandidateDistortion(out.right, distDcR_);
 
     // Prophet-6 digital effects are a serial global path: Effect A feeds
     // Effect B. The single P6Effects instance owns that order and its true
@@ -567,6 +576,8 @@ StereoSample P6Engine::process()
     const auto effected = effects_.process(out.left, out.right);
     out.left = effected.left;
     out.right = effected.right;
+    if (insertCallback_ != nullptr && !insertBeforeEffects_)
+        out = insertCallback_(insertContext_, out);
     return out;
 }
 

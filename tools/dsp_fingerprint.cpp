@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <string_view>
 
 namespace {
@@ -79,6 +80,62 @@ p6::P6PatchState fxPatch()
     setRaw(patch, 130, 65);
     setRaw(patch, 135, 1);
     setRaw(patch, 167, 120);
+    return patch;
+}
+
+p6::P6PatchState headroomPatch(bool dualOscillator, int unisonVoices)
+{
+    p6::P6PatchState patch;
+    patch.rawParameters.reserve(80);
+    setRaw(patch, 0, 24);
+    setRaw(patch, 2, dualOscillator ? 127 : 110);
+    setRaw(patch, 3, 127);
+    setRaw(patch, 4, 127);
+    setRaw(patch, 5, 24);
+    setRaw(patch, 6, 127);
+    setRaw(patch, 7, dualOscillator ? 127 : 0);
+    setRaw(patch, 8, 127);
+    setRaw(patch, 9, 127);
+    setRaw(patch, 10, 0);
+    setRaw(patch, 11, 1);
+    setRaw(patch, 27, 0);
+    setRaw(patch, 32, 0);
+    setRaw(patch, 33, 0);
+    setRaw(patch, 45, 164);
+    setRaw(patch, 46, 0);
+    setRaw(patch, 47, 0);
+    setRaw(patch, 48, 0);
+    setRaw(patch, 49, 0);
+    setRaw(patch, 50, 0);
+    setRaw(patch, 51, 0);
+    setRaw(patch, 52, 0);
+    setRaw(patch, 62, dualOscillator ? 127 : 110);
+    setRaw(patch, 63, 0);
+    setRaw(patch, 64, 0);
+    setRaw(patch, 66, 127);
+    setRaw(patch, 67, 0);
+    setRaw(patch, 68, 0);
+    setRaw(patch, 69, 127);
+    setRaw(patch, 70, 20);
+    setRaw(patch, 71, 0);
+    setRaw(patch, 77, 127);
+    setRaw(patch, 78, 0);
+    setRaw(patch, 79, 0);
+    setRaw(patch, 80, 0);
+    setRaw(patch, 81, 0);
+    setRaw(patch, 82, 127);
+    setRaw(patch, 88, 64);
+    setRaw(patch, 89, 0);
+    setRaw(patch, 90, 0);
+    setRaw(patch, 91, 0);
+    setRaw(patch, 119, 0);
+    setRaw(patch, 127, 0);
+    setRaw(patch, 135, 0);
+    setRaw(patch, 143, 127);
+    setRaw(patch, 144, 127);
+    setRaw(patch, 156, unisonVoices > 0 ? 1 : 0);
+    setRaw(patch, 157, static_cast<std::uint16_t>(std::clamp(unisonVoices - 1, 0, 5)));
+    setRaw(patch, 158, 2);
     return patch;
 }
 
@@ -163,6 +220,73 @@ void print(std::string_view name, const Fingerprint& fp)
               << rms << ',' << fp.peak << ',' << stereoRms << ',' << fp.weightedAbs << '\n';
 }
 
+struct HeadroomStats {
+    double peak{};
+    double rms{};
+};
+
+HeadroomStats renderHeadroom(bool dualOscillator, bool unison, int voiceCount, int root)
+{
+    constexpr double sampleRate = 48000.0;
+    p6::P6Engine engine;
+    engine.prepare(sampleRate, 2);
+    engine.loadPatch(headroomPatch(dualOscillator, unison ? voiceCount : 0));
+    engine.setPanSpread(0.0);
+
+    constexpr std::array<int, 6> intervals{0, 4, 7, 12, 16, 19};
+    if (unison) {
+        engine.noteOn(root, 1.0);
+    } else {
+        for (int i = 0; i < voiceCount; ++i)
+            engine.noteOn(root + intervals[static_cast<std::size_t>(i)], 1.0);
+    }
+
+    constexpr int warmup = 9600;
+    constexpr int samples = 48000;
+    for (int i = 0; i < warmup; ++i)
+        (void) engine.process();
+
+    HeadroomStats stats;
+    double sumSquares = 0.0;
+    for (int i = 0; i < samples; ++i) {
+        const auto s = engine.process();
+        stats.peak = std::max({stats.peak, std::abs(s.left), std::abs(s.right)});
+        sumSquares += 0.5 * (s.left * s.left + s.right * s.right);
+    }
+    stats.rms = std::sqrt(sumSquares / static_cast<double>(samples));
+    return stats;
+}
+
+HeadroomStats worstHeadroom(bool dualOscillator, bool unison, int voiceCount)
+{
+    constexpr std::array<int, 4> roots{36, 48, 60, 72};
+    HeadroomStats worst;
+    for (const int root : roots) {
+        const auto stats = renderHeadroom(dualOscillator, unison, voiceCount, root);
+        worst.peak = std::max(worst.peak, stats.peak);
+        worst.rms = std::max(worst.rms, stats.rms);
+    }
+    return worst;
+}
+
+double dbfs(double amplitude)
+{
+    return amplitude > 0.0 ? 20.0 * std::log10(amplitude)
+                           : -std::numeric_limits<double>::infinity();
+}
+
+void printHeadroomTable(std::string_view scenario, bool dualOscillator)
+{
+    for (int voices = 1; voices <= 6; ++voices) {
+        const auto poly = worstHeadroom(dualOscillator, false, voices);
+        const auto uni = worstHeadroom(dualOscillator, true, voices);
+        std::cout << scenario << ',' << voices << ','
+                  << std::fixed << std::setprecision(6)
+                  << poly.rms << ',' << poly.peak << ',' << dbfs(poly.peak) << ','
+                  << uni.rms << ',' << uni.peak << ',' << dbfs(uni.peak) << '\n';
+    }
+}
+
 } // namespace
 
 int main()
@@ -173,5 +297,9 @@ int main()
     print("fx_2x", render(fxPatch(), 2));
     print("dry_1x", render(basePatch(), 1));
     print("pan_2x", render(basePatch(), 2, 1.0));
+
+    std::cout << "headroom_scenario,voices,poly_rms,poly_peak,poly_peak_dbfs,unison_rms,unison_peak,unison_peak_dbfs\n";
+    printHeadroomTable("init_like", false);
+    printHeadroomTable("dual_osc_max", true);
     return 0;
 }

@@ -1,0 +1,9 @@
+start_s,oversampling,duty,included_partials,harmonic_rmse_floor60_db,nominal_square_error_db,wav
+1.5,2,0.4840000000000004,45,0.344457748353962,23.208143963086922,reference_private/sync_comparison/controls/PulseDuty_1.5_os2.wav
+1.5,8,0.4840000000000004,45,0.3348199479195435,23.207149756055863,reference_private/sync_comparison/controls/PulseDuty_1.5_os8.wav
+6.5,2,0.4840000000000004,45,0.4144748309461918,22.769235005514968,reference_private/sync_comparison/controls/PulseDuty_6.5_os2.wav
+6.5,8,0.4840000000000004,45,0.3926411341290208,22.768231640043002,reference_private/sync_comparison/controls/PulseDuty_6.5_os8.wav
+10.5,2,0.4840000000000004,45,0.373117715318435,23.189277753056267,reference_private/sync_comparison/controls/PulseDuty_10.5_os2.wav
+10.5,8,0.4840000000000004,45,0.3624118792556377,23.188270581923422,reference_private/sync_comparison/controls/PulseDuty_10.5_os8.wav
+15.5,2,0.4840000000000004,45,0.41915385898293406,22.773876621676965,reference_private/sync_comparison/controls/PulseDuty_15.5_os2.wav
+15.5,8,0.4840000000000004,45,0.40002981020818806,22.77288364064875,reference_private/sync_comparison/controls/PulseDuty_15.5_os8.wav

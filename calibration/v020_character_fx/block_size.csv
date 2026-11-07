@@ -1,0 +1,6 @@
+candidate,block_a,block_b,max_absolute_difference,rms_difference
+airwindows,16,1024,0,0
+dspark,16,1024,0,0
+patina,16,1024,9.30876e-05,1.75782e-05
+daisy,16,1024,0,0
+0xfx,16,1024,0,0

@@ -1,0 +1,248 @@
+{
+  "summary": [
+    {
+      "candidate": "0xfx",
+      "renders": 63,
+      "nonfinite": 0,
+      "ordinary_cpp_new_allocations": 0,
+      "latencies_samples": [
+        0
+      ],
+      "prepare_ms_max": 0.000324,
+      "cpu_percent_median": 0.158801,
+      "cpu_percent_range": [
+        0.0395648,
+        0.424882
+      ],
+      "max_peak": 1.09157,
+      "at_48k_mid_dial": {
+        "silence": {
+          "rms_dbfs": -300.0,
+          "noise_rms_dbfs": -300.0
+        },
+        "tone_low": {
+          "rms_dbfs": -6.868235752324502,
+          "thd_percent": 6.880278718325893,
+          "nonharmonic_inband_db_relative_fundamental": -62.08626122414139
+        },
+        "tone_hot": {
+          "rms_dbfs": -1.2217543968108782,
+          "thd_percent": 24.22645925207472,
+          "nonharmonic_inband_db_relative_fundamental": -55.098249776072315
+        },
+        "hf": {
+          "rms_dbfs": -1.2201339709022192,
+          "thd_percent": 0.0,
+          "nonharmonic_inband_db_relative_fundamental": -12.772765728698507
+        },
+        "impulse": {
+          "rms_dbfs": -45.16676102371729
+        },
+        "left_only": {
+          "rms_dbfs": -4.232054353450691,
+          "right_leak_dbfs": -300.0
+        },
+        "chord": {
+          "rms_dbfs": -5.940184533130754
+        }
+      }
+    },
+    {
+      "candidate": "airwindows",
+      "renders": 63,
+      "nonfinite": 0,
+      "ordinary_cpp_new_allocations": 0,
+      "latencies_samples": [
+        0
+      ],
+      "prepare_ms_max": 0.000316,
+      "cpu_percent_median": 0.405868,
+      "cpu_percent_range": [
+        0.258191,
+        1.73907
+      ],
+      "max_peak": 1.0,
+      "at_48k_mid_dial": {
+        "silence": {
+          "rms_dbfs": -143.3947438989467,
+          "noise_rms_dbfs": -143.3947438989467
+        },
+        "tone_low": {
+          "rms_dbfs": -13.979713484078788,
+          "thd_percent": 0.5577925374155811,
+          "nonharmonic_inband_db_relative_fundamental": -91.6624865171774
+        },
+        "tone_hot": {
+          "rms_dbfs": -2.7250257463512613,
+          "thd_percent": 2.7355424502435848,
+          "nonharmonic_inband_db_relative_fundamental": -68.08675016023237
+        },
+        "hf": {
+          "rms_dbfs": -2.7865496420968645,
+          "thd_percent": 0.0,
+          "nonharmonic_inband_db_relative_fundamental": -27.834543537617918
+        },
+        "impulse": {
+          "rms_dbfs": -45.15449960780561
+        },
+        "left_only": {
+          "rms_dbfs": -5.735325702430679,
+          "right_leak_dbfs": -143.40727541280762
+        },
+        "chord": {
+          "rms_dbfs": -11.854622431312992
+        }
+      }
+    },
+    {
+      "candidate": "daisy",
+      "renders": 63,
+      "nonfinite": 0,
+      "ordinary_cpp_new_allocations": 0,
+      "latencies_samples": [
+        0
+      ],
+      "prepare_ms_max": 0.00042,
+      "cpu_percent_median": 0.0309069,
+      "cpu_percent_range": [
+        0.0153744,
+        0.110543
+      ],
+      "max_peak": 1.0,
+      "at_48k_mid_dial": {
+        "silence": {
+          "rms_dbfs": -300.0,
+          "noise_rms_dbfs": -300.0
+        },
+        "tone_low": {
+          "rms_dbfs": -0.9806801623728344,
+          "thd_percent": 25.85611650008951,
+          "nonharmonic_inband_db_relative_fundamental": -134.80185220978848
+        },
+        "tone_hot": {
+          "rms_dbfs": -0.21847443472343503,
+          "thd_percent": 42.24489575861071,
+          "nonharmonic_inband_db_relative_fundamental": -41.86934913561396
+        },
+        "hf": {
+          "rms_dbfs": -0.21847443472336975,
+          "thd_percent": 0.0,
+          "nonharmonic_inband_db_relative_fundamental": -8.605947362429466
+        },
+        "impulse": {
+          "rms_dbfs": -45.15449934959718
+        },
+        "left_only": {
+          "rms_dbfs": -3.228774391363247,
+          "right_leak_dbfs": -300.0
+        },
+        "chord": {
+          "rms_dbfs": -1.2209874663214917
+        }
+      }
+    },
+    {
+      "candidate": "dspark",
+      "renders": 63,
+      "nonfinite": 0,
+      "ordinary_cpp_new_allocations": 0,
+      "latencies_samples": [
+        71
+      ],
+      "prepare_ms_max": 237.781,
+      "cpu_percent_median": 8.38117,
+      "cpu_percent_range": [
+        6.29834,
+        27.8888
+      ],
+      "max_peak": 0.510182,
+      "at_48k_mid_dial": {
+        "silence": {
+          "rms_dbfs": -293.7745555291709,
+          "noise_rms_dbfs": -293.7745555291709
+        },
+        "tone_low": {
+          "rms_dbfs": -19.91993619771694,
+          "thd_percent": 3.322955907737585,
+          "nonharmonic_inband_db_relative_fundamental": -138.4601130581535
+        },
+        "tone_hot": {
+          "rms_dbfs": -11.30469175688541,
+          "thd_percent": 25.22380430769991,
+          "nonharmonic_inband_db_relative_fundamental": -115.47330774098847
+        },
+        "hf": {
+          "rms_dbfs": -9.02608705126838,
+          "thd_percent": 0.0,
+          "nonharmonic_inband_db_relative_fundamental": -91.9554797372944
+        },
+        "impulse": {
+          "rms_dbfs": -53.17873045948846
+        },
+        "left_only": {
+          "rms_dbfs": -14.314991713525222,
+          "right_leak_dbfs": -293.7745555291709
+        },
+        "chord": {
+          "rms_dbfs": -16.242061899541586
+        }
+      }
+    },
+    {
+      "candidate": "patina",
+      "renders": 63,
+      "nonfinite": 0,
+      "ordinary_cpp_new_allocations": 0,
+      "latencies_samples": [
+        0
+      ],
+      "prepare_ms_max": 0.001859,
+      "cpu_percent_median": 1.32727,
+      "cpu_percent_range": [
+        0.915304,
+        4.35493
+      ],
+      "max_peak": 1.1658,
+      "at_48k_mid_dial": {
+        "silence": {
+          "rms_dbfs": -96.61281681413264,
+          "noise_rms_dbfs": -96.61281681413264
+        },
+        "tone_low": {
+          "rms_dbfs": -8.189627656936073,
+          "thd_percent": 9.663121093727606,
+          "nonharmonic_inband_db_relative_fundamental": -32.91084032761614
+        },
+        "tone_hot": {
+          "rms_dbfs": -3.708972212928721,
+          "thd_percent": 27.67796181522895,
+          "nonharmonic_inband_db_relative_fundamental": -27.471906436779513
+        },
+        "hf": {
+          "rms_dbfs": -4.622477067101999,
+          "thd_percent": 0.0,
+          "nonharmonic_inband_db_relative_fundamental": -12.367650852480807
+        },
+        "impulse": {
+          "rms_dbfs": -45.347617963168155
+        },
+        "left_only": {
+          "rms_dbfs": -6.719271965565556,
+          "right_leak_dbfs": -96.67783105533802
+        },
+        "chord": {
+          "rms_dbfs": -6.4042862476177485
+        }
+      }
+    }
+  ],
+  "total_renders": 315,
+  "limits": [
+    "Native drive mappings differ; equal dial is not matched distortion or gain.",
+    "DSPark adapter uses one stage, sag .3, 100% wet, default 2x; remaining candidates use native rate without added oversampling.",
+    "CPU measured in shared cloud executor, one sweep, not product PC guarantees.",
+    "new counter covers ordinary C++ new calls only, not malloc/aligned allocation or all realtime contracts.",
+    "Steady tone FFT nonharmonic residual includes noise/transients; not a pure alias-energy measurement.",
+    "All audio is finite in recorded cases; this does not establish complete stability or analog fidelity."
+  ]
+}

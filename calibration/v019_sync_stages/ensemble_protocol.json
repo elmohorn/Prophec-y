@@ -1,0 +1,44 @@
+{
+  "source_sha256": "94820a7c0f7d68a6c32fb670337871c981f90f600b52591b265481e5e212b1a5",
+  "interventions": {
+    "one_voice": {
+      "verified_raw_edits": {
+        "85": [
+          5,
+          0
+        ]
+      },
+      "sha256": "5482e74f60ccef988d9601a6a3d1b3b1b76d9a4ab74e6ff119c07e4953bda3c8"
+    },
+    "no_slop": {
+      "verified_raw_edits": {
+        "18": [
+          67,
+          0
+        ]
+      },
+      "sha256": "88af19d49e5e31b2843f929d6f9427ae73fd0d35344259a36f8f5ce29c1c8c35"
+    },
+    "one_voice_no_slop": {
+      "verified_raw_edits": {
+        "85": [
+          5,
+          0
+        ],
+        "18": [
+          67,
+          0
+        ]
+      },
+      "sha256": "aa6e5d7b1e0195527c5ca1207ff35b19263ad7cdb98554cb02723edd77862f9c"
+    }
+  },
+  "renders": 12,
+  "limits": [
+    "Model interventions only; original source patch remains unchanged.",
+    "No voice-count or Slop setting is inferred for the hardware from these ablations."
+  ],
+  "renderer_sha256": "0fe0e053f421b6bce716298c51218a47757902f135a9a960cee25d7107f6e678",
+  "events_sha256": "d023fbb381fbccfa07241b2ce36f9c0584a48184ebd3bdfbdc72b9efafdd15ec",
+  "source_sha": "34135bbc4334269b6b358065b45167557f676b50"
+}

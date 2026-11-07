@@ -1,0 +1,51 @@
+{
+  "source_branch": "v0.19-sound-matching",
+  "source_sha": "ab5170d2de9463a4ee4b9bb31917108bf48c944a",
+  "renderer_sha256": "d50580d35a9d810b97eda0441b9329ea9ed27e6e19d837939535dab49048f857",
+  "profiles_file_sha256": "ec40caf3cbb4629b24d90db9d5f671ee123830b91099a4dad853720d66ac636c",
+  "prerolls": [
+    0.0,
+    0.5,
+    1.5,
+    3.0
+  ],
+  "oversampling": 2,
+  "sample_rate": 48000,
+  "analysis_band_hz": [
+    40,
+    12000
+  ],
+  "fft_sizes": [
+    512,
+    2048,
+    8192
+  ],
+  "limits": [
+    "One independent recording with one customized patch and six repeated attacks, not independent replications.",
+    "Suspected hardware glitch in source; exploratory diagnosis only, not normal-instrument calibration.",
+    "Original WAV has not been RMS-normalized; interface/master gain unknown; metrics use RMS matching only.",
+    "Approximate repeated C4 onsets; unrecorded velocity and gates; three gate hypotheses retained.",
+    "FX and glide enabled in original attached program; initial FX-buffer history unknown.",
+    "No engine defaults changed; frozen eight-patch holdout remains unrun.",
+    "23/24 comparisons reach -150 ms alignment limit; timing calibration is not valid. Spectral signs independently checked with alignment disabled on same renders."
+  ],
+  "assets": {
+    "RB004_g025": {
+      "reference": "b5f8f6ba329b55ee578ecbf8380b5d1af8220849f73a43fa65e06cfc30516369",
+      "sysex": "b3f9e1dcd1cb867e73be01b3f396c94e21f14c5e40dfc6f6d5b560c05c3e8611",
+      "events": "f81f6cf48b353b1e3b88146f47ac71d74a01b076ce4e6230883cbe1b1fa59e70"
+    },
+    "RB004_g050": {
+      "reference": "b5f8f6ba329b55ee578ecbf8380b5d1af8220849f73a43fa65e06cfc30516369",
+      "sysex": "b3f9e1dcd1cb867e73be01b3f396c94e21f14c5e40dfc6f6d5b560c05c3e8611",
+      "events": "114fafb258c50c63829fe4b9df39a9b06759ed41e6170e2c6f6b3d67a1848a6f"
+    },
+    "RB004_g075": {
+      "reference": "b5f8f6ba329b55ee578ecbf8380b5d1af8220849f73a43fa65e06cfc30516369",
+      "sysex": "b3f9e1dcd1cb867e73be01b3f396c94e21f14c5e40dfc6f6d5b560c05c3e8611",
+      "events": "c4f762edaf302475fdf303b0ee3023d375be38f61242f886ce137b2efdd922c8"
+    }
+  },
+  "input_protocol": "input_protocol.json",
+  "alignment_sensitivity": "alignment_sensitivity.json"
+}

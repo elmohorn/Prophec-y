@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(P6Core VERSION 0.18.0 LANGUAGES C CXX)
+project(P6Core VERSION 0.20.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,6 +25,7 @@ add_library(p6core
     src/P6ReverbEffects.cpp
     src/ParameterRegistry.cpp
     src/ProgramLayout.cpp
+    src/ReferenceIsolation.cpp
     src/ParameterMapper.cpp
     src/CandidateFilters.cpp
     src/P6Voice.cpp
@@ -44,6 +45,13 @@ else()
 endif()
 
 enable_testing()
+add_library(p6character plugin/CharacterFx.cpp plugin/CustomCharacter.cpp
+    third_party/DaisySP/Source/Effects/wavefolder.cpp
+    third_party/DaisySP/Source/Filters/svf.cpp
+    third_party/DaisySP/Source/Utility/dcblock.cpp)
+target_include_directories(p6character PUBLIC plugin PRIVATE third_party/DSPark third_party/DaisySP third_party/DaisySP/Source)
+target_link_libraries(p6character PUBLIC p6core)
+set_target_properties(p6character PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_executable(p6core_tests tests/test_main.cpp)
 target_link_libraries(p6core_tests PRIVATE p6core)
 if(MSVC)
@@ -83,6 +91,25 @@ else()
 endif()
 add_test(NAME p6_v018_fx_tests COMMAND p6_v018_fx_tests)
 
+add_executable(p6_v019_reference_tests tests/v019_reference_isolation_test.cpp)
+target_link_libraries(p6_v019_reference_tests PRIVATE p6core)
+if(MSVC)
+  target_compile_options(p6_v019_reference_tests PRIVATE /UNDEBUG)
+else()
+  target_compile_options(p6_v019_reference_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME p6_v019_reference_tests COMMAND p6_v019_reference_tests)
+
+add_executable(p6_character_tests tests/character_fx_test.cpp)
+target_link_libraries(p6_character_tests PRIVATE p6character)
+add_test(NAME p6_character_tests COMMAND p6_character_tests)
+
+add_executable(p6_neon_rate_probe tools/neon_rate_probe.cpp)
+target_link_libraries(p6_neon_rate_probe PRIVATE p6character)
+
+add_executable(p6_character_benchmark tools/character_benchmark.cpp)
+target_link_libraries(p6_character_benchmark PRIVATE p6character)
+
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
 add_executable(p6_inspect tools/inspect_sysex.cpp)
@@ -95,18 +122,56 @@ add_executable(p6_render_cal tools/render_calibration.cpp)
 target_link_libraries(p6_render_cal PRIVATE p6core)
 add_executable(p6_render_events_cal tools/render_events_calibration.cpp)
 target_link_libraries(p6_render_events_cal PRIVATE p6core)
+add_executable(p6_render_reference tools/render_reference.cpp)
+target_link_libraries(p6_render_reference PRIVATE p6core)
+add_test(NAME p6_render_reference_help COMMAND p6_render_reference --help)
+
+add_executable(p6_generate_p0a_capture_pack tools/generate_p0a_capture_pack.cpp)
+target_link_libraries(p6_generate_p0a_capture_pack PRIVATE p6core)
+add_test(NAME p6_generate_p0a_capture_pack_self_test
+         COMMAND p6_generate_p0a_capture_pack --self-test)
 add_executable(p6_sync_probe tools/sync_probe.cpp)
 target_link_libraries(p6_sync_probe PRIVATE p6core)
 add_executable(p6_polymod_probe tools/polymod_probe.cpp)
 target_link_libraries(p6_polymod_probe PRIVATE p6core)
 add_executable(p6_sync_microscope tools/sync_microscope.cpp)
 target_link_libraries(p6_sync_microscope PRIVATE p6core)
+add_executable(p6_sync_harmonic_probe tools/sync_harmonic_probe.cpp)
+target_link_libraries(p6_sync_harmonic_probe PRIVATE p6core)
 add_executable(p6_timing_probe tools/timing_probe.cpp)
 target_link_libraries(p6_timing_probe PRIVATE p6core)
 add_executable(p6_perf_benchmark tools/perf_benchmark.cpp)
 target_link_libraries(p6_perf_benchmark PRIVATE p6core)
 add_executable(p6_dsp_fingerprint tools/dsp_fingerprint.cpp)
 target_link_libraries(p6_dsp_fingerprint PRIVATE p6core)
+
+# Parameter presentation remains independent of JUCE and audio-thread state.
+add_library(p6presentation plugin/ui/ParameterPresentation.cpp plugin/ui/ContextPreview.cpp)
+target_include_directories(p6presentation PUBLIC plugin)
+target_link_libraries(p6presentation PUBLIC p6core)
+set_target_properties(p6presentation PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_executable(p6_parameter_presentation_tests tests/parameter_presentation_test.cpp)
+target_link_libraries(p6_parameter_presentation_tests PRIVATE p6presentation)
+add_test(NAME p6_parameter_presentation_tests COMMAND p6_parameter_presentation_tests)
+add_executable(p6_state_compatibility_tests tests/state_compatibility_test.cpp plugin/PluginStateCodec.cpp)
+target_include_directories(p6_state_compatibility_tests PRIVATE plugin)
+target_link_libraries(p6_state_compatibility_tests PRIVATE p6core)
+target_compile_definitions(p6_state_compatibility_tests PRIVATE P6_STATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/state_versions")
+add_test(NAME p6_state_compatibility_tests COMMAND p6_state_compatibility_tests)
+
+add_executable(p6_context_preview_tests tests/context_preview_test.cpp)
+target_link_libraries(p6_context_preview_tests PRIVATE p6presentation)
+add_test(NAME p6_context_preview_tests COMMAND p6_context_preview_tests)
+
+add_executable(p6_output_stage_tests tests/output_stage_test.cpp plugin/PluginStateCodec.cpp)
+target_include_directories(p6_output_stage_tests PRIVATE plugin)
+target_link_libraries(p6_output_stage_tests PRIVATE p6core)
+add_test(NAME p6_output_stage_tests COMMAND p6_output_stage_tests)
+
+add_executable(p6_preset_bank_tests tests/preset_bank_test.cpp plugin/PresetBankCodec.cpp plugin/PluginStateCodec.cpp)
+target_include_directories(p6_preset_bank_tests PRIVATE plugin)
+target_link_libraries(p6_preset_bank_tests PRIVATE p6core)
+add_test(NAME p6_preset_bank_tests COMMAND p6_preset_bank_tests)
 
 option(P6_BUILD_PLUGIN "Build the JUCE VST3/Standalone wrapper" OFF)
 option(P6_FETCH_JUCE "Fetch the pinned JUCE release if it is not otherwise available" ON)
@@ -135,3 +200,7 @@ if(P6_BUILD_PLUGIN)
   endif()
   add_subdirectory(plugin)
 endif()
+
+add_executable(p6_parameter_domain_audit tests/parameter_domain_audit_test.cpp)
+target_link_libraries(p6_parameter_domain_audit PRIVATE p6core)
+add_test(NAME p6_parameter_domain_audit COMMAND p6_parameter_domain_audit)

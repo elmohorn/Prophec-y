@@ -1,0 +1,33 @@
+{
+  "new_cpp_renders": 802,
+  "render_counts": {
+    "coarse_sync": 540,
+    "refined_sync": 171,
+    "nominal_chord_components": 48,
+    "pulse_width_components": 24,
+    "preset507": 18,
+    "preliminary_pitch_check": 1
+  },
+  "comparison_rows": 316,
+  "production_dsp_changed": false,
+  "script_sha256": {
+    "tools/compare_sync_recordings.py": "3d80c385ef4b4cb192a319e6be174cc2e20a1624ad9b90b2276357a9f7776212",
+    "tools/compare_sync_controls.py": "bf434f92bcf27fdf4d6bdd2d92bb0a7a518cbf6c5149ac82a465a4f097817d2e",
+    "tools/refine_sync_ratios.py": "ac566bdf52c3435ef2d00a3023c37b3e16ad74f9179c48b2d2e51fa891d600f9",
+    "tools/compare_pulse_width_uncertainty.py": "6e6c3c8620071bddfb49054f6f639eec48bc1ae718edd1bde019272557059dec"
+  },
+  "source_sha256": {
+    "OB6-P6-Vergleich-Sync-Sweep-OSC1_P6_right.wav": "618dcd84d974a78867a1c14b133d90d5f4be9bebf3249a3fbda73361366a6cf4",
+    "Audiofanzine_Quiz_Sync_VF.mp3": "e626c60191dc62c18085b0c5c18cd415ce30a85343cb57eef42601948c579e5a",
+    "OB6-P6-Vergleich-Waveform-Pulse.mp3": "ed13d12defd7ed52b0d2000d144a4d70729c4a18c12dda2d3ea4bd8217e1ab54",
+    "OB6-P6-Vergleich-OSC2-Shape.mp3": "60654abe290641e15c422209c30f340600446f3d6c1e258554eebbd01ebe1a82",
+    "OB6-P6-Vergleich-Sync-Sweep-OSC1.mp3": "88c3de95f04db9658ff3a462fb9f1373bca839a242f14430b0099b4bfeb856dd",
+    "Audiofanzine_507.mp3": "edf4bcece100270e76ad54246ffab3c9d1b1c1f93b1f1801dea0d9f2cdd4f2fb",
+    "507-SyncLead-Uni.mp3": "33dffe80ff149fdb27a56697f889db8ac613ce3d1d15241ee14a0322d914a6a5",
+    "OB6-P6-Vergleich-OSC2-Shape_P6_right.wav": "541fb1281389efd3c9ca46b022469a622cb102ed2ddc81bc157b25a1169f622b",
+    "OB6-P6-Vergleich-Waveform-Pulse_P6_right.wav": "941b2805cfbbc17bcc3b0ea2691bbae658786e150f58a1af5d2ef68ba6a90279",
+    "OB6-P6-Vergleich-Waveform-Saw_P6_right.wav": "b7f9448cd655ab2f5fab1513c0552e262cd97e6a501b172b2599b0bdee7252a6",
+    "OB6-P6-Vergleich-Waveform-Saw.mp3": "9c71970264a5b538eff20b229f3c77acbc747d2229300829b7c6a5ea932a539a",
+    "535-SynClavi.mp3": "e6accaa55c2b8151e6418b099d89016cd9fdb1acd27e131e3b06778330c3b864"
+  }
+}

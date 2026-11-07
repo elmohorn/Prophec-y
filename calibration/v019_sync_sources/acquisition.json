@@ -1,0 +1,325 @@
+{
+  "phase": "v0.19 hard-sync reference acquisition",
+  "acquired_date_local": "2026-10-31",
+  "status": "8 valid original MP3s acquired; 4 exact decoded right-channel derivatives; no model comparisons in this phase",
+  "production_dsp_changes": false,
+  "fully_known_state_isolated_hard_sync_capture": false,
+  "source_notes": {
+    "comparison_url_path": "The literal publisher links use /2030/01/; this is a server path, not publication dating. Do not rewrite it.",
+    "quiz_solution": "https://fr.audiofanzine.com/synthe-analogique/sequential/prophet-6/forums/t.603359,commentaires-sur-le-test-le-retour-du-roi,post.8522542.html"
+  },
+  "files": [
+    {
+      "filename": "OB6-P6-Vergleich-Sync-Sweep-OSC1.mp3",
+      "url": "https://www.amazona.de/wp-content/uploads/2030/01/OB6-P6-Vergleich-Sync-Sweep-OSC1.mp3",
+      "source_page": "https://www.amazona.de/test-sequential-prophet-6-module-vs-oberheim-ob-6-module/",
+      "role": "priority_sync_sweep",
+      "selection": "right channel only",
+      "known": [
+        "Publisher labels sample Sync-Sweep-OSC1",
+        "Publisher identifies OB-6 left and Prophet-6 right",
+        "Comparison published 2017-03-08"
+      ],
+      "unknown": [
+        "No exact raw shape/PW, master/slave tuning or sweep control trajectory",
+        "No complete mixer/filter/FX/voice state or paired SysEx/MIDI",
+        "MP3 encoding may introduce channel leakage; physical isolation not measured"
+      ],
+      "sha256": "88c3de95f04db9658ff3a462fb9f1373bca839a242f14430b0099b4bfeb856dd",
+      "bytes": 1196186,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1559219,
+      "decoded_duration_s": 35.35643990929705,
+      "decoded_pcm_f32le_sha256": "63b96c903200c1cafdf5fb89021db27040e5cff0d4f2981dc8bbf5b31c10b7e2",
+      "peak_per_channel": [
+        0.7737404704093933,
+        1.0087863206863403
+      ],
+      "rms_per_channel": [
+        0.15095796780929838,
+        0.21632882994576574
+      ],
+      "derived": {
+        "filename": "OB6-P6-Vergleich-Sync-Sweep-OSC1_P6_right.wav",
+        "operation": "decoded right channel copied to mono float32 WAV; no mix, normalization, resampling or time edits",
+        "sha256": "618dcd84d974a78867a1c14b133d90d5f4be9bebf3249a3fbda73361366a6cf4",
+        "sample_identity_verified": true
+      }
+    },
+    {
+      "filename": "OB6-P6-Vergleich-Waveform-Saw.mp3",
+      "url": "https://www.amazona.de/wp-content/uploads/2030/01/OB6-P6-Vergleich-Waveform-Saw.mp3",
+      "source_page": "https://www.amazona.de/test-sequential-prophet-6-module-vs-oberheim-ob-6-module/",
+      "role": "companion_waveform",
+      "selection": "right channel only",
+      "known": [
+        "Publisher labels sample Waveform-Saw",
+        "Publisher identifies OB-6 left and Prophet-6 right",
+        "Comparison published 2017-03-08"
+      ],
+      "unknown": [
+        "No exact raw shape/PW, master/slave tuning or sweep control trajectory",
+        "No complete mixer/filter/FX/voice state or paired SysEx/MIDI",
+        "MP3 encoding may introduce channel leakage; physical isolation not measured"
+      ],
+      "sha256": "9c71970264a5b538eff20b229f3c77acbc747d2229300829b7c6a5ea932a539a",
+      "bytes": 1425368,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1581299,
+      "decoded_duration_s": 35.8571201814059,
+      "decoded_pcm_f32le_sha256": "9b8bc2dca4715b64ae40a0fbca55d0615093b79b5a14b8f7a16c385a6a1769a8",
+      "peak_per_channel": [
+        0.9804438948631287,
+        0.9707083702087402
+      ],
+      "rms_per_channel": [
+        0.21832392415494578,
+        0.20775206077702157
+      ],
+      "derived": {
+        "filename": "OB6-P6-Vergleich-Waveform-Saw_P6_right.wav",
+        "operation": "decoded right channel copied to mono float32 WAV; no mix, normalization, resampling or time edits",
+        "sha256": "b7f9448cd655ab2f5fab1513c0552e262cd97e6a501b172b2599b0bdee7252a6",
+        "sample_identity_verified": true
+      }
+    },
+    {
+      "filename": "OB6-P6-Vergleich-Waveform-Pulse.mp3",
+      "url": "https://www.amazona.de/wp-content/uploads/2030/01/OB6-P6-Vergleich-Waveform-Pulse.mp3",
+      "source_page": "https://www.amazona.de/test-sequential-prophet-6-module-vs-oberheim-ob-6-module/",
+      "role": "companion_waveform",
+      "selection": "right channel only",
+      "known": [
+        "Publisher labels sample Waveform-Pulse",
+        "Publisher identifies OB-6 left and Prophet-6 right",
+        "Comparison published 2017-03-08"
+      ],
+      "unknown": [
+        "No exact raw shape/PW, master/slave tuning or sweep control trajectory",
+        "No complete mixer/filter/FX/voice state or paired SysEx/MIDI",
+        "MP3 encoding may introduce channel leakage; physical isolation not measured"
+      ],
+      "sha256": "ed13d12defd7ed52b0d2000d144a4d70729c4a18c12dda2d3ea4bd8217e1ab54",
+      "bytes": 1248919,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1515571,
+      "decoded_duration_s": 34.366689342403625,
+      "decoded_pcm_f32le_sha256": "17fc6f3d6544e4ef270903a28bb901ce258bf7f0ed9365283bb240cdee3fd520",
+      "peak_per_channel": [
+        1.0193710327148438,
+        0.8672816157341003
+      ],
+      "rms_per_channel": [
+        0.28692468576729524,
+        0.24491747795436936
+      ],
+      "derived": {
+        "filename": "OB6-P6-Vergleich-Waveform-Pulse_P6_right.wav",
+        "operation": "decoded right channel copied to mono float32 WAV; no mix, normalization, resampling or time edits",
+        "sha256": "941b2805cfbbc17bcc3b0ea2691bbae658786e150f58a1af5d2ef68ba6a90279",
+        "sample_identity_verified": true
+      }
+    },
+    {
+      "filename": "OB6-P6-Vergleich-OSC2-Shape.mp3",
+      "url": "https://www.amazona.de/wp-content/uploads/2030/01/OB6-P6-Vergleich-OSC2-Shape.mp3",
+      "source_page": "https://www.amazona.de/test-sequential-prophet-6-module-vs-oberheim-ob-6-module/",
+      "role": "companion_dynamic_shape",
+      "selection": "right channel only",
+      "known": [
+        "Publisher labels sample OSC2-Shape",
+        "Publisher identifies OB-6 left and Prophet-6 right",
+        "Comparison published 2017-03-08"
+      ],
+      "unknown": [
+        "No exact raw shape/PW, master/slave tuning or sweep control trajectory",
+        "No complete mixer/filter/FX/voice state or paired SysEx/MIDI",
+        "MP3 encoding may introduce channel leakage; physical isolation not measured"
+      ],
+      "sha256": "60654abe290641e15c422209c30f340600446f3d6c1e258554eebbd01ebe1a82",
+      "bytes": 1977133,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 2354099,
+      "decoded_duration_s": 53.38092970521542,
+      "decoded_pcm_f32le_sha256": "f50ec68685ba8362bcf80a30ae0677da7fb2c958f438ed7c1704fc3a71f75966",
+      "peak_per_channel": [
+        0.554803729057312,
+        0.9966031908988953
+      ],
+      "rms_per_channel": [
+        0.11227733498239831,
+        0.12910990789555377
+      ],
+      "derived": {
+        "filename": "OB6-P6-Vergleich-OSC2-Shape_P6_right.wav",
+        "operation": "decoded right channel copied to mono float32 WAV; no mix, normalization, resampling or time edits",
+        "sha256": "541fb1281389efd3c9ca46b022469a622cb102ed2ddc81bc157b25a1169f622b",
+        "sample_identity_verified": true
+      }
+    },
+    {
+      "filename": "507-SyncLead-Uni.mp3",
+      "url": "https://www.amazona.de/wp-content/uploads/2015/09/507-SyncLead-Uni.mp3",
+      "source_page": "https://www.amazona.de/test-sequential-prophet-6-analog-synthesizer/",
+      "role": "numbered_preset_sync_candidate",
+      "selection": "whole file",
+      "known": [
+        "Publisher label 507-SyncLead-Uni",
+        "Review published 2015-09-12"
+      ],
+      "unknown": [
+        "Recording-specific SysEx, MIDI performance, knob changes, controller and effects state unavailable",
+        "The name SynClavi alone does not establish oscillator sync"
+      ],
+      "sha256": "33dffe80ff149fdb27a56697f889db8ac613ce3d1d15241ee14a0322d914a6a5",
+      "bytes": 298839,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 820736,
+      "decoded_duration_s": 18.61079365079365,
+      "decoded_pcm_f32le_sha256": "f6c222d0eab98166fc60fda9a58130e7c397ccfaf06e44fa17078ce32dc6f157",
+      "peak_per_channel": [
+        0.9720943570137024,
+        0.9540852904319763
+      ],
+      "rms_per_channel": [
+        0.16256228169642062,
+        0.16632662279938723
+      ]
+    },
+    {
+      "filename": "535-SynClavi.mp3",
+      "url": "https://www.amazona.de/wp-content/uploads/2015/09/535-SynClavi.mp3",
+      "source_page": "https://www.amazona.de/test-sequential-prophet-6-analog-synthesizer/",
+      "role": "auxiliary_named_patch",
+      "selection": "whole file",
+      "known": [
+        "Publisher label 535-SynClavi",
+        "Review published 2015-09-12"
+      ],
+      "unknown": [
+        "Recording-specific SysEx, MIDI performance, knob changes, controller and effects state unavailable",
+        "The name SynClavi alone does not establish oscillator sync"
+      ],
+      "sha256": "e6accaa55c2b8151e6418b099d89016cd9fdb1acd27e131e3b06778330c3b864",
+      "bytes": 501968,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 1379584,
+      "decoded_duration_s": 31.283083900226757,
+      "decoded_pcm_f32le_sha256": "608430e7035ebfff7f03ce1278638f7998bf990386d3fb3c998cda5f149dce42",
+      "peak_per_channel": [
+        0.9407029151916504,
+        0.9512542486190796
+      ],
+      "rms_per_channel": [
+        0.13746028375627314,
+        0.1297805132068581
+      ]
+    },
+    {
+      "filename": "Audiofanzine_507.mp3",
+      "url": "https://medias.audiofanzine.com/audio/475452.mp3",
+      "source_page": "https://fr.audiofanzine.com/synthe-analogique/sequential/prophet-6/editorial/tests/le-retour-du-roi.html",
+      "role": "independent_numbered_preset_candidate",
+      "selection": "whole file",
+      "known": [
+        "Publisher label 507"
+      ],
+      "unknown": [
+        "Factory bank version and exact recording state not paired; do not assume byte-identical to another 507 demo",
+        "MIDI notes/gates/controllers and effects state unknown"
+      ],
+      "sha256": "edf4bcece100270e76ad54246ffab3c9d1b1c1f93b1f1801dea0d9f2cdd4f2fb",
+      "bytes": 242580,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "decoded_frames": 714250,
+      "decoded_duration_s": 16.196145124716555,
+      "decoded_pcm_f32le_sha256": "cc254e8c54f0968dedb773f16aed5b90d90d05954738b75dae87e14a67a240e0",
+      "peak_per_channel": [
+        0.8927556276321411,
+        0.9422833323478699
+      ],
+      "rms_per_channel": [
+        0.2263414030179544,
+        0.2435538340157413
+      ]
+    },
+    {
+      "filename": "Audiofanzine_Quiz_Sync_VF.mp3",
+      "url": "https://medias.audiofanzine.com/audio/475474.mp3",
+      "source_page": "https://fr.audiofanzine.com/synthe-analogique/sequential/prophet-6/editorial/tests/le-retour-du-roi.html",
+      "role": "mixed_instrument_quiz_not_scored",
+      "selection": "retain whole file until boundary established",
+      "known": [
+        "Publisher calls it sync quiz",
+        "Review says mono Prophet-6 and Prophet-5 Rev3.3 without effects",
+        "Author solution post 171: Prophet-6 first, Prophet-5 second",
+        "Author post 163: P6 amp attack/release zero"
+      ],
+      "unknown": [
+        "Exact instrument change boundary not yet established",
+        "No exact patch number/SysEx or master/slave tuning",
+        "Do not score entire mixed-instrument file as Prophet-6"
+      ],
+      "sha256": "e626c60191dc62c18085b0c5c18cd415ce30a85343cb57eef42601948c579e5a",
+      "bytes": 255004,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 1,
+      "decoded_frames": 900379,
+      "decoded_duration_s": 20.416757369614512,
+      "decoded_pcm_f32le_sha256": "75125396cdbf7a0149a4d7dfe8e71e8d4f6a6ea910695f57df2c02ad9a9f33fe",
+      "peak_per_channel": [
+        1.0363929271697998
+      ],
+      "rms_per_channel": [
+        0.4642974335457605
+      ]
+    }
+  ],
+  "leads": [
+    {
+      "name": "Polydata FM tutorial",
+      "url": "https://www.youtube.com/watch?v=iuOlPy_AlIA&t=882s",
+      "sync_section_s": [
+        882,
+        1140
+      ],
+      "status": "Metadata retrieved; attempted normal media download yielded 195 bytes of non-audio, ffprobe rejected. Not acquired or measured.",
+      "full_state": "Not verified from video frames"
+    },
+    {
+      "name": "Ruediger Gaenslen P6/P5 comparison",
+      "url": "https://www.youtube.com/watch?v=sLfQ_DaXIHM",
+      "status": "Author description available, sections 5/6 sync+unison, P6 slop35%; not a clean reset identification source, no new media acquired."
+    },
+    {
+      "name": "Reverb Bernie Worrell lesson",
+      "url": "https://reverb.com/news/video-the-synth-sounds-of-parliament-funkadelics-bernie-worrell",
+      "status": "Performance uses P6 but written patch is explicitly for P5 and uses wah. Reject as exact P6 parameter reference."
+    },
+    {
+      "name": "PresetPatch Furry_Sync_Lead.syx",
+      "url": "https://www.presetpatch.com/synth/sequential-prophet-6",
+      "status": "Public listing found; download quotas/login shown and local page request403. No paired audio acquired; no access circumvention."
+    },
+    {
+      "name": "Audiofanzine FLAC listing",
+      "url": "https://fr.audiofanzine.com/synthe-analogique/sequential/prophet-6/medias/autres/",
+      "status": "Quiz Sync listed, but no direct verified FLAC obtained in this pass; acquired MP3 is not called lossless."
+    }
+  ]
+}

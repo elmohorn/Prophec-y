@@ -1,0 +1,7 @@
+pluginval 1.0.4 / Linux / P6 Core v0.20.0
+Strictness: 10
+Flags: --skip-gui-tests
+Seed: 0x6077454
+Exit code: 0
+SUCCESS
+Editor tested separately by native offscreen smoke. No manual DAW or Windows result claimed.

@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-01",
+  "phase": "v0.20 initial tube and native editor prototype",
+  "toolchain": "Linux GCC 13.3, C++20 Release, JUCE 9.0.4",
+  "ctest": {
+    "passed": 10,
+    "failed": 0
+  },
+  "v019_core_fingerprints": {
+    "identical_scenarios": 5,
+    "comparison": "byte-exact CSV equality"
+  },
+  "character_adapter_rates_hz": [
+    44100,
+    48000,
+    96000
+  ],
+  "ordinary_new_during_adapter_process": 0,
+  "asan_ubsan": {
+    "character_and_state_tests": "passed",
+    "detect_leaks": false,
+    "limitation": "LeakSanitizer ptrace limitation; no leak-freedom claim"
+  },
+  "ui_smoke": {
+    "passed": true,
+    "covers": [
+      "v2 state restore",
+      "SysEx unchanged",
+      "finite live audio during type/position/bypass changes",
+      "reopen editor",
+      "Drive textbox units",
+      "None height 500",
+      "offscreen Module/Studio PNG rendering"
+    ]
+  },
+  "pluginval": {
+    "version": "1.0.4",
+    "strictness": 10,
+    "exit_code": 0,
+    "result": "SUCCESS",
+    "gui_tests_skipped": true,
+    "random_seed": "0x6077454"
+  },
+  "binary_sha256": "3f2f11d1578783b9aaeff0576affe8eb1582d16f7aa1e7712abd19ebfd6c9b67",
+  "preview_sha256": "316cdd66968951bd4b433be822fa879c26941c86419c0627f906673b112d6600",
+  "fixed_wrapper_latency_samples": 71,
+  "windows_validation": "Not run locally; CI configured",
+  "packaging": "MIT notice copy commands configured in VST3 post-build; same files copied into local validated bundle without changing binary",
+  "remaining": [
+    "manual DAW audition",
+    "Windows CI result",
+    "final Module/Studio design",
+    "persistent collapse/motion preferences",
+    "more character modules",
+    "crossfade refinement"
+  ],
+  "source_note": "Unmodified vendored files retain original whitespace; own staged diff whitespace check passes excluding third_party"
+}

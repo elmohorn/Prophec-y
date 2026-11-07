@@ -34,6 +34,8 @@ public:
     void resetMidiControllers()
     {
         engine_.setModWheel(0.0);
+        engine_.setPitchBend(0.0);
+        engine_.setChannelPressure(0.0);
         engine_.setSustainPedal(false);
         engine_.setMidiVolume(1.0);
     }

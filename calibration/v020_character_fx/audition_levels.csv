@@ -1,0 +1,7 @@
+candidate,file,latency_trimmed_samples,applied_gain_db,final_rms_dbfs,final_peak_dbfs
+dry,dry_RMS_matched.wav,0,-0.5373177943337913,-20.0,-6.537318706512451
+airwindows,airwindows_RMS_matched.wav,0,-7.369444326688131,-19.999999999999996,-7.3694432912494605
+dspark,dspark_RMS_matched.wav,71,-3.723055806288824,-20.0,-8.38805530129603
+patina,patina_RMS_matched.wav,0,-13.206045952516963,-20.0,-11.346062632722393
+daisy,daisy_RMS_matched.wav,0,-17.91688563961786,-20.0,-17.91688460417919
+0xfx,0xfx_RMS_matched.wav,0,-12.686634278374008,-20.0,-10.434671642540794

@@ -66,6 +66,7 @@ void P6ReverbEffects::reset() noexcept
 
 void P6ReverbEffects::invalidateRealtimeState() noexcept
 {
+    pickupTaps_={};
     for (auto& line : lines_) {
         line.write = 0;
         line.validSamples = 0;
@@ -146,6 +147,8 @@ P6ReverbStereoSample P6ReverbEffects::process(double left, double right,
     for (std::size_t i = 0; i < kLines; ++i)
         y[i] = readDelay(lines_[i], cached_.delaySamples[i]);
 
+    pickupTaps_=y;
+
     feedback[0] = 0.5 * ( y[0] + y[1] + y[2] + y[3]);
     feedback[1] = 0.5 * ( y[0] - y[1] + y[2] - y[3]);
     feedback[2] = 0.5 * ( y[0] + y[1] - y[2] - y[3]);
@@ -181,3 +184,4 @@ P6ReverbStereoSample P6ReverbEffects::process(double left, double right,
 }
 
 } // namespace p6
+

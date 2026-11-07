@@ -1,0 +1,29 @@
+name: headroom-probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [v0.20-ui]
+    paths:
+      - 'src/P6Engine.cpp'
+      - 'src/P6Voice.cpp'
+      - 'src/ParameterMapper.cpp'
+      - 'include/p6/P6Engine.h'
+      - 'include/p6/P6Voice.h'
+      - 'include/p6/ParameterMapper.h'
+      - 'tools/dsp_fingerprint.cpp'
+      - 'tools/headroom_probe.cpp'
+      - '.github/workflows/headroom-probe.yml'
+
+jobs:
+  probe:
+    name: Deterministic poly/unison headroom
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure core-only build
+        run: cmake -S . -B build-headroom -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=OFF
+      - name: Build DSP fingerprint probe
+        run: cmake --build build-headroom --target p6_dsp_fingerprint --parallel 2
+      - name: Measure synth output headroom
+        run: ./build-headroom/p6_dsp_fingerprint

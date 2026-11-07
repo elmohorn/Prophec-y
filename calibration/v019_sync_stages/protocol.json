@@ -1,0 +1,69 @@
+{
+  "source_sha": "34135bbc4334269b6b358065b45167557f676b50",
+  "status": "registered-before-stage-scores",
+  "case": "RA266",
+  "program": 266,
+  "raw_oscillator_coarse": [
+    52,
+    24
+  ],
+  "raw_oscillator_levels": [
+    100,
+    94
+  ],
+  "raw_shapes": [
+    127,
+    127
+  ],
+  "raw_sub_noise": [
+    0,
+    0
+  ],
+  "raw_fx_distortion": [
+    0,
+    0
+  ],
+  "raw_unison_slop_pan": [
+    5,
+    67,
+    127
+  ],
+  "raw_poly_mod_envelope_source": 131,
+  "raw_poly_mod_pitch_destination": 1,
+  "prerolls_s": [
+    0,
+    0.5,
+    1.5,
+    3
+  ],
+  "oversampling": 2,
+  "reference_duration_s": 1.6,
+  "candidate_start_s": 0.3,
+  "stage_profiles": [
+    "current",
+    "control_preserve",
+    "depth12",
+    "raw_mix",
+    "osc1",
+    "osc2",
+    "sync_only",
+    "pm_pitch_zero",
+    "mix_sqrt",
+    "mix_squared",
+    "lp_half",
+    "lp_double",
+    "res070",
+    "res130"
+  ],
+  "planned_stage_renders": 56,
+  "primary_goal": "attribute H4/H5 discrepancy without fitting that ratio alone",
+  "comparison_policy": [
+    "Report H1..H16 with independent-channel power and F0 from summed channel autocorrelation.",
+    "Keep original mono-fold harmonic metric only for historical comparison.",
+    "Use model stages as interventions, not hardware-isolated recordings.",
+    "Only whole-patch parameter interventions are eligible for cross-preset checking.",
+    "Never promote a raw component ablation, forced polarity/reset or retuned SysEx based on a single partial.",
+    "Check first/second halves of the reference and same candidate window before judging a stationary mismatch.",
+    "Keep all stage scores; check promising whole-patch interventions on other existing references; no engine defaults changed."
+  ]
+}

@@ -49,6 +49,11 @@ void PolyBLEPOscillator::setSyncResetPhase(double phase01)
     syncResetPhase_ = wrapPhase(phase01);
 }
 
+double PolyBLEPOscillator::nominalWaveform(double phase,double shape,double pulseWidth,double normalization)
+{
+    return Shape::at(shape,pulseWidth,normalization).value(wrapPhase(phase));
+}
+
 PolyBLEPOscillator::Shape PolyBLEPOscillator::Shape::at(double morph, double duty, double normalizationAmount)
 {
     const double w = std::clamp(morph, 0.0, 1.0);
@@ -293,3 +298,4 @@ double PolyBLEPOscillator::process(std::optional<double> syncAt)
 }
 
 } // namespace p6
+

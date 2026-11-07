@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "id": "amazona",
+      "file": "507-SyncLead-Uni.mp3",
+      "on": 12.91,
+      "note": 79,
+      "gate": 14.1,
+      "end": 16.8
+    },
+    {
+      "id": "audiofanzine",
+      "file": "Audiofanzine_507.mp3",
+      "on": 13.49,
+      "note": 57,
+      "gate": 14.1,
+      "end": 15.4
+    }
+  ],
+  "profiles": {
+    "v09": [],
+    "filter_bypass": [
+      "--filter-bypass",
+      "--preserve-output-controls"
+    ],
+    "pm_bypass": [
+      "--poly-mod-bypass",
+      "--preserve-output-controls"
+    ],
+    "pm_pitch0": [
+      "--pm-pitch-octaves",
+      "0"
+    ],
+    "pm_shape0": [
+      "--pm-shape-range",
+      "0"
+    ],
+    "time2.5_curve2": [
+      "--filter-env-max-seconds",
+      "2.5",
+      "--filter-env-exponent",
+      "2"
+    ],
+    "time2.5_curve3": [
+      "--filter-env-max-seconds",
+      "2.5",
+      "--filter-env-exponent",
+      "3"
+    ],
+    "time2.5_curve4": [
+      "--filter-env-max-seconds",
+      "2.5",
+      "--filter-env-exponent",
+      "4"
+    ],
+    "time5_curve2": [
+      "--filter-env-max-seconds",
+      "5",
+      "--filter-env-exponent",
+      "2"
+    ],
+    "time5_curve3": [
+      "--filter-env-max-seconds",
+      "5",
+      "--filter-env-exponent",
+      "3"
+    ],
+    "time5_curve4": [
+      "--filter-env-max-seconds",
+      "5",
+      "--filter-env-exponent",
+      "4"
+    ],
+    "time10_curve2": [
+      "--filter-env-max-seconds",
+      "10",
+      "--filter-env-exponent",
+      "2"
+    ],
+    "time10_curve3": [
+      "--filter-env-max-seconds",
+      "10",
+      "--filter-env-exponent",
+      "3"
+    ],
+    "time10_curve4": [
+      "--filter-env-max-seconds",
+      "10",
+      "--filter-env-exponent",
+      "4"
+    ],
+    "pm_pitch1": [
+      "--pm-pitch-octaves",
+      "1"
+    ],
+    "pm_pitch2": [
+      "--pm-pitch-octaves",
+      "2"
+    ],
+    "pm_pitch6": [
+      "--pm-pitch-octaves",
+      "6"
+    ]
+  },
+  "gate_offsets_s": [
+    -0.1,
+    0,
+    0.1
+  ],
+  "onset_offsets_s": [
+    -0.04,
+    0,
+    0.04
+  ],
+  "note": "Gate offsets and onset offsets are paired (-.04,-.10),(0,0),(.04,.10); this is a sensitivity check, not all nine combinations.",
+  "frozen_before_dynamics_model_scores": true,
+  "fit_source": "audiofanzine",
+  "cross_source": "amazona",
+  "limits": "Previous comparisons of both sources were already seen. Last-note isolation omits previous-note state. Full phrase reconstructions preserve uncertainty and are not exact MIDI.",
+  "selection": "rank median MR spectral error on Audiofanzine; report band error and envelope independently; crosscheck fixed candidate on Amazona; no per-source retuning"
+}

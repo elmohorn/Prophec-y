@@ -115,9 +115,15 @@ MapperCalibration referenceACandidateV09();
 
 // Small helpers exposed for deterministic tests and later calibration tools.
 double rawEnvelopeTime(std::uint16_t raw, double maxSeconds, double exponent = 3.5);
+// Effective segment time shared by the mapper and parameter presentation.
+// Only the six verified amp/filter time NRPNS are accepted; others return 0.
+double mappedEnvelopeTime(std::uint16_t nrpn, std::uint16_t raw, const MapperCalibration&);
+double rawGlideTime(std::uint16_t raw);
+double mappedPulseWidth(std::uint16_t raw, const MapperCalibration&);
 double rawFilterCutoffHz(std::uint16_t raw, double sampleRate,
                          const MapperCalibration& calibration = {});
 double rawLfoHz(std::uint16_t raw);
 double signedCentered01(std::uint16_t raw, std::uint16_t center = 127);
 
 } // namespace p6
+

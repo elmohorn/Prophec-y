@@ -1,0 +1,35 @@
+{
+  "source_sha256": "9c0487f04c73ddc06c5bb90cfbabe7b5e6768fa92543b4f5839a48da487884ce",
+  "sample_rate": 48000,
+  "nfft": 2048,
+  "hop": 120,
+  "interpolation": "bounded log-power parabolic",
+  "analysis_frequency_range_hz": [
+    800,
+    6500
+  ],
+  "minimum_three_bin_power_fraction": 0.8,
+  "maximum_stable_slope_semitones_per_second": 2,
+  "minimum_plateau_s": 0.035,
+  "maximum_transition_gap_s": 0.25,
+  "transition_range_cents": [
+    40,
+    250
+  ],
+  "plateau_count": 43,
+  "transition_count": 31,
+  "transition_median_cents": 101.5771785212678,
+  "near_semitone_transition_count": 27,
+  "near_semitone_median_cents": 101.3024560364002,
+  "near_semitone_min_cents": 95.20344936358924,
+  "near_semitone_max_cents": 106.57117523327742,
+  "near_whole_tone_transition_count": 4,
+  "full_file_near_fullscale_fraction": 0.0,
+  "limits": [
+    "Unknown knob positions, sweep speed, firmware and patch: no absolute Hz/raw law inferred.",
+    "Near-semitone category is descriptive, using the stated 70..130-cent interval.",
+    "A skipped observed plateau can create a two-semitone transition.",
+    "Short-window FFT estimates, analog drift and clipping limit precision.",
+    "No renderer waveform, filter-envelope depth or parameter default fitted."
+  ]
+}

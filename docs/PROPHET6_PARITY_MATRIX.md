@@ -29,7 +29,7 @@ The project remains deliberately conservative where the Prophet-6 documentation 
 
 v0.18 also introduced safe measured optimisations: reverb coefficient caching, exact zero-history FIR skipping, base-pitch conversion caching and Pan Spread gain caching. The dedicated maximum-spread render remained bit-identical before/after Pan caching (`d0332e325eb4376a`).
 
-The active milestone is now **v0.19: Sound matching and optimisation**.
+At the v0.18 snapshot, the active milestone became v0.19. Current status: v0.19 engineering/research closeout is documented in `V0_19_CLOSEOUT.md`; acoustic laws remain provisional. v0.20 UI/preset workflow enters planning under `V0_20_UI_PLAN.md`.
 
 ---
 
@@ -188,14 +188,14 @@ Architecture rule for this future work: visuals must consume low-cost telemetry 
 |---|---|---|---|---|
 | DSP fingerprints | VALIDATED | Dry, sync/poly, FX, 1x and nonzero-Pan deterministic snapshots | Expand around calibration changes | Ongoing |
 | Reference-A harness | FUNCTIONAL / PROVISIONAL | Spectral/envelope/stereo comparison suite | Compressed web source is not calibration truth | v0.19 |
-| Controlled real-hardware corpus | MISSING | Capture protocol defined | Obtain dry oscillator/filter/env/sync/FX sweeps | **v0.19 P0** |
+| Real Prophet-6 acoustic corpus | FUNCTIONAL / PROVISIONAL | Reference-A plus independent online captures; optional controlled-capture tools | Extend usable patch/event coverage; no requirement for owner-provided hardware | v0.19; see V0_19_SOUND_MATCHING.md |
 | Performance benchmark | VALIDATED infrastructure | 1/6 voices, FX off/on, 48/96 kHz, oversampling, avg/worst block | Add stable local-machine baselines | v0.19 |
 | Reverb coefficient cache | VALIDATED optimisation | Parameter-invariant math outside sample loop; sample-rate invalidation tested | Maintain fingerprint | Done |
 | Zero-history FIR skip | VALIDATED optimisation | Exact zero convolution shortcut; free-running state retained | Maintain fingerprint | Done |
 | Base pitch conversion cache | VALIDATED optimisation | Reuses Hz conversion only when effective base pitch unchanged | Maintain modulation regression | Done |
 | Pan gain cache | VALIDATED optimisation | Six `sin/cos` gains recomputed only on spread changes | Exact hardware spread law remains calibration work | Done |
 | Cutoff cache experiment | NOT INTEGRATED | Experimented separately | Reconsider only after profiling/calibration | v0.19 |
-| Further CPU optimisation | ACTIVE SOON | Voice DSP remains main cost center | Profiling-driven only; preserve Reference-A + fingerprints | v0.19 |
+| Further CPU optimisation | DEFERRED / PROFILE | Final cloud snapshots recorded; no new approximation promoted | Dedicated-machine profiling and regression before any further change | Follow-up / v0.21 load testing |
 
 ---
 
@@ -229,9 +229,10 @@ Completed release scope:
 
 See `V0_18_FX_AUDIT.md` and `V0_18_CLOSEOUT.md`.
 
-## v0.19 — Sound matching and optimisation — **ACTIVE**
+## v0.19 — Sound matching and optimisation — **CLOSED: ENGINEERING CHECKPOINT**
 
-- Controlled Prophet-6 hardware captures as primary evidence.
+Closeout: [V0_19_CLOSEOUT.md](V0_19_CLOSEOUT.md), with [final cutoff/envelope results](V0_19_FINAL_CALIBRATION.md). The completed final phase retained Default after static-reference identifiability review and 100 envelope renders. All remaining acoustic uncertainty stays explicit; no provisional row becomes validated merely because this milestone closes. The original scope is preserved below for traceability.
+- Available real Prophet-6 recordings as primary evidence: Reference-A and independently sourced online audio. Controlled hardware captures are optional; the owner is not required to obtain a unit.
 - Oscillator/PW/mixer gain staging and hard-sync residual.
 - HPF/LPF cutoff/resonance/saturation/envelope behavior.
 - ADSR, glide, Slop/Vintage and analog distortion.
@@ -240,9 +241,13 @@ See `V0_18_FX_AUDIT.md` and `V0_18_CLOSEOUT.md`.
 - CPU optimisation driven by profiling and protected by fingerprints/Reference-A.
 - Adaptive oversampling only if measured quality/CPU data justify it.
 
-**Exit criterion:** documented listening/measurement coverage of representative basic, sync, PWM, filter, modulation, unison and FX patches with no regression outside agreed tolerances.
+**Original acoustic exit criterion (not fully established; retained for future sound-matching work):** documented listening/measurement coverage of representative basic, sync, PWM, filter, modulation, unison and FX patches with no regression outside agreed tolerances.
 
-## v0.20 — Custom UI and preset workflow
+**Engineering closeout adopted for the requested transition to UI:** freeze the tested sound/state contract, record rejected candidates and unidentifiable laws, complete the final cutoff/envelope investigation and regression/CPU snapshots, and pass Windows/Linux VST3, pluginval10, sanitizers and analysis gates. This is an explicit bounded research checkpoint, not a full acoustic-parity certification. Calibration rows with v0.19 targets above remain evidence/backlog records where their remaining-proof column is unresolved; see the closeout ledger.
+
+## v0.20 — Custom UI and preset workflow — **PLANNING**
+
+See [V0_20_UI_PLAN.md](V0_20_UI_PLAN.md). Proposed hybrid visual direction is awaiting user design review; no bespoke editor is implemented yet.
 
 - Bespoke editor and final visual language.
 - Preset/bank browser and SysEx import/export.
@@ -267,4 +272,5 @@ See `V0_18_FX_AUDIT.md` and `V0_18_CLOSEOUT.md`.
 
 There is one active milestone at a time. Work only enters it when it closes an assigned matrix row or fixes a release-blocking regression. Everything else remains backlog.
 
-**Active milestone after v0.18 closeout: v0.19 — Sound matching and optimisation.**
+**Active milestone after v0.19 engineering closeout: v0.20 — Custom UI and preset workflow (planning).**
+

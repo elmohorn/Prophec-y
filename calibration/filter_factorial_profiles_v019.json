@@ -1,0 +1,357 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "factorial_0000": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0001": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0010": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0011": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0100": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-octaves",
+        "13.0"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0101": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-octaves",
+        "13.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0110": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-octaves",
+        "13.0",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_0111": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-env-octaves",
+        "13.0",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 0,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1000": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1001": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1010": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1011": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 0,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1100": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--filter-env-octaves",
+        "13.0"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1101": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--filter-env-octaves",
+        "13.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 0,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1110": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--filter-env-octaves",
+        "13.0",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 0
+      },
+      "promotion_status": "experiment-only"
+    },
+    "factorial_1111": {
+      "description": "Isolated LP cutoff / shared filter-envelope depth / shared filter-envelope timing / LP resonance factorial; HP static law held at current",
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1.0",
+        "--filter-base-hz",
+        "88.97694831931565",
+        "--filter-slope",
+        "0.37",
+        "--filter-env-octaves",
+        "13.0",
+        "--filter-env-exponent",
+        "3.0",
+        "--filter-env-max-seconds",
+        "2.5",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "factors": {
+        "lp_cutoff_v07": 1,
+        "filter_env_depth_v07": 1,
+        "filter_env_timing_v07": 1,
+        "lp_resonance_v07": 1
+      },
+      "promotion_status": "experiment-only"
+    }
+  }
+}

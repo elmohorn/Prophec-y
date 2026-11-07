@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-01",
+  "base_remote_commit": "d78d0d05afa666149f8240e7102248efb34d0ab1",
+  "serialized_fields": 87,
+  "legal_transport_roundtrips": 7745,
+  "imported_byte_cases": 22272,
+  "profiles_per_byte_case": 2,
+  "voice_cutoff_grid_cases": 7920,
+  "envelope_mapping_cases": 512,
+  "bipolar_endpoint_cases": 18,
+  "envelope_clock_cases": 12,
+  "ctest_passed": 9,
+  "ctest_total": 9,
+  "factory_programs": 500,
+  "factory_out_of_range_fields": [
+    {
+      "bank": 4,
+      "program": 20,
+      "nrpn": 88,
+      "raw": 255,
+      "documented_max": 254
+    }
+  ],
+  "factory_scalar_count": 76000,
+  "factory_before_after_equal": true,
+  "factory_mapped_scalar_fingerprint_sha256": "951b12df22cff99264af7714812608b07121dab09781fc7b73a9ad5d623f8023",
+  "fingerprint_kind": "hexfloat controls; not audio",
+  "initial_regression_failure": {
+    "nrpn": 0,
+    "raw": 61,
+    "before_sysex_semitones": 37,
+    "nrpn_semitones": 36
+  },
+  "pluginval_run": false,
+  "calibration_profiles_changed": false
+}

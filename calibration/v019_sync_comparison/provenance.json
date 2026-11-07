@@ -1,0 +1,9 @@
+{
+  "source_sha256": "618dcd84d974a78867a1c14b133d90d5f4be9bebf3249a3fbda73361366a6cf4",
+  "protocol_sha256": "eb455d7958999edb8d8eaddd555e7af73d259f7b744119bb393eaca7ea21dcc0",
+  "probe_sha256": "ee39fa614530d415557b6c0f5a0de61792498234d8ab4f0f48df155cab63e284",
+  "common_f0_hz": 156.34589994117167,
+  "renders": 540,
+  "reference_windows": 17,
+  "production_changes": false
+}

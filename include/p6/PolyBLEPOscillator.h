@@ -64,6 +64,10 @@ public:
     // Render one sample. If syncAt is supplied, this oscillator is reset to
     // phase zero at that sub-sample position with an anti-aliased correction.
     double process(std::optional<double> syncAt = std::nullopt);
+    // Nominal phase-domain shape used by this oscillator, before anti-alias
+    // correction, hard sync or modulation. UI previews use the same law.
+    static double nominalWaveform(double phase01,double shape01,double pulseWidth01,
+                                  double normalizationAmount=1.0);
 
     double phase() const noexcept { return phase_; }
     bool wrappedLastSample() const noexcept { return wrapped_; }
@@ -121,3 +125,4 @@ private:
 };
 
 } // namespace p6
+

@@ -1,0 +1,15 @@
+{
+  "renders": 16,
+  "source_audio_sha256": "8ddbae3ab347266f3649e16aabf0bcd8692c5561bb041ab1033a32955ff4b71b",
+  "windows_sha256": "cd7c712e6fccd7cdbe40a911d6f6abbf0a6a07a01675f7b955a2975ac87b73bf",
+  "probe_sha256": "ee39fa614530d415557b6c0f5a0de61792498234d8ab4f0f48df155cab63e284",
+  "method": "stereo-power harmonics, own F0, relative to H1, reference >= -40 dBc, all-harmonic error floored at -60 dBc; primary odd error and even/odd ratio separate",
+  "new_renders": 16,
+  "limits": [
+    "Published Osc1 endpoint labels, no exact SysEx/filter/VCA/drive state.",
+    "Hardware recording includes analog signal path and lossy MP3 encoding.",
+    "Free-running probe bypasses filters/Poly Mod and uses a single oscillator; no hard-sync truth acquired.",
+    "Oversampling is a numerical sensitivity, not an independent hardware sample.",
+    "A nonzero even partial can arise in more than the oscillator; do not fit an asymmetric VCO from this alone."
+  ]
+}

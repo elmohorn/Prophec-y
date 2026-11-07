@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "ampmax10": {
+      "renderer_args": [
+        "--amp-env-max-seconds",
+        "10.0"
+      ],
+      "description": "Only the provisional amp segment max is varied; no filter change",
+      "promotion_status": "sensitivity-only"
+    },
+    "ampmax30": {
+      "renderer_args": [
+        "--amp-env-max-seconds",
+        "30.0"
+      ],
+      "description": "Only the provisional amp segment max is varied; no filter change",
+      "promotion_status": "sensitivity-only"
+    },
+    "ampmax60": {
+      "renderer_args": [
+        "--amp-env-max-seconds",
+        "60.0"
+      ],
+      "description": "Only the provisional amp segment max is varied; no filter change",
+      "promotion_status": "sensitivity-only"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "original_renders": 315,
+  "finite_recordings": 315,
+  "block_pairs": 5,
+  "automation_recordings": 5,
+  "musical_processed_recordings": 5,
+  "asan_ubsan_exit_code": 0,
+  "sanitized_protocol": "315 renders plus block-size, automation and musical inputs; sources compiled with address,undefined sanitizers",
+  "leak_sanitizer_pass": false,
+  "leak_sanitizer_limitation": "Initial detect_leaks=1 completed processing but LSan failed reading /proc tasks under ptrace. Rerun detect_leaks=0 passed ASan/UBSan; no leak freedom claimed.",
+  "measurement_unit_tests_passed": 3,
+  "production_integration": false
+}

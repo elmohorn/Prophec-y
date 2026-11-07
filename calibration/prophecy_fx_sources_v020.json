@@ -1,0 +1,86 @@
+{
+  "date": "2026-11-01",
+  "purpose": "Candidate DSP components for optional Prophec-y character FX; no third-party source integrated",
+  "scope": "Source inspection, not acoustic audition, benchmark, independent correctness verification or legal opinion",
+  "repositories": [
+    {
+      "repository": "ShmKnd/Patina",
+      "sha": "8ad9e700348a0a272107880741aded659e100966",
+      "files_inspected": [
+        "LICENSE",
+        "dsp/parts/TubeTriode.h",
+        "dsp/circuits/saturation/TubePreamp.h",
+        "dsp/circuits/delay/SpringReverbModel.h"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repository": "airwindows/airwindows",
+      "sha": "7fd5f5cae262a41e6dd7d9a83d60c46e84d3092a",
+      "files_inspected": [
+        "LICENSE",
+        "plugins/WinVST/Tube2/Tube2Proc.cpp",
+        "plugins/WinVST/Tube2/Tube2.h"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repository": "Chowdhury-DSP/BYOD",
+      "sha": "1cf22b6ac802b9dc33cfc9f8dd6af5b3c3e40bc9",
+      "files_inspected": [
+        "README.md",
+        "docs/Licensing.md"
+      ],
+      "license": "GPL-3.0 public source; file-specific CLA/iOS licensing exceptions not assumed"
+    },
+    {
+      "repository": "averagenative/0xFX",
+      "sha": "5b248779c96dce6e64d0ed29cfa598014dc4d3c4",
+      "files_inspected": [
+        "LICENSE",
+        "src/engine/internal/pedals.c",
+        "src/engine/internal/studio.c"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repository": "CristianMoresi/DSPark",
+      "sha": "0a66a4dd1a4e114d3020ccedd454c4d2e0202560",
+      "files_inspected": [
+        "LICENSE",
+        "README.md",
+        "Effects/TubePreamp.h"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repository": "Chowdhury-DSP/chowdsp_wdf",
+      "sha": "43bcd295e8403de913f9966f4fd7ff9d17c9f1a5",
+      "files_inspected": [
+        "LICENSE"
+      ],
+      "license": "BSD-3-Clause"
+    },
+    {
+      "repository": "daisyaudio/DaisySP",
+      "previous_url": "electro-smith/DaisySP",
+      "sha": "2c72eaf9eac5fc0dca1919d65d606da907832618",
+      "files_inspected": [
+        "LICENSE",
+        ".gitmodules",
+        "Source/Effects/overdrive.cpp",
+        "Source/Effects/tremolo.cpp",
+        "Source/Effects/pitchshifter.h"
+      ],
+      "license": "MIT core; separate DaisySP-LGPL submodule must be assessed independently"
+    },
+    {
+      "repository": "daisyaudio/DaisySP-LGPL",
+      "sha": "c89d380c62620d6fee9105c5035e081c9b7ea843",
+      "files_inspected": [
+        "LICENSE"
+      ],
+      "license": "LGPL-2.1; module inventory inspected, no effect implementation audited"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+case_id,program,name,sysex,events,reference,trust,kind,candidate_start_s,expected_f0_hz,provenance
+RA024_gate025,24,Solid Bass,../../reference_private/online/024.syx,event_inputs/gate025_events.csv,../../reference_private/online/024_reference.wav,C,performance,0,,"Gate fraction 0.25 of audible-region duration; sensitivity only, no verified note-off reconstruction"
+RA024_gate050,24,Solid Bass,../../reference_private/online/024.syx,event_inputs/gate050_events.csv,../../reference_private/online/024_reference.wav,C,performance,0,,"Gate fraction 0.5 of audible-region duration; sensitivity only, no verified note-off reconstruction"
+RA024_gate075,24,Solid Bass,../../reference_private/online/024.syx,event_inputs/gate075_events.csv,../../reference_private/online/024_reference.wav,C,performance,0,,"Gate fraction 0.75 of audible-region duration; sensitivity only, no verified note-off reconstruction"
+RA024_gate100,24,Solid Bass,../../reference_private/online/024.syx,event_inputs/gate100_events.csv,../../reference_private/online/024_reference.wav,C,performance,0,,"Gate fraction 1.0 of audible-region duration; sensitivity only, no verified note-off reconstruction"

@@ -10,6 +10,32 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  online-analysis-tooling:
+    name: Online-reference measurement guards
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install analysis dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python3 -m pip install -r analysis/requirements.txt
+      - name: Validate native analysis and synthetic measurement guards
+        run: |
+          python3 -m py_compile tools/compare_online_suite.py tools/prepare_recovered_online_suite.py analysis/*.py
+          python3 tests/online_metrics_test.py
+          python3 tests/sync_fourier_oracle_test.py
+          python3 tests/event_uncertainty_test.py
+          python3 tests/reference_media_test.py
+          python3 tests/selfosc_recording_test.py
+          python3 tests/sync_stage_metrics_test.py
+          python3 tests/closeout_evidence_test.py
+          python3 -m py_compile tools/inspect_reference_media.py
+          python3 -m py_compile tools/analyze_selfosc_recording.py tools/prepare_independent_forum_suite.py
+          python3 -m py_compile tools/analyze_sync_stages.py tools/probe_sync_ensemble.py
+          python3 -m py_compile tools/compare_basic_waveforms.py tools/prepare_basic_waveform_suite.py tools/prepare_sync_reference_suite.py tools/compare_sync_recordings.py tools/compare_sync_controls.py tools/refine_sync_ratios.py tools/compare_pulse_width_uncertainty.py tools/compare_507_dynamics.py tools/check_507_late_gate.py
+          python3 -m py_compile tools/sync_fourier_oracle.py tools/analyze_filter_factorial.py
+
   core-sanitizers:
     name: Linux ASan+UBSan
     runs-on: ubuntu-22.04
@@ -23,12 +49,26 @@ jobs:
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build sanitizer tests
-        run: cmake --build build-sanitize --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests --parallel 2
+        run: cmake --build build-sanitize --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack --parallel 2
       - name: Run sanitizer tests
         env:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
         run: ctest --test-dir build-sanitize --output-on-failure
+      - name: Reference corpus tooling self-tests
+        shell: bash
+        run: |
+          python3 tools/validate_reference_manifest.py reference_hardware/examples/P0A_manifest.example.json --metadata-only
+          python3 tools/render_reference_manifest.py --self-test
+          python3 tools/reference_audio_metrics.py --self-test
+          python3 tools/analyze_p0a_manifest.py --self-test
+      - name: External-prior registry self-test
+        shell: bash
+        run: |
+          python3 -m py_compile tools/render_external_prior_suite.py
+          python3 -c "import json; d=json.load(open('calibration/external_priors.json', encoding='utf-8')); assert d['schema_version'] == 1; assert 'phosphor_pw_v019' in d['profiles']"
+          printf 'case_id,sysex,events\nSMOKE,dummy.syx,dummy_events.csv\n' > /tmp/external_prior_smoke.csv
+          python3 tools/render_external_prior_suite.py /tmp/external_prior_smoke.csv --output-dir /tmp/external-prior-out --dry-run
 
   build-and-validate:
     name: ${{ matrix.name }}
@@ -64,16 +104,35 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DP6_BUILD_PLUGIN=ON
           -DP6_FETCH_JUCE=ON
+          -DP6_BUILD_UI_SMOKE=ON
 
       - name: Build VST3, tests and diagnostics
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_dsp_fingerprint p6_perf_benchmark P6CorePlugin_VST3
+          --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark p6_character_benchmark p6_neon_rate_probe P6CorePlugin_VST3 P6UiSmoke P6RestoreProbe
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests
         run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Native editor and audio smoke
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
+            xvfb-run -a ./build/plugin/P6RestoreProbe_artefacts/Release/P6RestoreProbe
+          else
+            ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke.exe ui-smoke
+            ./build/plugin/P6RestoreProbe_artefacts/Release/P6RestoreProbe.exe
+          fi
+
+      - name: Upload native editor evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: P6-native-editor-${{ runner.os }}
+          path: ui-smoke/*.png
+          if-no-files-found: error
 
       - name: DSP fingerprint snapshot
         shell: bash
@@ -81,13 +140,21 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             ./build/Release/p6_dsp_fingerprint.exe
           else
-            ./build/p6_dsp_fingerprint
+            ./build/p6_dsp_fingerprint | tee dsp-fingerprint.csv
+            python3 tools/check_dsp_fingerprint.py tests/reference/dsp_metrics_v020.csv dsp-fingerprint.csv
           fi
+
+      - name: Hard-sync harmonic snapshot
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./build/p6_sync_harmonic_probe
 
       - name: Performance snapshot
         if: runner.os == 'Linux'
         shell: bash
-        run: ./build/p6_perf_benchmark
+        run: |
+          ./build/p6_perf_benchmark
+          ./build/p6_character_benchmark
 
       - name: Download pluginval 1.0.4
         shell: bash
@@ -114,7 +181,104 @@ jobs:
       - name: Upload validated VST3
         uses: actions/upload-artifact@v4
         with:
-          name: P6-Core-v0.18-${{ runner.os }}-VST3
+          name: P6-Core-v0.20-prototype-${{ runner.os }}-VST3
           path: |
             build/**/P6 Core.vst3
           if-no-files-found: error
+
+
+
+  publish-preview:
+    name: Publish validated v0.20 preview
+    needs: [online-analysis-tooling, core-sanitizers, build-and-validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v0.20-ui'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PREVIEW_TAG: v0.20.0-preview.${{ github.run_number }}
+    steps:
+      - name: Download exact validated artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" > artifacts.json
+          python3 - <<'PY'
+          import json, os
+          artifacts=json.load(open("artifacts.json"))["artifacts"]
+          for platform in ("Windows", "Linux"):
+              name="P6-Core-v0.20-prototype-"+platform+"-VST3"
+              matches=[a for a in artifacts if a["name"]==name and not a["expired"]]
+              assert len(matches)==1, name
+              a=matches[0]
+              assert a["workflow_run"]["head_sha"]==os.environ["GITHUB_SHA"]
+              assert a["workflow_run"]["id"]==int(os.environ["GITHUB_RUN_ID"])
+              with open(platform+".id","w") as f: f.write(str(a["id"]))
+              with open(platform+".sha","w") as f: f.write(a["digest"].removeprefix("sha256:"))
+          PY
+          for platform in Windows Linux; do
+            artifact_id="$(cat "${platform}.id")"
+            filename="P6-Core-v0.20-prototype-${platform}-VST3.zip"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "${filename}"
+            printf '%s  %s\n' "$(cat "${platform}.sha")" "${filename}" >> SHA256SUMS.txt
+            unzip -t "${filename}"
+          done
+          sha256sum --check SHA256SUMS.txt
+
+      - name: Publish immutable test build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'EOF'
+          ## v0.20 — MIDI and state stabilization
+          - MIDI input selects Omni or channels 1–16; a compact monitor shows incoming CC/pitch bend and marks filtered messages. In Omni, equal notes across channels share one voice until the last Note Off; CC120/123 and performance controls remain global.
+          - State codec v5 retains the selected input channel and loads v1–v4 sessions as Omni. Presets do not replace this global setting. Older plugin versions cannot read v5 sessions.
+          - Neon uses 4x Medium oversampling with the same 71-sample latency; its sound and CPU cost change relative to older previews. Telemetry follows the dominant stereo input; Tube Motion freezes illumination.
+          - State restore/import and concurrent save are protected by a non-waiting audio snapshot gate. The deterministic restore probe and competing-writer stress run on both platforms.
+          - This is a preview: actual FA-08/DAW tests, longer concurrency stress, effect listening, per-channel sustain/MPE and full wrapper/editor CPU benchmarks remain open.
+
+          ### Earlier audit stabilization
+          - Neon asymmetry is continuous around zero with Bias and Symmetry combined; Plasma/Ferrofluid timing follows sample rate.
+          - NRPN selection is isolated per MIDI channel.
+          - Linux CI compares core render metrics with a versioned reference and records a six-voice Character benchmark. An independent historic v3 state fixture covers Tube and Master.
+          - Further acoustic/aliasing evaluation, DAW migration, full wrapper CPU validation and longer restore stress remain open.
+
+          ### Four custom Character devices
+          - Plasma: stateful ignition, hysteresis/hold, conduction distortion and tone.
+          - Optical Spring: dispersive spring FDN with three internal pickups and stereo blend.
+          - Ferrofluid: resonant envelope-following filter, bipolar sensitivity and response control.
+          - Neon Wavefolder: asymmetric multi-fold transfer, bias and tone, using the MIT DaisySP kernel.
+          - Every device has seven independent saved/automatable controls, Start/End insertion, bypass, Mix/Output and a native recessed window informed by audio telemetry.
+          - Wrapper codec v5 reads v1/v2/v3/v4 and preserves all device values; legacy None/Tube normalized automation remains unchanged. Prophet SysEx is untouched.
+          - Original software effects inspired by physical visual metaphors; not verified emulations of commercial pedals. Extreme folding is not claimed alias-free.
+
+          ### Local preset browser
+          - PRESETS opens a native overlay: Factory Init / Imported / User, search, bank/category filters and persistent favorites.
+          - Save / Save As store musical state and Character. Loads preserve Master, quality, clock, calibration and runtime globals; unsaved edits require confirmation before replacement.
+          - Import Prophet-6 .syx programs or concatenated bank dumps without replacing the active sound. Export current program or saved selected bank; unchanged imports retain original frames and ordering.
+          - Names/categories are library aliases; hardware payload/name bytes are preserved. Occupied User slots and stale cross-instance overwrites are rejected.
+          - Factory includes our own Init only. No Sequential factory banks are bundled. After a DAW reload, sound is restored but library association is transient; use Save As unless reselecting a library entry.
+
+          ### Existing v0.20 features
+          - Master Output and L/R sample peak/RMS/CLIP. New instances: -18 dB; legacy v1/v2 sessions: 0 dB. Master was introduced in codec v3; no limiter or voice normalization.
+          - Independent Character faceplate and recessed Tube chamber, driven by measured telemetry. Standard FX A/B, exact/raw editing and contextual oscillator/ADSR model previews remain available.
+          - This remains a preview. Custom Studio, remaining contextual views, custom FX listening/visual refinement, Compare/A-B/undo and manual DAW validation are pending. MIDI channel/monitor work is postponed. Fixed latency remains 71 samples.
+
+          ### Windows installation
+          Close the DAW, extract the Windows ZIP, locate the entire **P6 Core.vst3** folder and copy it to `C:\Program Files\Common Files\VST3\`. Rescan plugins and load **P6 Core** as an instrument. Preserve a backup before replacing an older build; the plugin identity is shared.
+
+          Linux: copy the complete bundle to `~/.vst3/`. No standalone application, installer, factory SysEx or reference audio is included.
+          EOF
+          printf '\nCommit: `%s`\n\nCI: https://github.com/%s/actions/runs/%s\n\nAll required Windows/Linux builds, tests, native editor/audio smoke, pluginval 10, Linux sanitizers and analysis guards passed before publication. ZIP provenance and SHA-256 were verified.\n' "${GITHUB_SHA}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}" >> notes.md
+          if gh release view "${PREVIEW_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Immutable preview already exists."
+            exit 0
+          fi
+          gh release create "${PREVIEW_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" --prerelease --latest=false \
+            --title "Prophec-y ${PREVIEW_TAG}" --notes-file notes.md \
+            P6-Core-v0.20-prototype-Windows-VST3.zip \
+            P6-Core-v0.20-prototype-Linux-VST3.zip SHA256SUMS.txt
+

@@ -1,0 +1,31 @@
+{
+  "checks": [
+    {
+      "pre_roll_s": 0,
+      "no_op_bit_identical": true,
+      "raw_mix_reconstruction_relative_rms": 3.491890661076449e-08
+    },
+    {
+      "pre_roll_s": 0.5,
+      "no_op_bit_identical": true,
+      "raw_mix_reconstruction_relative_rms": 3.504982221742746e-08
+    },
+    {
+      "pre_roll_s": 1.5,
+      "no_op_bit_identical": true,
+      "raw_mix_reconstruction_relative_rms": 3.506346964664473e-08
+    },
+    {
+      "pre_roll_s": 3,
+      "no_op_bit_identical": true,
+      "raw_mix_reconstruction_relative_rms": 3.507128454560895e-08
+    }
+  ],
+  "reference_sha256": "0b6d744ddd0ee99adc6cd67c49b3924647e83c396f7de5b6920a6a58f2015f46",
+  "harmonic_method": "stereo-power-v1; summed-channel autocorrelation; own F0; 16 harmonics",
+  "limits": [
+    "Whole hardware patch is compared with model interventions, not hardware-isolated components.",
+    "Four phase/Slop pre-rolls are sensitivities, not independent hardware recordings.",
+    "First/second halves test stationarity only; key timing remains inferred."
+  ]
+}

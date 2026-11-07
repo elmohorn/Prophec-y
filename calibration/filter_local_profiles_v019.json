@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "depth10.5833_res0.7": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "10.5833333333",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 10.5833333333,
+      "resonance_scale": 0.7,
+      "promotion_status": "experiment-only"
+    },
+    "depth10.5833_res0.85": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "10.5833333333",
+        "--lp-res-scale",
+        "0.85"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 10.5833333333,
+      "resonance_scale": 0.85,
+      "promotion_status": "experiment-only"
+    },
+    "depth10.5833_res1": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "10.5833333333",
+        "--lp-res-scale",
+        "1.0"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 10.5833333333,
+      "resonance_scale": 1.0,
+      "promotion_status": "experiment-only"
+    },
+    "depth11_res0.7": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "11.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 11.0,
+      "resonance_scale": 0.7,
+      "promotion_status": "experiment-only"
+    },
+    "depth11_res0.85": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "11.0",
+        "--lp-res-scale",
+        "0.85"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 11.0,
+      "resonance_scale": 0.85,
+      "promotion_status": "experiment-only"
+    },
+    "depth11_res1": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "11.0",
+        "--lp-res-scale",
+        "1.0"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 11.0,
+      "resonance_scale": 1.0,
+      "promotion_status": "experiment-only"
+    },
+    "depth11.5_res0.7": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "11.5",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 11.5,
+      "resonance_scale": 0.7,
+      "promotion_status": "experiment-only"
+    },
+    "depth11.5_res0.85": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "11.5",
+        "--lp-res-scale",
+        "0.85"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 11.5,
+      "resonance_scale": 0.85,
+      "promotion_status": "experiment-only"
+    },
+    "depth11.5_res1": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "11.5",
+        "--lp-res-scale",
+        "1.0"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 11.5,
+      "resonance_scale": 1.0,
+      "promotion_status": "experiment-only"
+    },
+    "depth12_res0.7": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "12.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 12.0,
+      "resonance_scale": 0.7,
+      "promotion_status": "experiment-only"
+    },
+    "depth12_res0.85": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "12.0",
+        "--lp-res-scale",
+        "0.85"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 12.0,
+      "resonance_scale": 0.85,
+      "promotion_status": "experiment-only"
+    },
+    "depth12_res1": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "12.0",
+        "--lp-res-scale",
+        "1.0"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 12.0,
+      "resonance_scale": 1.0,
+      "promotion_status": "experiment-only"
+    },
+    "depth12.5_res0.7": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "12.5",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 12.5,
+      "resonance_scale": 0.7,
+      "promotion_status": "experiment-only"
+    },
+    "depth12.5_res0.85": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "12.5",
+        "--lp-res-scale",
+        "0.85"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 12.5,
+      "resonance_scale": 0.85,
+      "promotion_status": "experiment-only"
+    },
+    "depth12.5_res1": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "12.5",
+        "--lp-res-scale",
+        "1.0"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 12.5,
+      "resonance_scale": 1.0,
+      "promotion_status": "experiment-only"
+    },
+    "depth13_res0.7": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "13.0",
+        "--lp-res-scale",
+        "0.7"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 13.0,
+      "resonance_scale": 0.7,
+      "promotion_status": "experiment-only"
+    },
+    "depth13_res0.85": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "13.0",
+        "--lp-res-scale",
+        "0.85"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 13.0,
+      "resonance_scale": 0.85,
+      "promotion_status": "experiment-only"
+    },
+    "depth13_res1": {
+      "renderer_args": [
+        "--hp-filter-base-hz",
+        "8.1757989156",
+        "--hp-filter-slope",
+        "1",
+        "--filter-env-octaves",
+        "13.0",
+        "--lp-res-scale",
+        "1.0"
+      ],
+      "description": "Local depth/resonance refinement; static laws and filter/amp timing remain current",
+      "depth_octaves": 13.0,
+      "resonance_scale": 1.0,
+      "promotion_status": "experiment-only"
+    }
+  }
+}
