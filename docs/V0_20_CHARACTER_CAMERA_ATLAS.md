@@ -113,9 +113,12 @@ New `tests/character_telemetry_mailbox_probe.cpp` uses a concurrent writer
 and reader to check 72 correlated values per frame without blocking.
 The visual dynamics probe checks equivalent amplitudes/phase over a real
 second at 30 Hz and 120 Hz, and caps delayed host ticks.
-Five isolated local C++ mailbox stress runs passed without torn frames;
-**the native JUCE build and DAW screenshot smoke remain unverified**
-because GitHub Actions still fails before starting a runner.
+Five isolated local C++ mailbox stress runs passed without torn frames.
+On November 7, 2026, after repository visibility changed to public,
+hosted GitHub Actions ran successfully: the native JUCE screenshot smoke
+and mailbox/visual probes passed in run 42306440879; full plugin-ci,
+including Windows, Linux, pluginval and Linux ASan+UBSan, passed in run 42306440888.
+These are automated runner tests, not a substitute for a real DAW session.
 
 ## Priority-medium follow-up: timing, source quality and architecture (2026-11-06)
 
@@ -153,9 +156,9 @@ The hardware header shrank from approximately 538 to 365 lines (including new ar
 are UI-thread-only; no audio processing, existing parameter IDs, presets,
 state codecs or SysEx were modified.
 
-**Validation:** the isolated C++ visual probe passes after the long-gap
-change. JUCE/VST3 and full native screenshots remain unverified until
-GitHub Actions can schedule jobs and the native smoke has been run.
+**Validation:** the isolated C++ visual probe, native JUCE screenshot smoke,
+Windows/Linux VST3, pluginval and sanitizer tests passed on hosted runners
+(November 7, 2026). DAW-hosted interaction and final visual review remain open.
 
 ## Verification
 
@@ -174,7 +177,9 @@ fixture, with screenshots:
 - `optical_audio_reactive_probe.png`
 
 The real installed photographic atlas is included in the repository.
-Native screens at 1240 / 1460 / 1780 widths, host/DAW rendering, motion
-comparison and Windows/Linux builds still require operational GitHub
-Actions runners. Do **not** substitute a generated visual mock for those
-native screenshots or merge this draft PR based solely on a static image.
+The native smoke captures 1240 / 1460 / 1780 width variants for the
+Tube, Spring and Optical Preview views (new capture coverage pending
+confirmation by CI for this follow-up change). Host/DAW animation,
+cross-platform visual inspection and hand-authored RGBA artwork are
+still required before this draft PR is merge-ready. Do **not** substitute
+a generated visual mock for those native screenshots.
