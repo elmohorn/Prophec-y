@@ -126,7 +126,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     midiInputChannel_.setTooltip("MIDI input: Omni or channel 1–16. Changing channel silences notes, clears standard FX tails and resets controllers.");
     midiInputChannel_.addItem("MIDI: OMNI",1);for(int channel=1;channel<=16;++channel)midiInputChannel_.addItem("MIDI: "+juce::String(channel),channel+1);
     addAndMakeVisible(midiInputChannel_);
-    midiMonitor_.setTitle("Recent MIDI input");midiMonitor_.setFont(juce::Font(11.f));
+    midiMonitor_.setTitle("Recent MIDI input");midiMonitor_.setFont(juce::Font(9.f));
     midiMonitor_.setColour(juce::Label::textColourId,juce::Colour{0xffb9c8bf});
     midiMonitor_.setTooltip("Recent pitch bend and CC input. * marks a message filtered by the selected MIDI channel.");
     midiMonitor_.setText("MIDI: awaiting input",juce::dontSendNotification);addAndMakeVisible(midiMonitor_);
@@ -140,6 +140,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     master_.setTextBoxStyle(juce::Slider::TextBoxBelow,false,95,18);master_.setTitle("Master Output");
     master_.setDescription("Final output attenuation, separate from Prophet Program Volume. Minus 60 to zero dB.");
     master_.setTooltip("Master Output after all effects. New instances: -18 dB; legacy sessions: 0 dB. Double-click resets to -18 dB.");
+    master_.setColour(juce::Slider::textBoxTextColourId,juce::Colour{0xffe4e9e2});
     master_.setWantsKeyboardFocus(true);addAndMakeVisible(master_);addAndMakeVisible(outputMeter_);
     masterBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,p6plugin::kMasterOutputID,master_);
     master_.textFromValueFunction=[](double v){return juce::String(v,1)+" dB";};
@@ -149,7 +150,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
         return end!=utf8.c_str()&&end&&*end=='\0'&&std::isfinite(value)&&value>=-60.&&value<=0.?value:master_.getValue();
     };
     master_.setDoubleClickReturnValue(true,p6plugin::kNewMasterDb);master_.updateText();
-    masterLabel_.setText("MASTER",juce::dontSendNotification);masterLabel_.setFont(juce::Font(10.f));masterLabel_.setJustificationType(juce::Justification::centred);addAndMakeVisible(masterLabel_);
+    masterLabel_.setText("MASTER",juce::dontSendNotification);masterLabel_.setFont(juce::Font(9.f));masterLabel_.setColour(juce::Label::textColourId,juce::Colour{0xffa8b7ae});masterLabel_.setJustificationType(juce::Justification::centredLeft);addAndMakeVisible(masterLabel_);
     clearClips_.setLookAndFeel(&look_);clearClips_.setTooltip("Clear latched output clip and pre-master over-zero indicators.");
     clearClips_.onClick=[this]{processor_.resetOutputClips();outputMeter_.update(processor_.consumeOutputReadings());};addAndMakeVisible(clearClips_);
     outputMeter_.update(processor_.consumeOutputReadings());lastOutputRevision_=processor_.outputRevision();
@@ -320,12 +321,12 @@ void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
-    browserButton_.setBounds(rect(500,54,76,22));
+    browserButton_.setBounds(rect(265,40,115,28));
     if(browser_)browser_->setBounds(55,98,getWidth()-110,450);
-    master_.setBounds(rect(602,12,100,67));masterLabel_.setBounds(rect(602,78,100,15));
-    outputMeter_.setBounds(rect(724,25,350,60));clearClips_.setBounds(rect(1085,49,105,24));
-    midiInputChannel_.setBounds(rect(1085,16,105,24));midiMonitor_.setBounds(rect(352,53,138,24));
-    module_.setBounds(rect(1210,36,84,25));studio_.setBounds(rect(1300,36,84,25));
+    master_.setBounds(rect(402,21,100,62));masterLabel_.setBounds(rect(503,66,63,15));
+    outputMeter_.setBounds(rect(575,24,360,59));clearClips_.setBounds(rect(1077,43,94,27));
+    midiInputChannel_.setBounds(rect(954,43,116,27));midiMonitor_.setBounds(rect(954,23,116,15));
+    module_.setBounds(rect(1189,43,92,27));studio_.setBounds(rect(1288,43,97,27));
     diagnostic_->setBounds(36,92,getWidth()-72,getHeight()-125);
     auto knob=[&](std::size_t i,float x,float y,float w=80,float h=72){synth_[i].slider.setBounds(rect(x,y,w,h));synth_[i].label.setBounds(rect(x-5,y+h+1,w+10,18));};
     for(std::size_t i=0;i<4;++i){knob(i,54+94.f*static_cast<float>(i),119);knob(i+4,54+94.f*static_cast<float>(i),269);}
@@ -483,65 +484,60 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 }
 void P6PluginEditor::paint(juce::Graphics& g)
 {
-    paintSurface(g);paintFxBay(g);const float sx=static_cast<float>(getWidth())/designWidth;
-    // A self-contained, screwed-on header display. All horizontal coordinates
-    // use the same 1460-unit design scale as its JUCE children, avoiding the
-    // previous title/subtitle collision with Master and other header controls.
-    // One hardware console carries the screen, master, meters and MIDI.
-    // The older disconnected header made those elements look accidental.
-    const juce::Rectangle<float> topConsole(37.f*sx,8.f,1163.f*sx,84.f);
-    g.setColour(juce::Colours::black.withAlpha(.32f));
-    g.fillRoundedRectangle(topConsole.translated(0.f,2.f),7.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffdadcd5},topConsole.getX(),topConsole.getY(),
-                                           juce::Colour{0xff848f86},topConsole.getRight(),topConsole.getBottom(),false));
-    g.fillRoundedRectangle(topConsole,7.f);
-    g.setColour(juce::Colour{0xfff2f3ed}.withAlpha(.8f));
-    g.drawRoundedRectangle(topConsole.reduced(.7f),6.f,1.f);
-    for(const float x:{711.f,1078.f}) {
-        g.setColour(juce::Colour{0xff4c5750}.withAlpha(.24f));
-        g.drawLine(x*sx,18.f,x*sx,82.f,1.f);
-    }
-    for(const float x:{46.f,1191.f})for(const float y:{17.f,83.f}) {
-        const float px=x*sx;
-        g.setColour(juce::Colour{0xff4a544c});g.fillEllipse(px-3.5f,y-3.5f,7.f,7.f);
-        g.setColour(juce::Colour{0xffe3e6db});g.fillEllipse(px-2.5f,y-2.5f,5.f,5.f);
-        g.setColour(juce::Colour{0xff4c564d});g.drawLine(px-1.5f,y+.5f,px+1.5f,y-.5f,1.f);
-    }
-    const juce::Rectangle<float> bezel(43.f*sx,19.f,550.f*sx,70.f);
+    paintSurface(g);if(!studioView_)paintFxBay(g);const float sx=static_cast<float>(getWidth())/designWidth;
+    // Approved option A: the brand is etched on the aluminum at left.
+    // Presets, Master, meters, MIDI and navigation share ONE dark inset
+    // display to the right. The bolted bezel makes this a physical assembly,
+    // rather than a floating black strip or a separate branding screen.
+    const juce::Rectangle<float> header(36.f*sx,10.f,1388.f*sx,79.f);
     g.setColour(juce::Colours::black.withAlpha(.28f));
+    g.fillRoundedRectangle(header.translated(0.f,2.f),6.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff2f1eb},header.getX(),header.getY(),
+                                           juce::Colour{0xff9b9e97},header.getRight(),header.getBottom(),false));
+    g.fillRoundedRectangle(header,6.f);
+    g.setColour(juce::Colours::white.withAlpha(.68f));
+    g.drawRoundedRectangle(header.reduced(.7f),6.f,1.f);
+    // No duplicated title or controls inside the display: the aluminum
+    // logo has its own reserved area (x=55..237).
+    g.setColour(juce::Colour{0xff1c2421});
+    g.setFont(juce::Font(25.f).boldened().italicised().withExtraKerningFactor(-.035f));
+    g.drawText("Prophec-Y",juce::roundToInt(57.f*sx),33,juce::roundToInt(181.f*sx),34,juce::Justification::centredLeft);
+    const juce::Rectangle<float> bezel(243.f*sx,16.f,1173.f*sx,71.f);
+    g.setColour(juce::Colours::black.withAlpha(.35f));
     g.fillRoundedRectangle(bezel.translated(0.f,2.f),6.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd5d6cf},bezel.getX(),bezel.getY(),
-                                           juce::Colour{0xff6c756e},bezel.getRight(),bezel.getBottom(),false));
-    g.fillRoundedRectangle(bezel,6.f);
-    g.setColour(juce::Colour{0xffeef0e8}.withAlpha(.85f));
-    g.drawRoundedRectangle(bezel.reduced(.8f),5.f,1.2f);
-    const juce::Rectangle<float> screen(64.f*sx,27.f,514.f*sx,53.f);
-    g.setColour(juce::Colour{0xff151d1a});
-    g.fillRoundedRectangle(screen,3.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff28342e},screen.getX(),screen.getY(),
-                                           juce::Colour{0xff0f1714},screen.getRight(),screen.getBottom(),false));
-    g.fillRoundedRectangle(screen.reduced(1.f),2.5f);
-    g.setColour(juce::Colour{0xff829287}.withAlpha(.5f));
-    g.drawRoundedRectangle(screen.reduced(.8f),2.5f,.8f);
-    // Fixed screw heads: not part of the controls, and outside the lit display.
-    for(const float x:{52.f,585.f})for(const float y:{28.f,80.f}) {
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff59665d},bezel.getX(),bezel.getY(),
+                                           juce::Colour{0xffb9c2b9},bezel.getRight(),bezel.getBottom(),false));
+    g.fillRoundedRectangle(bezel,5.f);
+    g.setColour(juce::Colour{0xffe4e5dd}.withAlpha(.72f));
+    g.drawRoundedRectangle(bezel.reduced(.8f),4.f,1.f);
+    const juce::Rectangle<float> screen(252.f*sx,20.f,1155.f*sx,65.f);
+    g.setColour(juce::Colour{0xff0c1512});
+    g.fillRoundedRectangle(screen,4.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff1e2b25},screen.getX(),screen.getY(),
+                                           juce::Colour{0xff101714},screen.getX(),screen.getBottom(),false));
+    g.fillRoundedRectangle(screen.reduced(1.f),3.f);
+    g.setColour(juce::Colour{0xff819087}.withAlpha(.32f));
+    g.drawRoundedRectangle(screen.reduced(.6f),3.f,1.f);
+    // Subtle layout dividers follow the approved Presets | Master |
+    // Meters | MIDI + Reset | Module/Studio sequence.
+    g.setColour(juce::Colour{0xff80918a}.withAlpha(.45f));
+    for(const float x:{390.f,566.f,942.f,1179.f})
+        g.drawLine(x*sx,28.f,x*sx,76.f,1.f);
+    // Screws belong to the metal rim; none sit over the usable controls.
+    for(const float x:{248.f,1412.f})for(const float y:{23.f,80.f}) {
         const float px=x*sx;
-        g.setColour(juce::Colours::black.withAlpha(.45f));g.fillEllipse(px-4.5f,y-4.f,9.f,9.f);
-        g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff0f0e7},px-3.5f,y-3.f,
-                                               juce::Colour{0xff626c65},px+3.5f,y+3.f,false));
-        g.fillEllipse(px-3.5f,y-3.f,7.f,7.f);
-        g.setColour(juce::Colour{0xff39433c});g.drawLine(px-2.f,y+1.f,px+2.f,y-1.f,1.f);
+        g.setColour(juce::Colours::black.withAlpha(.45f));
+        g.fillEllipse(px-3.5f,y-3.5f,7.f,7.f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xffeeeeea},px-2.5f,y-2.5f,
+                                               juce::Colour{0xff64736a},px+2.5f,y+2.5f,false));
+        g.fillEllipse(px-2.5f,y-2.5f,5.f,5.f);
+        g.setColour(juce::Colour{0xff2e3932});
+        g.drawLine(px-1.5f,y+.5f,px+1.5f,y-.5f,1.f);
     }
-    g.setColour(juce::Colour{0xffedf1e9});
-    g.setFont(juce::Font(22.f).boldened().withExtraKerningFactor(.16f));
-    g.drawText("PROPHEC-Y",juce::roundToInt(75.f*sx),32,juce::roundToInt(258.f*sx),29,juce::Justification::centredLeft);
-    g.setColour(juce::Colour{0xffa2b5a7});
-    g.setFont(juce::Font(8.5f).withExtraKerningFactor(.12f));
-    g.drawText("POLYPHONIC SYNTHESIZER",juce::roundToInt(75.f*sx),64,juce::roundToInt(258.f*sx),12,juce::Justification::centredLeft);
     if(studioView_)return;
     section(g,"OSCILLATOR 1",56,90,360);section(g,"OSCILLATOR 2",56,240,360);section(g,"MIXER",56,431,360);
     section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);
-    section(g,"POLY MOD",1020,85,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,316,373);section(g,"AMPLIFIER ENVELOPE",1020,426,373);
+    section(g,"POLY MOD",1020,94,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,316,373);section(g,"AMPLIFIER ENVELOPE",1020,426,373);
     g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
