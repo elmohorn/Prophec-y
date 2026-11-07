@@ -1,0 +1,8 @@
+Legacy, seconds CPU_percent_sum for 10s stereo signal, 3 sequential runs
+0.143071 1.43071 97.6942
+0.139905 1.39905 97.6942
+0.137633 1.37633 97.6942
+Hybrid, same process
+0.158625 1.58625 11.1215
+0.152538 1.52538 11.1215
+0.149513 1.49513 11.1215

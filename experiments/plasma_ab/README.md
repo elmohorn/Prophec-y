@@ -58,3 +58,38 @@ The output contains CSV metrics and raw float32 interleaved stereo audition
 files at 48 kHz. The script builds five temporary binaries. The chosen library
 must match the sources being compared. Builds and figures in this document use
 the #9 integration candidate, not an independent Prophet-6 capture.
+
+## Owner feedback and additional checks
+
+The owner preferred the Hybrid recording over Legacy in the supplied audition.
+This is a useful subjective preference, not blind testing or approval of all
+possible settings. The following are offline checks of the same candidate:
+
+- 27 combinations: 44.1/48/96 kHz, updates every 16/64/512 samples, and three
+  signal/control patterns including rapid parameter toggling. The three-second
+  renders remained finite and below 0.529 peak in the observed cases. This is
+  not a DAW automation or no-click guarantee. `automation_results.csv` stores
+  the measurements; max adjacent-sample step includes the signal's ordinary
+  waveform slope and is not a click detector.
+- A sequential microbenchmark of ten seconds of one stereo 440 Hz signal on
+  this environment, three repetitions each, gave approximately 1.38% of a
+  real-time single-core equivalent for Legacy and 1.53% for Hybrid. This is
+  elapsed-time-based, not a measured host CPU percentage; runner scheduling,
+  patch and UI are not controlled. The candidate evaluates exponential terms
+  at high rate; precompute appropriate coefficients before any production use.
+- For one coherent 10,099 Hz tone at 48 kHz, 50% mix, the RSS of selected
+  folded-harmonic FFT bins relative to the fundamental was -50.95 dBc Legacy
+  and -62.13 dBc Hybrid. The candidates differ in wet level, and the bin metric
+  lacks an independent oversampled reference. It cannot establish an inherent
+  11 dB alias-quality improvement; broader multi-tone and reference-based
+  analysis is required.
+
+Re-run diagnostic binaries with:
+
+```
+python3 experiments/plasma_ab/run_robust.py /tmp/p6-hybrid-robust build/libp6core.a
+```
+
+The results are exploratory and not a new product mode. A production proposal
+must preserve legacy preset/session output via explicit versioned state and
+expose the distinction clearly; it must not silently change sound on restore.

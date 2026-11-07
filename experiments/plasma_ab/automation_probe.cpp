@@ -1,0 +1,6 @@
+#include "CharacterFx.h"
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+int main(){constexpr double pi=3.141592653589793;for(int sr:{44100,48000,96000})for(int block:{16,64,512})for(int pattern=0;pattern<3;++pattern){p6plugin::CharacterFx fx;fx.prepare(sr);p6plugin::CharacterState state;state.type=2;state.custom[0][5]=.5f;fx.setState(state);double peak=0,step=0,energy=0,previous=0;for(int i=0;i<sr*3;++i){double t=double(i)/sr;if(i%block==0){float x=pattern==0?float(.5+.5*std::sin(2*pi*.7*t)):pattern==1?float((i/block)%2):float((t/3));state.custom[0][0]=x;state.custom[0][1]=1.f-x;state.custom[0][3]=x;state.custom[0][5]=.5f;fx.setState(state);}double env=pattern==2?(t<1?t:t<2?2-t:0):.1;double x=env*std::sin(2*pi*440*t);fx.advanceRoute();auto y=fx.process({x,-x*.8});if(!std::isfinite(y.left)||!std::isfinite(y.right)||std::abs(y.left)>32||std::abs(y.right)>32){std::cerr<<"FAIL "<<sr<<" "<<block<<" "<<pattern<<" "<<i<<"\n";return 1;}peak=std::max({peak,std::abs(y.left),std::abs(y.right)});step=std::max(step,std::abs(y.left-previous));energy+=y.left*y.left;previous=y.left;}std::cout<<sr<<','<<block<<','<<pattern<<','<<peak<<','<<step<<','<<std::sqrt(energy/(sr*3))<<'\n';}}
