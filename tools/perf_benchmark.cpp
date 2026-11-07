@@ -71,6 +71,8 @@ struct Scenario {
     bool effects;
     int blockSize;
     double panSpread{};
+    double drive{};
+    int globalDriveOversample{1};
 };
 
 struct Result {
@@ -88,6 +90,9 @@ Result runScenario(const Scenario& scenario)
     engine.loadPatch(benchmarkPatch(scenario.effects));
     engine.setPanSpread(scenario.panSpread);
     engine.setEffectsRuntimeBpm(120.0);
+    engine.setDistortion(scenario.drive);
+    if(scenario.globalDriveOversample>1)
+        engine.setExperimentalGlobalDriveOversampling(scenario.globalDriveOversample);
 
     constexpr std::array<int, 6> notes{48, 55, 60, 64, 67, 72};
     for (int i = 0; i < scenario.voices; ++i)
@@ -137,12 +142,17 @@ int main()
 {
     // Six-voice 4x/8x points quantify scalar path CPU headroom before any
     // speculative SoA/SIMD rewrite or global distortion oversampling.
-    constexpr std::array<Scenario, 12> scenarios{{
+    constexpr std::array<Scenario, 15> scenarios{{
         {"48k_1x_1voice_dry", 48000.0, 1, 1, false, 64},
         {"48k_2x_1voice_dry", 48000.0, 2, 1, false, 64},
         {"48k_2x_6voice_dry", 48000.0, 2, 6, false, 64},
         {"48k_2x_6voice_pan", 48000.0, 2, 6, false, 64, 1.0},
         {"48k_2x_6voice_fx", 48000.0, 2, 6, true, 64},
+        // Same six voices and no shared FX: isolate the added stereo drive
+        // oversampling CPU cost without changing the core voice factor.
+        {"48k_2x_6voice_drive1x", 48000.0, 2, 6, false, 64, 0.0, .9, 1},
+        {"48k_2x_6voice_drive2x", 48000.0, 2, 6, false, 64, 0.0, .9, 2},
+        {"48k_2x_6voice_drive4x", 48000.0, 2, 6, false, 64, 0.0, .9, 4},
         {"48k_4x_6voice_dry", 48000.0, 4, 6, false, 64},
         {"48k_4x_6voice_fx", 48000.0, 4, 6, true, 64},
         {"48k_8x_6voice_dry", 48000.0, 8, 6, false, 64},
