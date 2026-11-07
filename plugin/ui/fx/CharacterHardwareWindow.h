@@ -218,9 +218,24 @@ private:
     static bool isFullSizeArtwork(const juce::Image& image,
                                   bool needsAlpha=false) noexcept
     {
-        return image.isValid() && image.getWidth()==640 &&
-               image.getHeight()==190 &&
-               (!needsAlpha || image.getFormat()==juce::Image::ARGB);
+        if (!image.isValid() || image.getWidth()!=640 ||
+            image.getHeight()!=190) return false;
+        if (!needsAlpha) return true;
+        // An ARGB pixel format does not imply meaningful transparency:
+        // an opaque "coil" layer could cover and animate the fixed chassis.
+        // Validate masks at asset load, never on the audio or paint threads.
+        if (image.getFormat()!=juce::Image::ARGB) return false;
+        int transparent=0, painted=0;
+        constexpr int pixels=640*190;
+        for(int y=0;y<190;++y) for(int x=0;x<640;++x)
+        {
+            const auto alpha=image.getPixelAt(x,y).getAlpha();
+            if(alpha<255) ++transparent;
+            if(alpha>0) ++painted;
+        }
+        // Separate emission/coil layers must leave substantial clear
+        // background and actually contain visible material/light.
+        return transparent>=pixels/10 && painted>=16;
     }
 
     static void drawGlass(juce::Graphics& g, juce::Rectangle<float> cavity)
