@@ -141,6 +141,7 @@ private:
     p6plugin::OutputStage output_;
     std::atomic<float>* masterDb_{};
     std::atomic<float>* midiInputChannel_{};
+    std::atomic<float>* plasmaMode_{};
     std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
     std::atomic<unsigned> outputClips_{},outputRevision_{};
     std::atomic<float> characterExcitation_{};

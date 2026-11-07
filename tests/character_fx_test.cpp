@@ -22,6 +22,23 @@ static p6::StereoSample scale(void*,p6::StereoSample x) noexcept {return {x.left
 
 int main()
 {
+    // Hybrid compensation must not cancel the user's Output knob.
+    {
+        double energies[2]{};
+        for(int setting=0;setting<2;++setting){p6plugin::CharacterFx fx;fx.prepare(48000);p6plugin::CharacterState s;s.type=2;s.plasmaMode=1;s.custom[0][5]=1.f;s.custom[0][6]=setting?.7f:.3f;fx.setState(s);
+            for(int n=0;n<24000;++n){fx.advanceRoute();const auto y=fx.process({.1*std::sin(n*.11),0});if(n>12000)energies[setting]+=y.left*y.left;}}
+        CHECK(energies[0]>1.e-6);CHECK(energies[1]>energies[0]*20.);
+    }
+    // Switching algorithms while Plasma is active must use the existing
+    // click-protected route transition and remain allocation-free.
+    for(double rate:{44100.,48000.,96000.}) {
+        p6plugin::CharacterFx fx;fx.prepare(rate);p6plugin::CharacterState s;s.type=2;s.plasmaMode=0;
+        fx.setState(s);double legacyEnergy=0,hybridEnergy=0;bool faded=false;
+        for(int n=0;n<static_cast<int>(rate*.15);++n){fx.advanceRoute();auto y=fx.process({.05*std::sin(n*.13),0});if(n>rate*.1)legacyEnergy+=y.left*y.left;}
+        s.plasmaMode=1;fx.setState(s);counting=true;
+        for(int n=0;n<static_cast<int>(rate*.15);++n){fx.advanceRoute();faded=faded||fx.routeGain()<.01f;auto y=fx.process({.05*std::sin(n*.13),0});if(!std::isfinite(y.left)){counting=false;return 1;}if(n>rate*.1)hybridEnergy+=y.left*y.left;}
+        counting=false;CHECK(allocations==0);CHECK(faded);CHECK(fx.routeGain()>.99f);CHECK(legacyEnergy>1.e-5);CHECK(hybridEnergy>1.e-5);CHECK(std::abs(legacyEnergy-hybridEnergy)>.001);
+    }
     for(double sr:{44100.,48000.,96000.}) {
         p6plugin::CharacterFx fx;fx.prepare(sr);p6plugin::CharacterState state;
         fx.setState(state);CHECK(fx.latency()==71);CHECK(!fx.beforeEffects());

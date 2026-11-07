@@ -72,6 +72,7 @@ int main()
     auto a=processor.presetSnapshot(),b=a;
     a.character.type=2;a.masterOutputDb=-12.f;a.midiInputChannel=1;a.patch.rawPayload[1023]=31;
     b.character.type=5;b.masterOutputDb=-54.f;b.midiInputChannel=2;b.patch.rawPayload[1023]=213;
+    a.character.plasmaMode=1;b.character.plasmaMode=0;
     const auto bytesA=p6plugin::encodeState(a),bytesB=p6plugin::encodeState(b);
     bool competingWritersCoherent=true;
     for(int iteration=0;iteration<24;++iteration) {
@@ -84,8 +85,8 @@ int main()
         start.store(true,std::memory_order_release);
         for(int n=0;n<500 && finished.load(std::memory_order_acquire)<2;++n)processor.processBlock(audio,midi);
         first.join();second.join();const auto current=processor.presetSnapshot();
-        const bool matchesA=current.character.type==2&&std::abs(current.masterOutputDb+12.f)<.01f&&current.midiInputChannel==1&&current.patch.rawPayload[1023]==31;
-        const bool matchesB=current.character.type==5&&std::abs(current.masterOutputDb+54.f)<.01f&&current.midiInputChannel==2&&current.patch.rawPayload[1023]==213;
+        const bool matchesA=current.character.type==2&&current.character.plasmaMode==1&&std::abs(current.masterOutputDb+12.f)<.01f&&current.midiInputChannel==1&&current.patch.rawPayload[1023]==31;
+        const bool matchesB=current.character.type==5&&current.character.plasmaMode==0&&std::abs(current.masterOutputDb+54.f)<.01f&&current.midiInputChannel==2&&current.patch.rawPayload[1023]==213;
         competingWritersCoherent=competingWritersCoherent&&(matchesA||matchesB);
     }
     std::cout<<"24 competing-writer rounds: "<<(competingWritersCoherent?"coherent":"mixed state observed")<<'\n';

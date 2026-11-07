@@ -40,6 +40,7 @@ void CharacterFx::setState(const CharacterState& state) noexcept
     p.requested=state;
     p.requested.type=std::clamp(state.type,0,kCharacterTypes-1);
     p.requested.position=std::clamp(state.position,0,1);
+    p.requested.plasmaMode=std::clamp(state.plasmaMode,0,1);
     for(std::size_t i=0;i<state.tube.size();++i)
         p.requested.tube[i]=std::isfinite(state.tube[i]) ? std::clamp(state.tube[i],0.f,1.f) : kTubeDefaults[i];
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)p.requested.custom[d][i]=std::isfinite(state.custom[d][i])?std::clamp(state.custom[d][i],0.f,1.f):kCustomDefaults[d][i];
@@ -66,10 +67,11 @@ bool CharacterFx::advanceRoute() noexcept
     const auto& selected=p.requested.type>=2?p.requested.custom[static_cast<std::size_t>(p.requested.type-2)]:p.requested.tube;
     const int desired=(p.requested.type>0 && !p.requested.bypass && selected[5]>0.f)
         ? p.requested.position : 1;
-    if(desired!=p.active.position || p.active.type!=p.requested.type) {
+    if(desired!=p.active.position || p.active.type!=p.requested.type ||
+       (p.active.type==2 && p.active.plasmaMode!=p.requested.plasmaMode)) {
         p.gain=std::max(0.f,p.gain-p.step);
         if(p.gain==0.f) {
-            p.active.position=desired;p.active.type=p.requested.type;
+            p.active.position=desired;p.active.type=p.requested.type;p.active.plasmaMode=p.requested.plasmaMode;
             p.tube.reset();p.custom.reset(); p.dry.fill({}); p.write=0; p.blend=0;
             p.hold=p.delay;
             return true;
@@ -93,7 +95,7 @@ p6::StereoSample CharacterFx::process(p6::StereoSample x) noexcept
     p.blend+=std::clamp(target-p.blend,-p.step,p.step);
     p6::StereoSample wet=dry;
     if(enabled || p.blend>0.f) {
-        if(p.active.type>=2)wet=p.custom.process(x,p.active.type,selected);
+        if(p.active.type>=2)wet=p.custom.process(x,p.active.type,selected,p.active.plasmaMode);
         else {
         float l=static_cast<float>(x.left),r=static_cast<float>(x.right);
         float* channels[]{&l,&r};

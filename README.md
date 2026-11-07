@@ -1,5 +1,7 @@
 # Prophec-y — estado y descargas
 
+**Candidato en desarrollo:** esta rama añade Plasma Hybrid y codec v6; la descarga preview 282 indicada abajo sigue siendo la versión anterior. Las sesiones v1–v5 conservan Plasma Legacy al cargar; las versiones anteriores del plugin no pueden leer archivos guardados en v6. Consulta [Plasma Hybrid](docs/V0_20_PLASMA_HYBRID.md).
+
 Actualizado: 2 de noviembre de 2026.
 
 ## Descargar y probar

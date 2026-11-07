@@ -131,6 +131,10 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     midiMonitor_.setTooltip("Recent pitch bend and CC input. * marks a message filtered by the selected MIDI channel.");
     midiMonitor_.setText("MIDI: awaiting input",juce::dontSendNotification);addAndMakeVisible(midiMonitor_);
     auto& params=p.parameters();
+    plasmaMode_.setLookAndFeel(&look_);plasmaMode_.setTitle("Plasma algorithm");
+    plasmaMode_.setTooltip("Hybrid is the new Plasma sound. Legacy preserves the sound of older sessions.");
+    plasmaMode_.addItem("LEGACY",1);plasmaMode_.addItem("HYBRID",2);addChildComponent(plasmaMode_);
+    plasmaModeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kPlasmaModeID,plasmaMode_);
     midiChannelBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kMidiInputChannelID,midiInputChannel_);
     master_.setLookAndFeel(&look_);master_.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     master_.setTextBoxStyle(juce::Slider::TextBoxBelow,false,95,18);master_.setTitle("Master Output");
@@ -299,6 +303,7 @@ void P6PluginEditor::refreshVisibility()
     device_.setVisible(!studioView_&&selected>=2&&!collapsed_);updateDevice();
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
     collapse_.setVisible(!studioView_&&showTube_);motion_.setVisible(!studioView_&&showTube_&&!collapsed_);
+    plasmaMode_.setVisible(!studioView_&&selected==2);
     position_.setEnabled(showTube_);bypass_.setEnabled(showTube_);previous_.setEnabled(selected>0);next_.setEnabled(selected<p6plugin::kCharacterTypes-1);
     module_.setToggleState(!studioView_,juce::dontSendNotification);studio_.setToggleState(studioView_,juce::dontSendNotification);
     collapse_.setButtonText(collapsed_?"SHOW":"HIDE");
@@ -338,6 +343,7 @@ void P6PluginEditor::resized()
     position_.setBounds(rect(1248,expanded?811:652,137,24));bypass_.setBounds(rect(1262,expanded?753:652,100,24));
     if(!expanded){previous_.setBounds(rect(305,652,25,23));type_.setBounds(rect(338,652,155,23));next_.setBounds(rect(501,652,25,23));position_.setBounds(rect(550,652,145,24));bypass_.setBounds(rect(735,652,100,24));}
     collapse_.setBounds(rect(1190,652,90,24));motion_.setBounds(rect(1301,652,91,24));
+    plasmaMode_.setBounds(rect(1000,652,140,24));
     knob(36,883,109,88,88);
     displayArea_=rect(526,96,322,122);display_.setBounds(displayArea_);tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
     chamber_.setBounds(rect(65,720,320,180));device_.setBounds(chamber_.getBounds());

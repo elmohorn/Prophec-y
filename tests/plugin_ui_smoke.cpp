@@ -100,6 +100,8 @@ int main(int argc,char** argv)
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
+    CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);
+    CHECK(p.parameters().getRawParameterValue(p6plugin::kCustomIDs[0][5])->load()==.5f);
     p.prepareToPlay(48000,128);CHECK(p.getLatencySamples()==71);
     const auto sysex=p.exportEditBuffer();
     set(p,p6plugin::kMidiInputChannelID,7);
@@ -108,6 +110,7 @@ int main(int argc,char** argv)
     juce::MemoryBlock state;p.getStateInformation(state);
     P6AudioProcessor restored;restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kMidiInputChannelID)->load()==7.f);
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kCharacterTypeID)->load()==1.f);
     CHECK(std::abs(restored.parameters().getRawParameterValue(p6plugin::kTubeIDs[0])->load()-.612f)<1e-5f);
     CHECK(restored.exportEditBuffer()==sysex);
@@ -118,10 +121,21 @@ int main(int argc,char** argv)
     legacy[4]=2;legacy[5]=0;restored.setStateInformation(legacy.data(),static_cast<int>(legacy.size()));
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==0.f);
     CHECK(restored.parameters().getRawParameterValue(p6plugin::kMidiInputChannelID)->load()==0.f);
+    CHECK(restored.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==0.f);
     set(p,p6plugin::kMidiInputChannelID,0);
     CHECK(restored.exportEditBuffer()==sysex);
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
     CHECK(editor!=nullptr);
+    for(auto* child:editor->getChildren())if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="Prophec-y effect")box->setSelectedId(3,juce::sendNotificationSync);
+    bool foundPlasmaMode=false;
+    for(auto* child:editor->getChildren())if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="Plasma algorithm") {
+        foundPlasmaMode=true;CHECK(box->isVisible());CHECK(box->getSelectedId()==2);
+        box->setSelectedId(1,juce::sendNotificationSync);CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==0.f);
+        box->setSelectedId(2,juce::sendNotificationSync);CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);
+    }
+    CHECK(foundPlasmaMode);
+    // Restore Tube, which subsequent chamber checks exercise.
+    for(auto* child:editor->getChildren())if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="Prophec-y effect")box->setSelectedId(2,juce::sendNotificationSync);
     bool foundMidiSelector=false,foundMidiMonitor=false;
     for(auto* child:editor->getChildren()) {
         if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="MIDI input channel") {

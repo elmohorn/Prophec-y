@@ -27,7 +27,7 @@ struct CustomCharacter::Impl {
     std::array<Channel,2> channels;
     std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{},neonDelay{};std::uint32_t tick{},scopeTick{};
     std::array<float,7> current{};bool first{true};double rate{48000},highRate{96000};
-    float springDecay{},springDamping{},plasmaAttack{},ferroAttack{};
+    float springDecay{},springDamping{},plasmaAttack{},ferroAttack{},hybridGateAttack{},hybridGateRelease{},hybridReferenceOutput{};
     float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},folds{},symmetry{},bias{},responseAlpha{};
     std::array<double,3> tapPower{};
     float conductionMean{},foldMean{},scopeAlpha{};
@@ -39,6 +39,9 @@ CustomCharacter::~CustomCharacter()=default;
 void CustomCharacter::prepare(double rate,int latency)
 {
     auto& p=*p_;p.rate=std::max(rate,8000.);p.highRate=p.rate*2.;p.os.prepare({p.rate,1,2});p.neonOs.prepare({p.rate,1,2});p.spring.prepare(p.highRate);
+    p.hybridGateAttack=1.f-std::exp(-1.f/(.002f*static_cast<float>(p.highRate)));
+    p.hybridGateRelease=1.f-std::exp(-1.f/(.030f*static_cast<float>(p.highRate)));
+    p.hybridReferenceOutput=gain(-6.f); // output knob midpoint; do not cancel user gain changes
     p.delay=std::max(0,latency-p.os.getLatency());p.neonDelay=std::max(0,latency-p.neonOs.getLatency());p.scopeAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.rate)));
     p.plasmaAttack=1.f-std::exp(static_cast<float>(std::log(.96)*96000./p.highRate));
     p.ferroAttack=1.f-std::exp(static_cast<float>(std::log(.99)*96000./p.highRate));
@@ -56,7 +59,7 @@ float CustomCharacter::neonTransfer(float x,const std::array<float,7>& v) noexce
     x=std::clamp(x,-32.f,32.f);
     return folder.Process(x*(x>=0?1.f+asym:1.f-asym));
 }
-p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const std::array<float,7>& values) noexcept
+p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const std::array<float,7>& values,int plasmaMode) noexcept
 {
     auto& p=*p_;
     if(p.first){
@@ -98,10 +101,18 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
                 const float voltage=x*p.drive;
                 if(std::abs(voltage)>p.threshold){channel.lit=true;channel.hold=p.holdSamples;}
                 else if(std::abs(voltage)<p.threshold*.65f){channel.hold=std::max(0.f,channel.hold-1.f);if(channel.hold==0)channel.lit=false;}
-                const float target=channel.lit?1.f:0.f;channel.conduction+=p.plasmaAttack*(target-channel.conduction);
+                float target=channel.lit?1.f:0.f;
+                if(plasmaMode==1) {
+                    const float envelopeRate=std::abs(voltage)>channel.envelope?p.hybridGateAttack:p.hybridGateRelease;
+                    channel.envelope+=envelopeRate*(std::abs(voltage)-channel.envelope);
+                    const float knee=std::clamp((channel.envelope-p.threshold*.5f)/std::max(p.threshold,1.e-6f),0.f,1.f);
+                    target=knee*knee*(3.f-2.f*knee);
+                }
+                channel.conduction+=p.plasmaAttack*(target-channel.conduction);
                 const float character=v[3],offset=(character-.5f)*.2f;
                 y=channel.conduction*(std::tanh((2.f+8.f*character)*(voltage+offset))-std::tanh((2.f+8.f*character)*offset));
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
+                if(plasmaMode==1)y/=std::max(1.f,p.drive*(2.f+8.f*character)*p.hybridReferenceOutput);
                 conductionTarget=std::max(conductionTarget,target);
             } else if(type==4) {
                 const float a=std::abs(x)>channel.envelope?p.ferroAttack:p.responseAlpha;channel.envelope+=a*(std::abs(x)-channel.envelope);
