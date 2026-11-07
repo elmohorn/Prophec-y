@@ -27,7 +27,7 @@ struct CustomCharacter::Impl {
     std::array<Channel,2> channels;
     std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{},neonDelay{};std::uint32_t tick{},scopeTick{};
     std::array<float,7> current{};bool first{true};double rate{48000},highRate{96000};
-    float springDecay{},springDamping{},plasmaAttack{},ferroAttack{},hybridGateAttack{},hybridGateRelease{};
+    float springDecay{},springDamping{},plasmaAttack{},ferroAttack{},hybridGateAttack{},hybridGateRelease{},hybridReferenceOutput{};
     float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},folds{},symmetry{},bias{},responseAlpha{};
     std::array<double,3> tapPower{};
     float conductionMean{},foldMean{},scopeAlpha{};
@@ -41,6 +41,7 @@ void CustomCharacter::prepare(double rate,int latency)
     auto& p=*p_;p.rate=std::max(rate,8000.);p.highRate=p.rate*2.;p.os.prepare({p.rate,1,2});p.neonOs.prepare({p.rate,1,2});p.spring.prepare(p.highRate);
     p.hybridGateAttack=1.f-std::exp(-1.f/(.002f*static_cast<float>(p.highRate)));
     p.hybridGateRelease=1.f-std::exp(-1.f/(.030f*static_cast<float>(p.highRate)));
+    p.hybridReferenceOutput=gain(-6.f); // output knob midpoint; do not cancel user gain changes
     p.delay=std::max(0,latency-p.os.getLatency());p.neonDelay=std::max(0,latency-p.neonOs.getLatency());p.scopeAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.rate)));
     p.plasmaAttack=1.f-std::exp(static_cast<float>(std::log(.96)*96000./p.highRate));
     p.ferroAttack=1.f-std::exp(static_cast<float>(std::log(.99)*96000./p.highRate));
@@ -111,7 +112,7 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
                 const float character=v[3],offset=(character-.5f)*.2f;
                 y=channel.conduction*(std::tanh((2.f+8.f*character)*(voltage+offset))-std::tanh((2.f+8.f*character)*offset));
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
-                if(plasmaMode==1)y/=std::max(1.f,p.drive*(2.f+8.f*character)*p.output);
+                if(plasmaMode==1)y/=std::max(1.f,p.drive*(2.f+8.f*character)*p.hybridReferenceOutput);
                 conductionTarget=std::max(conductionTarget,target);
             } else if(type==4) {
                 const float a=std::abs(x)>channel.envelope?p.ferroAttack:p.responseAlpha;channel.envelope+=a*(std::abs(x)-channel.envelope);
