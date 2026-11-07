@@ -115,6 +115,33 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     hardware_.setPhotoAtlas(BinaryData::character_cameras_atlas_jpg,
                              BinaryData::character_cameras_atlas_jpgSize);
 #endif
+    // The native RGBA assets take precedence over lossy JPEG segmentation.
+    // CMake enables each family only if all four resources are present;
+    // invalid images also fall back in CharacterHardwareWindow.
+#if defined(P6_HAS_SPRING_RGBA)
+    hardware_.setSpringArtwork(
+        juce::ImageCache::getFromMemory(BinaryData::spring_backplate_png,
+                                        BinaryData::spring_backplate_pngSize),
+        std::array<juce::Image,3>{{
+            juce::ImageCache::getFromMemory(BinaryData::spring_upper_coil_png,
+                                            BinaryData::spring_upper_coil_pngSize),
+            juce::ImageCache::getFromMemory(BinaryData::spring_lower_coil_png,
+                                            BinaryData::spring_lower_coil_pngSize),
+            juce::ImageCache::getFromMemory(BinaryData::spring_reflection_overlay_png,
+                                            BinaryData::spring_reflection_overlay_pngSize)
+        }});
+#endif
+#if defined(P6_HAS_OPTICAL_RGBA)
+    hardware_.setOpticalArtwork(
+        juce::ImageCache::getFromMemory(BinaryData::optical_backplate_png,
+                                        BinaryData::optical_backplate_pngSize),
+        juce::ImageCache::getFromMemory(BinaryData::optical_lamp_off_png,
+                                        BinaryData::optical_lamp_off_pngSize),
+        juce::ImageCache::getFromMemory(BinaryData::optical_lamp_on_png,
+                                        BinaryData::optical_lamp_on_pngSize),
+        juce::ImageCache::getFromMemory(BinaryData::optical_ldr_overlay_png,
+                                        BinaryData::optical_ldr_overlay_pngSize));
+#endif
     addAndMakeVisible(display_);addChildComponent(chamber_);addChildComponent(device_);addChildComponent(hardware_);
     for(auto* c:std::array<juce::Component*,12>{&module_,&studio_,&previous_,&next_,&collapse_,&bypass_,&motion_,&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) {
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
