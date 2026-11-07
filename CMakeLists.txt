@@ -142,6 +142,13 @@ add_executable(p6_timing_probe tools/timing_probe.cpp)
 target_link_libraries(p6_timing_probe PRIVATE p6core)
 add_executable(p6_perf_benchmark tools/perf_benchmark.cpp)
 target_link_libraries(p6_perf_benchmark PRIVATE p6core)
+
+# Fixed-input, standalone aliasing diagnostic for the real global distortion
+# path. Runs at base rate and ideal 2x/4x for comparison; not a DSP change.
+add_executable(p6_global_distortion_alias_probe tools/global_distortion_alias_probe.cpp)
+target_link_libraries(p6_global_distortion_alias_probe PRIVATE p6core)
+add_test(NAME p6_global_distortion_alias_probe
+         COMMAND p6_global_distortion_alias_probe --self-test)
 add_executable(p6_dsp_fingerprint tools/dsp_fingerprint.cpp)
 target_link_libraries(p6_dsp_fingerprint PRIVATE p6core)
 
