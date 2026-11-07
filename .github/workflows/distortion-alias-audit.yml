@@ -5,6 +5,11 @@ on:
     branches: [v0.20-ui]
     paths:
       - tools/global_distortion_alias_probe.cpp
+      - tools/perf_benchmark.cpp
+      - include/p6/ExperimentalGlobalDriveOversampler.h
+      - include/p6/P6Engine.h
+      - src/P6Engine.cpp
+      - tests/realtime_contract_test.cpp
       - CMakeLists.txt
       - .github/workflows/distortion-alias-audit.yml
   workflow_dispatch:
