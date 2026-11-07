@@ -42,10 +42,9 @@ public:
         repaint();
     }
 
-    // Preferred production artwork: the CLEAN full-size background and TWO
-    // transparent coil layers aligned to the 640x190 chamber. These OVERRIDE
-    // JPEG-extracted color-threshold masks if present. Mounts remain inside
-    // the fixed backdrop; an optional legacy third coil is never rendered.
+    // Preferred full-size static background, TWO transparent moving coils
+    // and an OPTIONAL stationary energy reflection overlay. All are 640x190.
+    // These override the JPEG compatibility mattes. Mounts never move.
     void setSpringArtwork(const juce::Image& backdrop,
                           const std::array<juce::Image, 3>& coils)
     {
@@ -53,10 +52,11 @@ public:
         // must never displace a working atlas/fallback with stretched pixels.
         if(isFullSizeArtwork(backdrop) &&
            isFullSizeArtwork(coils[0],true) &&
-           isFullSizeArtwork(coils[1],true))
+           isFullSizeArtwork(coils[1],true) &&
+           (!coils[2].isValid() || isFullSizeArtwork(coils[2],true)))
         {
             springBackdrop_=backdrop;
-            springCoils_=coils;  // third legacy layer ignored by drawSpring
+            springCoils_=coils;  // index 2: optional fixed reflection
         }
         else
         {
@@ -323,13 +323,19 @@ private:
             springCoils_[1].isValid())
         {
             drawArtwork(g, springBackdrop_);
-            // Legacy layered assets may include a third image, but the approved
-            // hardware has TWO coils. Never paint a phantom third spring.
+            // Exactly TWO coils are movable; the third, if present, is
+            // stationary reflected light, not an invented third spring.
             for (std::size_t row = 0; row < 2; ++row)
             {
                 const float displacement = active_ && motion_
                     ? visualDynamics_.frame().springShift[row] : 0.f;
                 drawArtwork(g, springCoils_[row], displacement);
+            }
+            if (springCoils_[2].isValid())
+            {
+                juce::Graphics::ScopedSaveState light(g);
+                g.setOpacity(active_ ? .08f + .75f * energy : 0.f);
+                drawArtwork(g, springCoils_[2]);
             }
             CharacterHardwarePrimitives::meter(g, "ENERGY", 37.f, 152.f, 276.f,
                   (visualDynamics_.frame().springEnergy[0] +
