@@ -8,6 +8,7 @@
 #include <array>
 #include <atomic>
 #include <cstddef>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <new>
@@ -188,10 +189,49 @@ void testPreparedActiveEffectsDoNotAllocate()
     P6_CHECK(allocations == 0);
 }
 
+void testExperimentalGlobalDriveIsAllocationFreeAndCompensable()
+{
+    p6::P6Engine defaultEngine;
+    defaultEngine.prepare(48000.,2);
+    P6_CHECK(defaultEngine.experimentalGlobalDriveLatencySamples()==0);
+
+    for(const int factor:{2,4}) {
+        p6::ExperimentalGlobalDriveOversampler stage;
+        stage.prepare(48000.,factor);
+        P6_CHECK(stage.latencySamples()==32);
+        int peakPosition=-1;
+        double peak{};
+        // At zero drive the two FIRs have a 32-sample peak delay.
+        for(int sample=0;sample<90;++sample) {
+            const auto output=stage.process(sample==0?1.:0.,0.,0.);
+            if(std::abs(output[0])>peak) {
+                peak=std::abs(output[0]);
+                peakPosition=sample;
+            }
+            P6_CHECK(std::isfinite(output[0]) && std::isfinite(output[1]));
+        }
+        P6_CHECK(peakPosition==32);
+
+        stage.prepare(48000.,factor);
+        std::size_t allocations{};
+        {
+            AllocationScope guard;
+            for(int i=0;i<8192;++i) {
+                const double x=.3*std::sin(2.*3.14159265358979323846*i*.211);
+                const auto output=stage.process(x,-.25*x,.9);
+                P6_CHECK(std::isfinite(output[0]) && std::isfinite(output[1]));
+            }
+            allocations=guard.count();
+        }
+        P6_CHECK(allocations==0);
+    }
+}
+
 } // namespace
 
 int main()
 {
+    testExperimentalGlobalDriveIsAllocationFreeAndCompensable();
     testCoreRealtimePathDoesNotAllocateAfterPrepare();
     testPreparedActiveEffectsDoNotAllocate();
     std::cout << "p6 v0.18 realtime allocation contract passed\n";
