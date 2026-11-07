@@ -206,18 +206,32 @@ int main(int argc,char** argv)
     juce::TextButton* fold=nullptr;
     juce::TextButton* presets=nullptr;
     juce::Label* midiReadout=nullptr;
+    juce::Label* masterLabel=nullptr;
     juce::Slider* master=nullptr;
+    OutputMeter* meter=nullptr;
+    juce::TextButton* resetClip=nullptr;
+    juce::TextButton* moduleButton=nullptr;
+    juce::TextButton* studioButton=nullptr;
+    juce::ComboBox* midiChannel=nullptr;
     for(auto* child:editor->getChildren()) {
         if(auto* device=dynamic_cast<TubeChamber*>(child))chamber=device;
+        if(auto* output=dynamic_cast<OutputMeter*>(child))meter=output;
         if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
             if(button->getButtonText()=="HIDE")fold=button;
             if(button->getTitle()=="Preset browser")presets=button;
+            if(button->getButtonText()=="RESET CLIP")resetClip=button;
+            if(button->getButtonText()=="MODULE")moduleButton=button;
+            if(button->getButtonText()=="STUDIO")studioButton=button;
         }
-        if(auto* label=dynamic_cast<juce::Label*>(child);label&&label->getTitle()=="Recent MIDI input")midiReadout=label;
+        if(auto* label=dynamic_cast<juce::Label*>(child)) {
+            if(label->getTitle()=="Recent MIDI input")midiReadout=label;
+            if(label->getText()=="MASTER")masterLabel=label;
+        }
         if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->getTitle()=="Master Output")master=slider;
+        if(auto* combo=dynamic_cast<juce::ComboBox*>(child);combo&&combo->getTitle()=="MIDI input channel")midiChannel=combo;
     }
     CHECK(chamber!=nullptr&&chamber->isVisible()&&fold!=nullptr);
-    CHECK(presets!=nullptr&&midiReadout!=nullptr&&master!=nullptr);
+    CHECK(presets&&midiReadout&&masterLabel&&master&&meter&&resetClip&&moduleButton&&studioButton&&midiChannel);
     // This test protects the cramped FX and Performance controls that were
     // previously intersecting at the bottom edge of the synth panel.
     juce::ComboBox* fxA=nullptr;
@@ -258,15 +272,19 @@ int main(int argc,char** argv)
             CHECK(child->getBottom()<=editor->getHeight()-28);
         }
         const float sx=static_cast<float>(width)/1460.f;
-        const juce::Rectangle<int> header(juce::roundToInt(43.f*sx),19,juce::roundToInt(550.f*sx),70);
-        const juce::Rectangle<int> console(juce::roundToInt(37.f*sx),8,juce::roundToInt(1163.f*sx),84);
-        CHECK(console.contains(master->getBounds()));
-        CHECK(console.contains(header));
-        CHECK(header.contains(presets->getBounds()));
-        CHECK(header.contains(midiReadout->getBounds()));
-        CHECK(!presets->getBounds().intersects(midiReadout->getBounds()));
-        CHECK(master->getX()>header.getRight());
-        CHECK(!presets->getBounds().intersects(master->getBounds()));
+        // Approved A: branded aluminum left; all upper controls occupy a
+        // single inset dark screen on the right, not separate boxes.
+        const juce::Rectangle<int> hostPlate(juce::roundToInt(36.f*sx),10,juce::roundToInt(1388.f*sx),79);
+        const juce::Rectangle<int> screen(juce::roundToInt(252.f*sx),20,juce::roundToInt(1155.f*sx),65);
+        const juce::Rectangle<int> logo(juce::roundToInt(57.f*sx),33,juce::roundToInt(181.f*sx),34);
+        CHECK(hostPlate.contains(screen));
+        CHECK(hostPlate.contains(logo));
+        CHECK(!screen.intersects(logo));
+        const std::array<juce::Component*,9> headerControls{presets,master,masterLabel,meter,midiReadout,midiChannel,resetClip,moduleButton,studioButton};
+        for(auto* control:headerControls)CHECK(screen.contains(control->getBounds()));
+        for(std::size_t i=0;i<headerControls.size();++i)
+            for(std::size_t j=i+1;j<headerControls.size();++j)
+                CHECK(!headerControls[i]->getBounds().intersects(headerControls[j]->getBounds()));
         // Two FX rows, status toggle and all three controls fit in the bay.
         const juce::Rectangle<int> fxBay(juce::roundToInt(906.f*sx),528,juce::roundToInt(496.f*sx),104);
         for(auto* fx:std::array<juce::Component*,6>{fxA,fxB,fxOn,mixA,mixB,programVol})
