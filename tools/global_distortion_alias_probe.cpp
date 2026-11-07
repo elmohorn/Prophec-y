@@ -1,8 +1,10 @@
 // Isolated global distortion aliasing experiment. NEVER changes the engine DSP.
 // The *actual* P6Engine distortion stage is exercised through its pre-FX
 // injection callback; no synthetic approximation of its nonlinear equation.
-// The 2x/4x signals are IDEAL-TONE upper bounds: for a deployed wrapper a
-// practical anti-imaging interpolator, latency alignment and A/B remain needed.
+// Compare ideal-tone upper bounds with offline FIR-reconstructed *sampled*
+// inputs. Reconstruction is zero-phase/noncausal in this probe and is NOT
+// a production-ready realtime oversampler; implementation requires PDC and
+// bypass alignment.
 #include "p6/P6Engine.h"
 #include <algorithm>
 #include <array>
@@ -27,9 +29,13 @@ struct Injection {
     double phase{};
     double increment{};
     double amplitude{0.35};
+    const std::vector<double>* reconstructed{};
+    std::size_t index{};
     static p6::StereoSample emit(void* ctx, p6::StereoSample) noexcept {
         auto& self=*static_cast<Injection*>(ctx);
-        const double v=self.amplitude * std::sin(self.phase);
+        const double v=self.reconstructed
+            ? (*self.reconstructed)[self.index++]
+            : self.amplitude * std::sin(self.phase);
         self.phase+=self.increment;
         if(self.phase>=2.*pi) self.phase-=2.*pi;
         return {v, v};
@@ -56,14 +62,65 @@ std::vector<double> decimator(int factor) {
     return kernel;
 }
 
-std::vector<double> render(double fs, int factor, double amount) {
+// Offline windowed-sinc reconstruction of samples taken at the HOST rate.
+// Uses 33 host-sample support and polyphase coefficients. It is noncausal
+// here so a deployable FIR needs delay compensation (~16 input samples plus
+// ~16 input samples for post-filter). Fundamental tone is never synthesized
+// directly at the oversampled rate for this path.
+std::vector<double> interpolateHostTone(int count,int factor) {
+    constexpr int half=16;
+    constexpr double amp=.35;
+    std::vector<double> host(static_cast<std::size_t>(count+2*half));
+    for(int k=-half;k<count+half;++k)
+        host[static_cast<std::size_t>(k+half)] =
+            amp*std::sin(2.*pi*fundamentalFraction*double(k));
+    std::vector<std::array<double,2*half+1>> weights(
+        static_cast<std::size_t>(factor));
+    for(int phase=0;phase<factor;++phase) {
+        const double fractional=double(phase)/factor;
+        double normalization{};
+        for(int offset=-half;offset<=half;++offset){
+            const double x=fractional-offset;
+            const double w=std::abs(x)<=half
+              ? .42+.5*std::cos(pi*x/half)+.08*std::cos(2.*pi*x/half)
+              : 0.;
+            const double sinc=std::abs(x)<1.e-12
+              ? 1. : std::sin(pi*x)/(pi*x);
+            const double value=w*sinc;
+            weights[static_cast<std::size_t>(phase)]
+                   [static_cast<std::size_t>(offset+half)]=value;
+            normalization+=value;
+        }
+        for(auto& weight:weights[static_cast<std::size_t>(phase)])
+            weight/=normalization;
+    }
+    std::vector<double> high(static_cast<std::size_t>(count*factor));
+    for(int i=0;i<count*factor;++i) {
+        const int center=i/factor, phase=i%factor;
+        double reconstructed{};
+        for(int offset=-half;offset<=half;++offset)
+            reconstructed+=host[static_cast<std::size_t>(center+offset+half)]*
+               weights[static_cast<std::size_t>(phase)]
+                      [static_cast<std::size_t>(offset+half)];
+        high[static_cast<std::size_t>(i)]=reconstructed;
+    }
+    return high;
+}
+
+std::vector<double> render(double fs, int factor, double amount,
+                           bool hostReconstructed=false) {
     p6::P6Engine engine;
     engine.prepare(fs*factor, 1); // voice path silent; only global distortion used.
     engine.setDistortion(amount); // after prepare; effects default disabled.
     Injection injection;
     injection.increment=2.*pi*fundamentalFraction/double(factor);
-    engine.setCharacterInsert(&injection, &Injection::emit, true);
     const int n=warmup+fftLength;
+    std::vector<double> interpolated;
+    if(hostReconstructed && factor>1) {
+        interpolated=interpolateHostTone(n,factor);
+        injection.reconstructed=&interpolated;
+    }
+    engine.setCharacterInsert(&injection, &Injection::emit, true);
     std::vector<double> high(static_cast<std::size_t>(n*factor));
     for(auto& value:high)value=engine.process().left;
     const auto fir=decimator(factor);
@@ -114,22 +171,27 @@ Metrics metrics(const std::vector<double>& data) {
     return m;
 }
 
-struct Row {double fs{},amount{};int factor{};Metrics m;};
+struct Row {double fs{},amount{};int factor{};bool reconstructed{};Metrics m;};
 
 bool verify(const std::vector<Row>& rows) {
     bool valid=true;
     for(double fs:{44100.,48000.,96000.})for(double drive:{.45,.9}){
-        std::array<Metrics,3> m{};
-        for(const auto& row:rows){
+        double original=std::numeric_limits<double>::quiet_NaN();
+        double ideal4x=std::numeric_limits<double>::quiet_NaN();
+        double fir4x=std::numeric_limits<double>::quiet_NaN();
+        for(const auto& row:rows) {
             if(row.fs!=fs || row.amount!=drive)continue;
-            m[static_cast<std::size_t>(row.factor==1?0:row.factor==2?1:2)]=row.m;
+            if(row.factor==1)original=row.m.aliasDbc;
+            if(row.factor==4) {
+                if(row.reconstructed)fir4x=row.m.aliasDbc;
+                else ideal4x=row.m.aliasDbc;
+            }
         }
-        // The actual base-rate distortion is nonlinear; if no alias is
-        // observed the experiment has no sensitivity and must fail.
-        if(!std::isfinite(m[0].aliasDbc)||m[0].aliasDbc < -130.)valid=false;
-        // This is an *ideal input-tone* upper bound, not permission to ship
-        // FIR-based oversampling without considering PDC and phase shifts.
-        if(!(m[2].aliasDbc < m[0].aliasDbc-3.))valid=false;
+        // Require sensitivity and a genuine improvement in the reconstructed
+        // (not only ideal source) experiment; never assert a production claim.
+        valid &= std::isfinite(original) && original>-130.;
+        valid &= std::isfinite(ideal4x) && ideal4x<original-3.;
+        valid &= std::isfinite(fir4x) && fir4x<original-3.;
     }
     return valid;
 }
@@ -142,16 +204,20 @@ int main(int argc,char** argv) {
         return 2;
     }
     std::vector<Row> rows;
-    std::cout<<"sample_rate_hz,drive,ideal_tone_factor,fundamental_amp,folded_alias_rms,folded_alias_dbc,peak\n";
+    std::cout<<"sample_rate_hz,drive,oversampling_factor,input_source,fundamental_amp,folded_alias_rms,folded_alias_dbc,peak\n";
     std::cout<<std::fixed<<std::setprecision(6);
     for(const double fs:{44100.,48000.,96000.})
         for(const double drive:{.45,.9})
-            for(const int factor:{1,2,4}) {
-                const auto m=metrics(render(fs,factor,drive));
-                rows.push_back({fs,drive,factor,m});
-                std::cout<<fs<<','<<drive<<','<<factor<<','
-                         <<m.fundamental<<','<<m.aliasRms<<','<<m.aliasDbc<<','<<m.peak<<'\n';
-            }
+            for(const int factor:{1,2,4})
+                for(const bool reconstructed:{false,true}) {
+                    if(factor==1 && reconstructed)continue;
+                    const auto m=metrics(render(fs,factor,drive,reconstructed));
+                    rows.push_back({fs,drive,factor,reconstructed,m});
+                    std::cout<<fs<<','<<drive<<','<<factor<<','
+                             <<(reconstructed?"host_fir":"ideal_tone")<<','
+                             <<m.fundamental<<','<<m.aliasRms<<','
+                             <<m.aliasDbc<<','<<m.peak<<'\n';
+                }
     if(selfTest && !verify(rows)) {
         std::cerr<<"Alias diagnostic sensitivity or 4x upper-bound reduction failed\n";
         return 1;
