@@ -83,6 +83,57 @@ implementation is expanded `p6_perf_benchmark` coverage (1x/2x/4x/8x).
 This audit is intentionally separate from PR #7 (the Character RGBA UI work).
 Do not merge a DSP experiment into the photo/renderer PR.
 
+## Executed experiment: global stereo distortion oversampling
+
+The shared (after six voices) nonlinear distortion is the first demonstrably
+aliased stage **not** protected by the existing per-voice oversampling. This
+audit now includes `tools/global_distortion_alias_probe.cpp`, which injects a
+coherent 0.2107×sample-rate sinusoid through the **actual** pre-FX insert of
+`P6Engine`, with the voice path silent, so the engine's distortion and
+high-pass state are exercised without substituting a mock waveshaper.
+
+A separate core-only GitHub Actions workflow
+[`global-distortion-alias-audit`](https://github.com/elmohorn/Prophec-y/actions/workflows/distortion-alias-audit.yml)
+builds the probe, runs it over 44.1/48/96 kHz and drive 0.45/0.90,
+and uploads inspectable CSV spectra metrics. The folded harmonic amplitude
+metric sums bins corresponding to 2nd–11th nonlinear harmonics **above
+host Nyquist**; it is a single-tone stress test, *not* a broadband perceived
+quality metric. Decibels are relative to the fundamental (dBc); more negative
+is less aliasing.
+
+At 48 kHz:
+
+| Drive | Existing 1x | Offline input-FIR 2x | Offline input-FIR 4x | Real-time polyphase 2x | Real-time polyphase 4x |
+|---|---:|---:|---:|---:|---:|
+| 0.45 | −17.77 dBc | −40.72 dBc | −83.91 dBc | −40.71 dBc | −83.68 dBc |
+| 0.90 | −14.45 dBc | −33.81 dBc | −81.26 dBc | −33.80 dBc | −81.05 dBc |
+
+The same setup passed at 44.1 and 96 kHz. In this test the real-time
+stereo prototype reduces folded harmonics about 19–23 dB at 2x and
+64–67 dB at 4x, depending on drive. Results are **not** proof that all
+patches or multitone inputs improve by those amounts.
+
+`ExperimentalGlobalDriveOversampler` is implemented as a fixed-memory
+polyphase interpolation + low-pass decimation FIR, with two stereo channels,
+no allocations/locks or trig in `process()` and nominal **32 host samples
+of linear-phase delay**. It is wired through
+`P6Engine::setExperimentalGlobalDriveOversampling(2|4)`, which is **disabled
+by default** (factor 1) and deliberately **not** exposed as a VST3/standalone
+parameter. Reconfiguration requires audio to be stopped; it is not
+audio-thread-safe to reset FIR state from arbitrary automation.
+
+Release blockers: exact pre/post bypass and insert-chain latency alignment,
+host PDC plus the existing Tube latency, crossfaded runtime quality changes
+if ever needed, production CPU measurements, real patch/multitone comparisons,
+high-resonance spectrum/phase and hardware-reference timbre. A real
+host-facing mode must never silently add 32 samples of unreported delay.
+The existing engine path remains the default pending these gates.
+
+The separate `p6_realtime_contract_tests` now asserts a 32-sample
+impulse peak delay and no heap allocation while processing. The expedited
+audit workflow additionally checks this test and the frozen DSP fingerprint;
+the full Windows/Linux plugin-ci remains the final compatibility gate.
+
 ## External context (research links)
 
 - JUCE 9.0.4 change list: https://github.com/juce-framework/JUCE/blob/master/CHANGE_LIST.md
