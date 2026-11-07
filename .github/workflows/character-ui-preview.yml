@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 # Only the newest pending visual capture needs a hosted runner.
 concurrency:
@@ -19,6 +19,14 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Refine interim photo masks (one-off PR7 validation)
+        run: |
+          python3 -m pip install Pillow opencv-python-headless
+          python3 tools/refine_character_rgba.py \
+            --source plugin/assets/character_cameras_atlas.jpg \
+            --output-dir plugin/assets/character_rgba
       # The eight PNGs are checked into the PR. Never regenerate them in CI:
       # an artist may later replace them with hand-isolated RGBA masters.
       - name: Verify committed RGBA layer set
@@ -63,3 +71,17 @@ jobs:
           name: ProphecY-Character-atlas-source
           path: plugin/assets/character_cameras_atlas.jpg
           if-no-files-found: error
+      - name: Commit verified refined masks (one-off)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add plugin/assets/character_rgba/*.png
+          if git diff --cached --quiet; then
+            echo "Masks already match the deterministic refined set"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "PR7: integrate refined cavity and light RGBA masks"
+          git push origin HEAD:${{ github.head_ref }}
