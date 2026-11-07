@@ -127,7 +127,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     midiInputChannel_.addItem("MIDI: OMNI",1);for(int channel=1;channel<=16;++channel)midiInputChannel_.addItem("MIDI: "+juce::String(channel),channel+1);
     addAndMakeVisible(midiInputChannel_);
     midiMonitor_.setTitle("Recent MIDI input");midiMonitor_.setFont(juce::Font(11.f));
-    midiMonitor_.setColour(juce::Label::textColourId,muted);
+    midiMonitor_.setColour(juce::Label::textColourId,juce::Colour{0xffb9c8bf});
     midiMonitor_.setTooltip("Recent pitch bend and CC input. * marks a message filtered by the selected MIDI channel.");
     midiMonitor_.setText("MIDI: awaiting input",juce::dontSendNotification);addAndMakeVisible(midiMonitor_);
     auto& params=p.parameters();
@@ -202,7 +202,12 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     focusValue_=juce::String(p6plugin::ui::formatParameterValue(45,params.getRawParameterValue(hardwareID(45))->load(),p.parameterPresentationContext()));
     setResizable(true,false);setResizeLimits(1240,compactHeight,1920,1200);setSize(1460,compactHeight);
     browser_=std::make_unique<PresetBrowser>(processor_,std::move(presetRoot));addChildComponent(*browser_);
-    browserButton_.setLookAndFeel(&look_);browserButton_.setTitle("Preset browser");addAndMakeVisible(browserButton_);
+    browserButton_.setLookAndFeel(&look_);browserButton_.setTitle("Preset browser");
+    browserButton_.setColour(juce::TextButton::buttonColourId,juce::Colour{0xff3b4942});
+    browserButton_.setColour(juce::TextButton::buttonOnColourId,juce::Colour{0xff516356});
+    browserButton_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xffe6ede3});
+    browserButton_.setColour(juce::TextButton::textColourOnId,juce::Colour{0xffffd399});
+    addAndMakeVisible(browserButton_);
     browserButton_.onClick=[this]{browser_->setVisible(!browser_->isVisible());if(browser_->isVisible()){browser_->refreshLibrary();browser_->toFront(true);}};
     browser_->onClose=[this]{browser_->setVisible(false);browserButton_.grabKeyboardFocus();};
     presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
@@ -315,11 +320,11 @@ void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
-    browserButton_.setBounds(rect(505,65,85,23));
+    browserButton_.setBounds(rect(500,54,76,22));
     if(browser_)browser_->setBounds(55,98,getWidth()-110,450);
     master_.setBounds(rect(602,12,100,67));masterLabel_.setBounds(rect(602,78,100,15));
     outputMeter_.setBounds(rect(724,25,350,60));clearClips_.setBounds(rect(1085,49,105,24));
-    midiInputChannel_.setBounds(rect(1085,16,105,24));midiMonitor_.setBounds(rect(350,62,146,26));
+    midiInputChannel_.setBounds(rect(1085,16,105,24));midiMonitor_.setBounds(rect(352,53,138,24));
     module_.setBounds(rect(1210,36,84,25));studio_.setBounds(rect(1300,36,84,25));
     diagnostic_->setBounds(36,92,getWidth()-72,getHeight()-125);
     auto knob=[&](std::size_t i,float x,float y,float w=80,float h=72){synth_[i].slider.setBounds(rect(x,y,w,h));synth_[i].label.setBounds(rect(x-5,y+h+1,w+10,18));};
@@ -444,8 +449,40 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 void P6PluginEditor::paint(juce::Graphics& g)
 {
     paintSurface(g);const float sx=static_cast<float>(getWidth())/designWidth;
-    g.setColour(ink);g.setFont(juce::Font(30.f).withExtraKerningFactor(.42f));g.drawText("PROPHEC-Y",static_cast<int>(55*sx),33,370,34,juce::Justification::centredLeft);
-    g.setColour(muted);g.setFont(juce::Font(9.f).withExtraKerningFactor(.22f));g.drawText("POLYPHONIC SYNTHESIZER",static_cast<int>(375*sx),45,325,16,juce::Justification::centredLeft);
+    // A self-contained, screwed-on header display. All horizontal coordinates
+    // use the same 1460-unit design scale as its JUCE children, avoiding the
+    // previous title/subtitle collision with Master and other header controls.
+    const juce::Rectangle<float> bezel(43.f*sx,19.f,550.f*sx,70.f);
+    g.setColour(juce::Colours::black.withAlpha(.28f));
+    g.fillRoundedRectangle(bezel.translated(0.f,2.f),6.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd5d6cf},bezel.getX(),bezel.getY(),
+                                           juce::Colour{0xff6c756e},bezel.getRight(),bezel.getBottom(),false));
+    g.fillRoundedRectangle(bezel,6.f);
+    g.setColour(juce::Colour{0xffeef0e8}.withAlpha(.85f));
+    g.drawRoundedRectangle(bezel.reduced(.8f),5.f,1.2f);
+    const juce::Rectangle<float> screen(64.f*sx,27.f,514.f*sx,53.f);
+    g.setColour(juce::Colour{0xff151d1a});
+    g.fillRoundedRectangle(screen,3.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff28342e},screen.getX(),screen.getY(),
+                                           juce::Colour{0xff0f1714},screen.getRight(),screen.getBottom(),false));
+    g.fillRoundedRectangle(screen.reduced(1.f),2.5f);
+    g.setColour(juce::Colour{0xff829287}.withAlpha(.5f));
+    g.drawRoundedRectangle(screen.reduced(.8f),2.5f,.8f);
+    // Fixed screw heads: not part of the controls, and outside the lit display.
+    for(const float x:{52.f,585.f})for(const float y:{28.f,80.f}) {
+        const float px=x*sx;
+        g.setColour(juce::Colours::black.withAlpha(.45f));g.fillEllipse(px-4.5f,y-4.f,9.f,9.f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff0f0e7},px-3.5f,y-3.f,
+                                               juce::Colour{0xff626c65},px+3.5f,y+3.f,false));
+        g.fillEllipse(px-3.5f,y-3.f,7.f,7.f);
+        g.setColour(juce::Colour{0xff39433c});g.drawLine(px-2.f,y+1.f,px+2.f,y-1.f,1.f);
+    }
+    g.setColour(juce::Colour{0xffedf1e9});
+    g.setFont(juce::Font(22.f).boldened().withExtraKerningFactor(.16f));
+    g.drawText("PROPHEC-Y",juce::roundToInt(75.f*sx),32,juce::roundToInt(258.f*sx),29,juce::Justification::centredLeft);
+    g.setColour(juce::Colour{0xffa2b5a7});
+    g.setFont(juce::Font(8.5f).withExtraKerningFactor(.12f));
+    g.drawText("POLYPHONIC SYNTHESIZER",juce::roundToInt(75.f*sx),64,juce::roundToInt(258.f*sx),12,juce::Justification::centredLeft);
     if(studioView_)return;
     section(g,"OSCILLATOR 1",56,90,360);section(g,"OSCILLATOR 2",56,240,360);section(g,"MIXER",56,431,360);
     section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);section(g,"FX",916,528,315);
