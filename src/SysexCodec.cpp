@@ -132,6 +132,10 @@ SysexDecodeResult SysexCodec::decode(std::span<const std::uint8_t> bytes)
     }
 
     const auto packed = bytes.subspan(payloadOffset, kPackedPayloadSize);
+    if (std::any_of(packed.begin(), packed.end(), [](std::uint8_t byte) { return (byte & 0x80u) != 0; })) {
+        r.error = "Prophet-6 SysEx packed payload contains a non-7-bit byte";
+        return r;
+    }
     const auto unpacked = unpack7Bit(packed);
     if (unpacked.size() != kUnpackedPayloadSize) {
         r.error = "Unexpected unpacked Prophet-6 payload size";

@@ -8,6 +8,10 @@
 #include <map>
 #include <set>
 
+#ifdef NDEBUG
+#error "p6_v019_reference_tests requires assertions to be enabled"
+#endif
+
 namespace {
 
 std::uint16_t rawByNrpn(const p6::P6PatchState& patch, std::uint16_t nrpn)
