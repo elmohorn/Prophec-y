@@ -136,6 +136,29 @@ std::vector<double> render(double fs, int factor, double amount,
     return result;
 }
 
+// Unlike offline reference rendering, this uses the allocation-free,
+// causal polyphase FIR implementation inside P6Engine on a host-rate stream.
+// Its exact 32-sample delay is measured and must be compensated by any
+// future production wrapper/bypass path.
+std::vector<double> renderRealtime(double fs,int factor,double amount) {
+    p6::P6Engine engine;
+    engine.prepare(fs,1);
+    engine.setExperimentalGlobalDriveOversampling(factor);
+    if(engine.experimentalGlobalDriveLatencySamples()!=32)
+        throw std::logic_error("invalid real-time FIR latency");
+    engine.setDistortion(amount);
+    Injection source;
+    source.increment=2.*pi*fundamentalFraction;
+    engine.setCharacterInsert(&source,&Injection::emit,true);
+    std::vector<double> out(static_cast<std::size_t>(fftLength));
+    const int n=warmup+fftLength;
+    for(int i=0;i<n;++i) {
+        const double value=engine.process().left;
+        if(i>=warmup)out[static_cast<std::size_t>(i-warmup)]=value;
+    }
+    return out;
+}
+
 double binAmplitude(const std::vector<double>& data, int bin) {
     const double phase=-2.*pi*double(bin)/double(data.size());
     const std::complex<double> rotation{std::cos(phase),std::sin(phase)};
@@ -171,7 +194,7 @@ Metrics metrics(const std::vector<double>& data) {
     return m;
 }
 
-struct Row {double fs{},amount{};int factor{};bool reconstructed{};Metrics m;};
+struct Row {double fs{},amount{};int factor{};bool reconstructed{},realtime{};Metrics m;};
 
 bool verify(const std::vector<Row>& rows) {
     bool valid=true;
@@ -179,11 +202,13 @@ bool verify(const std::vector<Row>& rows) {
         double original=std::numeric_limits<double>::quiet_NaN();
         double ideal4x=std::numeric_limits<double>::quiet_NaN();
         double fir4x=std::numeric_limits<double>::quiet_NaN();
+        double realtime4x=std::numeric_limits<double>::quiet_NaN();
         for(const auto& row:rows) {
             if(row.fs!=fs || row.amount!=drive)continue;
             if(row.factor==1)original=row.m.aliasDbc;
             if(row.factor==4) {
-                if(row.reconstructed)fir4x=row.m.aliasDbc;
+                if(row.realtime)realtime4x=row.m.aliasDbc;
+                else if(row.reconstructed)fir4x=row.m.aliasDbc;
                 else ideal4x=row.m.aliasDbc;
             }
         }
@@ -192,6 +217,7 @@ bool verify(const std::vector<Row>& rows) {
         valid &= std::isfinite(original) && original>-130.;
         valid &= std::isfinite(ideal4x) && ideal4x<original-3.;
         valid &= std::isfinite(fir4x) && fir4x<original-3.;
+        valid &= std::isfinite(realtime4x) && realtime4x<original-3.;
     }
     return valid;
 }
@@ -212,12 +238,22 @@ int main(int argc,char** argv) {
                 for(const bool reconstructed:{false,true}) {
                     if(factor==1 && reconstructed)continue;
                     const auto m=metrics(render(fs,factor,drive,reconstructed));
-                    rows.push_back({fs,drive,factor,reconstructed,m});
+                    rows.push_back({fs,drive,factor,reconstructed,false,m});
                     std::cout<<fs<<','<<drive<<','<<factor<<','
                              <<(reconstructed?"host_fir":"ideal_tone")<<','
                              <<m.fundamental<<','<<m.aliasRms<<','
                              <<m.aliasDbc<<','<<m.peak<<'\n';
                 }
+    for(const double fs:{44100.,48000.,96000.})
+        for(const double drive:{.45,.9})
+            for(const int factor:{2,4}) {
+                const auto m=metrics(renderRealtime(fs,factor,drive));
+                rows.push_back({fs,drive,factor,false,true,m});
+                std::cout<<fs<<','<<drive<<','<<factor
+                         <<",realtime_polyphase,"
+                         <<m.fundamental<<','<<m.aliasRms<<','
+                         <<m.aliasDbc<<','<<m.peak<<'\n';
+            }
     if(selfTest && !verify(rows)) {
         std::cerr<<"Alias diagnostic sensitivity or 4x upper-bound reduction failed\n";
         return 1;
