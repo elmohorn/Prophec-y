@@ -1748,6 +1748,35 @@ static void testMappedClockArpAndSequenceControls()
     assert(mapped.seqPlayModeRaw == 1);
 }
 
+static void testHardSyncTruncatedRampRemainsBounded()
+{
+    // At these phases a reset intersects an almost vertical pulse edge. A
+    // discarded closing BLAMP previously produced peaks above 50,000.
+    for (double rate : {44100.0, 48000.0, 96000.0})
+        for (double width : {0.04, 0.5, 0.96})
+            for (double frequency : {110.0, 8000.0})
+                for (double ratio : {0.5, 1.0}) {
+                    PolyBLEPOscillator slave;
+                    slave.prepare(rate);
+                    slave.setFrequency(frequency);
+                    slave.setShape(1.0);
+                    slave.setPulseWidth(width);
+                    slave.reset(0.25);
+                    double masterPhase = 0.0;
+                    const double step = frequency * ratio / rate;
+                    for (int i = 0; i < static_cast<int>(rate * 1.5); ++i) {
+                        std::optional<double> sync;
+                        if (masterPhase + step >= 1.0)
+                            sync = (1.0 - masterPhase) / step;
+                        masterPhase += step;
+                        masterPhase -= std::floor(masterPhase);
+                        const double sample = slave.process(sync);
+                        assert(std::isfinite(sample));
+                        assert(std::abs(sample) < 10.0);
+                    }
+                }
+}
+
 int main()
 {
     testPackingRoundTrip();
@@ -1755,6 +1784,7 @@ int main()
     testOscillatorFinite();
     testPulseMeanNormalizationCalibration();
     testMorphAndSubSampleSync();
+    testHardSyncTruncatedRampRemainsBounded();
     testSyncCalibrationHooks();
     testHardSyncTraceAndSlopeCandidate();
     testDiagnosticOversamplingAndBypasses();

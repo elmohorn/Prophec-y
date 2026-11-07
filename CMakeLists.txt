@@ -110,6 +110,9 @@ target_link_libraries(p6_neon_rate_probe PRIVATE p6character)
 add_executable(p6_character_benchmark tools/character_benchmark.cpp)
 target_link_libraries(p6_character_benchmark PRIVATE p6character)
 
+add_executable(p6_character_level_matrix tools/character_level_matrix.cpp)
+target_link_libraries(p6_character_level_matrix PRIVATE p6character)
+
 add_executable(p6_render tools/render_patch.cpp)
 target_link_libraries(p6_render PRIVATE p6core)
 add_executable(p6_inspect tools/inspect_sysex.cpp)

@@ -274,7 +274,14 @@ double PolyBLEPOscillator::process(std::optional<double> syncAt)
         lastHardSyncTrace_.slopeCorrectionBefore = slopeCorrection.before;
         lastHardSyncTrace_.slopeCorrectionAfter = slopeCorrection.after;
 
-        // The reset invalidates any pending corner pair from before the reset.
+        // A reset can truncate a ramp before its closing corner is reached.
+        // Close that pending pair at the reset time: discarding it leaves a
+        // large, unmatched BLAMP term when a nearly vertical edge is crossed.
+        if (hardSyncCorrectionMode_ == HardSyncCorrectionMode::LegacyStepOnly) {
+            for (const auto& pending : closing_)
+                if (pending)
+                    corner(pending->slopeChange, u, correction);
+        }
         closing_ = {};
 
         const double postSpan = rest * dt;
