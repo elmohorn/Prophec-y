@@ -4,19 +4,20 @@
 PresetBrowser::PresetBrowser(P6AudioProcessor& processor,juce::File root):processor_(processor),library_(std::move(root),P6AudioProcessor::factoryInitPreset())
 {
     setLookAndFeel(&look_);
-    look_.setColour(juce::TextButton::buttonColourId,juce::Colour{0xff46584a});look_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xffe7eadf});
+    look_.setColour(juce::TextButton::buttonColourId,juce::Colour{0xffb9bdb8});look_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xff242827});
     setTitle("Preset browser");setOpaque(true);setFocusContainerType(juce::Component::FocusContainerType::keyboardFocusContainer);
     title_.setText("PRESETS / LOCAL LIBRARY",juce::dontSendNotification);title_.setFont(juce::Font(17.f).boldened());
-    search_.setTextToShowWhenEmpty("Search name, category, bank or program",juce::Colour{0xff8d9b94});search_.setTitle("Search presets");
+    search_.setTextToShowWhenEmpty("Search name, category, bank or program",juce::Colour{0xff6b726e});search_.setTitle("Search presets");
     source_.addItemList(juce::StringArray{"All sources","Factory","Imported","User"},1);source_.setSelectedId(1);source_.setTitle("Preset source");
-    bank_.setTitle("Preset bank");category_.setTitle("Preset category");
-    for(auto* component:std::array<juce::Component*,18>{&title_,&current_,&status_,&search_,&source_,&bank_,&category_,&favorites_,&list_,&load_,&save_,&saveAs_,&favorite_,&import_,&exportProgram_,&exportBank_,&refresh_,&close_})addAndMakeVisible(component);
-    for(auto* label:{&title_,&current_,&status_})label->setColour(juce::Label::textColourId,juce::Colour{0xffe3e7de});
-    for(auto* box:{&source_,&bank_,&category_}){box->setColour(juce::ComboBox::backgroundColourId,juce::Colour{0xff34413c});box->setColour(juce::ComboBox::textColourId,juce::Colour{0xffe3e7de});}
-    search_.setColour(juce::TextEditor::backgroundColourId,juce::Colour{0xff202b27});search_.setColour(juce::TextEditor::textColourId,juce::Colour{0xffe3e7de});
-    favorites_.setColour(juce::ToggleButton::textColourId,juce::Colour{0xffe3e7de});
-    list_.setColour(juce::ListBox::backgroundColourId,juce::Colour{0xff202b27});list_.setRowHeight(36);list_.setOutlineThickness(1);
-    search_.onTextChange=[this]{rebuildRows();};source_.onChange=[this]{rebuildRows();};bank_.onChange=[this]{rebuildRows();};category_.onChange=[this]{rebuildRows();};favorites_.onClick=[this]{rebuildRows();};
+    bank_.setTitle("Preset bank");category_.setTitle("Preset category (Auto means inferred from name)");
+    sort_.addItemList(juce::StringArray{"Order: Bank", "Order: Name", "Order: Source"},1);sort_.setSelectedId(1);sort_.setTitle("Sort presets");
+    for(auto* component:std::array<juce::Component*,19>{&title_,&current_,&status_,&search_,&source_,&bank_,&category_,&sort_,&favorites_,&list_,&load_,&save_,&saveAs_,&favorite_,&import_,&exportProgram_,&exportBank_,&refresh_,&close_})addAndMakeVisible(component);
+    for(auto* label:{&title_,&current_,&status_})label->setColour(juce::Label::textColourId,juce::Colour{0xff252827});
+    for(auto* box:{&source_,&bank_,&category_,&sort_}){box->setColour(juce::ComboBox::backgroundColourId,juce::Colour{0xffedf0ea});box->setColour(juce::ComboBox::textColourId,juce::Colour{0xff252827});}
+    search_.setColour(juce::TextEditor::backgroundColourId,juce::Colour{0xfff0f1ed});search_.setColour(juce::TextEditor::textColourId,juce::Colour{0xff252827});
+    favorites_.setColour(juce::ToggleButton::textColourId,juce::Colour{0xff252827});
+    list_.setColour(juce::ListBox::backgroundColourId,juce::Colour{0xfff0f1ed});list_.setRowHeight(36);list_.setOutlineThickness(1);
+    search_.onTextChange=[this]{rebuildRows();};source_.onChange=[this]{rebuildRows();};bank_.onChange=[this]{rebuildRows();};category_.onChange=[this]{rebuildRows();};sort_.onChange=[this]{rebuildRows();};favorites_.onClick=[this]{rebuildRows();};
     load_.onClick=[this]{loadSelected();};save_.onClick=[this]{save(false);};saveAs_.onClick=[this]{save(true);};
     favorite_.onClick=[this]{if(const auto* p=selected()){const auto id=p->id;const auto value=!p->favorite;report(library_.setFavorite(id,value),"Favorite updated");rebuildRows();}};
     import_.onClick=[this]{importFile();};exportProgram_.onClick=[this]{exportFile(false);};exportBank_.onClick=[this]{exportFile(true);};refresh_.onClick=[this]{refreshLibrary();};close_.onClick=[this]{if(onClose)onClose();};
@@ -28,8 +29,11 @@ PresetBrowser::PresetBrowser(P6AudioProcessor& processor,juce::File root):proces
 }
 void PresetBrowser::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour{0xff29352f});g.setColour(juce::Colour{0xff8b9589});g.drawRect(getLocalBounds(),2);
-    g.setFont(10.f);g.setColour(juce::Colour{0xffacb7ac});const int columns=getWidth()-36;
+    g.fillAll(juce::Colour{0xffd2d5d1});
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffe2e4e0},0.f,0.f,juce::Colour{0xffbfc4c0},0.f,static_cast<float>(getHeight()),false));g.fillRect(getLocalBounds());
+    g.setColour(juce::Colour{0xff787f7a});g.drawRect(getLocalBounds(),2);
+    g.setColour(juce::Colour{0xffaab0ab});g.drawHorizontalLine(65,18.f,static_cast<float>(getWidth()-18));
+    g.setFont(10.f);g.setColour(juce::Colour{0xff525b56});const int columns=getWidth()-36;
     g.drawText("NAME",26,112,columns*36/100-12,18,juce::Justification::centredLeft);
     g.drawText("SOURCE / BANK",18+columns*36/100,112,columns*36/100,18,juce::Justification::centredLeft);
     g.drawText("PROGRAM",18+columns*72/100,112,columns*9/100,18,juce::Justification::centredLeft);
@@ -38,7 +42,7 @@ void PresetBrowser::paint(juce::Graphics& g)
 void PresetBrowser::resized()
 {
     const int width=getWidth();title_.setBounds(18,10,330,26);close_.setBounds(width-105,12,85,24);
-    current_.setBounds(18,39,width-36,22);search_.setBounds(18,72,width-640,28);source_.setBounds(width-610,72,130,28);bank_.setBounds(width-470,72,195,28);category_.setBounds(width-265,72,120,28);favorites_.setBounds(width-140,72,125,28);
+    current_.setBounds(18,39,width-36,22);search_.setBounds(18,72,width-775,28);source_.setBounds(width-745,72,125,28);bank_.setBounds(width-610,72,155,28);category_.setBounds(width-445,72,130,28);sort_.setBounds(width-305,72,125,28);favorites_.setBounds(width-170,72,152,28);
     list_.setBounds(18,132,width-36,getHeight()-215);
     const int y=getHeight()-70;int x=18;
     for(auto* button:{&load_,&save_,&saveAs_,&favorite_,&import_,&exportProgram_,&exportBank_,&refresh_}){const int w=button==&exportProgram_?145:button==&exportBank_?125:105;button->setBounds(x,y,w,26);x+=w+8;}
@@ -64,7 +68,7 @@ void PresetBrowser::refreshLibrary()
 }
 void PresetBrowser::rebuildRows()
 {
-    const auto* old=selected();const auto oldId=old?old->id:juce::String{};rows_.clear();const auto query=search_.getText().trim();
+    const auto* old=selected();const auto oldId=old?old->id:juce::String{};rows_.clear();const auto query=search_.getText().trim();std::vector<const p6plugin::PresetEntry*> matches;
     for(const auto& p:library_.entries()) {
         const int source=p.source==p6plugin::PresetSource::Factory?2:p.source==p6plugin::PresetSource::Imported?3:4;
         if(source_.getSelectedId()>1&&source_.getSelectedId()!=source)continue;
@@ -72,8 +76,15 @@ void PresetBrowser::rebuildRows()
         const int bankIndex=bank_.getSelectedId()-2;if(bankIndex>=0&&bankIndex<static_cast<int>(banks_.size())&&p.bankKey!=banks_[static_cast<std::size_t>(bankIndex)])continue;
         if(category_.getSelectedId()>1&&p.category!=category_.getText())continue;
         const auto haystack=p.name+" "+p.category+" "+p.bankLabel+" "+(p.program>=0?juce::String(p.bank*100+p.program).paddedLeft('0',3):juce::String{});
-        if(query.isNotEmpty()&&!haystack.containsIgnoreCase(query))continue;rows_.push_back(p.id);
+        if(query.isNotEmpty()&&!haystack.containsIgnoreCase(query))continue;matches.push_back(&p);
     }
+    if(sort_.getSelectedId()>1)std::stable_sort(matches.begin(),matches.end(),[this](const auto* a,const auto* b){
+        if(sort_.getSelectedId()==3&&a->source!=b->source)return static_cast<int>(a->source)<static_cast<int>(b->source);
+        const int name=a->name.compareNatural(b->name);if(name!=0)return name<0;
+        if(a->bankLabel!=b->bankLabel)return a->bankLabel.compareNatural(b->bankLabel)<0;
+        return a->program<b->program;
+    });
+    for(const auto* p:matches)rows_.push_back(p->id);
     title_.setText("PRESETS / LOCAL LIBRARY  ("+juce::String(rows_.size())+")",juce::dontSendNotification);
     list_.deselectAllRows();list_.updateContent();for(std::size_t i=0;i<rows_.size();++i)if(rows_[i]==oldId)list_.selectRow(static_cast<int>(i));
     if(list_.getSelectedRow()<0)for(std::size_t i=0;i<rows_.size();++i)if(rows_[i]==processor_.activePresetId())list_.selectRow(static_cast<int>(i));
@@ -84,9 +95,9 @@ void PresetBrowser::selectedRowsChanged(int){const auto* p=selected();load_.setE
 void PresetBrowser::paintListBoxItem(int row,juce::Graphics& g,int width,int height,bool selectedRow)
 {
     if(row<0||row>=static_cast<int>(rows_.size()))return;const auto* p=library_.find(rows_[static_cast<std::size_t>(row)]);if(!p)return;
-    g.fillAll(juce::Colour{selectedRow?0xff4a5b4c:row%2?0xff26342d:0xff202b27});g.setFont(13.f);g.setColour(juce::Colour{0xffe5e7dd});
+    g.fillAll(juce::Colour{selectedRow?0xffb8c4bd:row%2?0xffe3e7e1:0xfff0f1ed});g.setFont(13.f);g.setColour(juce::Colour{0xff202624});
     g.drawText((p->favorite?juce::String::fromUTF8("\xe2\x98\x85 "):juce::String("  "))+p->name,8,0,width*36/100-12,height,juce::Justification::centredLeft);
-    g.setColour(juce::Colour{0xffbac4b7});g.drawText(p->bankLabel,width*36/100,0,width*36/100-8,height,juce::Justification::centredLeft);
+    g.setColour(juce::Colour{0xff48524c});g.drawText(p->bankLabel,width*36/100,0,width*36/100-8,height,juce::Justification::centredLeft);
     g.drawText(p->program>=0?juce::String(p->bank*100+p->program).paddedLeft('0',3):"--",width*72/100,0,width*9/100,height,juce::Justification::centredLeft);
     g.drawText(p->category,width*82/100,0,width*18/100-8,height,juce::Justification::centredLeft);
 }

@@ -5,6 +5,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <iostream>
+#include <tuple>
 
 #define CHECK(x) do{if(!(x)){std::cerr<<"failed: " #x <<" line "<<__LINE__<<'\n';return 1;}}while(false)
 static void set(P6AudioProcessor& p,const char* id,float v)
@@ -31,9 +32,26 @@ static int presetLibraryChecks(const juce::File& captureFolder)
     struct Cleanup {juce::File root;~Cleanup(){root.deleteRecursively();}} cleanup{root};
     const auto factory=P6AudioProcessor::factoryInitPreset();
     p6plugin::PresetLibrary library(root,factory);CHECK(library.entries().size()==771);CHECK(!root.exists());
-    int sequential=0,omom=0;for(const auto& p:library.entries()){if(p.category=="Sequential Factory")++sequential;if(p.category=="Old Men of MIDI")++omom;}CHECK(sequential==500);CHECK(omom==270);
+    int sequential=0,omom=0;for(const auto& p:library.entries()){if(p.id.startsWith("sequential-factory-"))++sequential;if(p.id.startsWith("sequential-omom-"))++omom;}CHECK(sequential==500);CHECK(omom==270);
     CHECK(library.find("sequential-factory-0-0")!=nullptr);CHECK(library.find("sequential-omom-0-0")!=nullptr);
     CHECK(library.find("sequential-factory-0-0")->bankKey!=library.find("sequential-omom-0-0")->bankKey);
+    CHECK(library.find("sequential-factory-0-24")->category=="Auto / Bass");
+    CHECK(library.find("sequential-omom-0-14")->category=="Auto / Organ");
+    // A stopped DAW must still allow auditioning an arpeggiated factory preset.
+    {
+        struct StoppedHost final : juce::AudioPlayHead {
+            juce::Optional<PositionInfo> getPosition() const override {
+                PositionInfo p;p.setBpm(120.0);p.setPpqPosition(0.0);p.setIsPlaying(false);return p;
+            }
+        } host;
+        const auto* preset=library.find("sequential-omom-0-31");CHECK(preset!=nullptr);
+        P6AudioProcessor synth;synth.setPlayHead(&host);synth.prepareToPlay(48000,128);
+        synth.loadMusicalPreset(preset->state,preset->id,preset->name);
+        juce::AudioBuffer<float> audio(2,128);juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1,60,juce::uint8{110}),0);double energy=0;
+        for(int block=0;block<900;++block){synth.processBlock(audio,midi);midi.clear();for(int i=0;i<128;++i){const auto v=audio.getSample(0,i);CHECK(std::isfinite(v));energy+=v*v;}}
+        CHECK(energy>1.e-5);synth.releaseResources();
+    }
     // Exercise the same processor load path used by the browser and compare actual audio.
     const auto renderOfficial=[&](const char* id) {
         P6AudioProcessor synth;synth.prepareToPlay(48000,128);
@@ -53,6 +71,25 @@ static int presetLibraryChecks(const juce::File& captureFolder)
     CHECK(brassEnergy>1.e-7&&stringsEnergy>1.e-7&&difference>1.e-7);
     std::cout<<"Official presets render distinct audio: energies "<<brassEnergy<<", "<<stringsEnergy<<", difference "<<difference<<"\n";
     CHECK(library.setFavorite("sequential-factory-0-0",true).wasOk());
+    // OMOM Church Organ: three held notes formerly generated a large DC
+    // offset in audio-rate filter Poly Mod, amplified by the serial reverb.
+    {
+        const auto* organ=library.find("sequential-omom-0-14");CHECK(organ!=nullptr);
+        P6AudioProcessor synth;synth.prepareToPlay(48000,128);set(synth,p6plugin::kMasterOutputID,0.f);
+        synth.loadMusicalPreset(organ->state,organ->id,organ->name);
+        juce::AudioBuffer<float> audio(2,128);double sum[2]{},energy[2]{},peak=0,afterReleaseEnergy=0;int count=0;
+        for(int block=0;block<1800;++block){
+            juce::MidiBuffer midi;const int start=block*128;
+            for(const auto [time,note,on]:std::array<std::tuple<int,int,bool>,4>{{{4800,60,true},{52800,64,true},{100800,67,true},{168000,67,false}}})
+                if(time>=start&&time<start+128)midi.addEvent(on?juce::MidiMessage::noteOn(1,note,juce::uint8{110}):juce::MidiMessage::noteOff(1,note),time-start);
+            synth.processBlock(audio,midi);
+            for(int i=0;i<128;++i)if(start+i>=144000&&start+i<163200){for(int ch=0;ch<2;++ch){const double v=audio.getSample(ch,i);CHECK(std::isfinite(v));sum[ch]+=v;energy[ch]+=v*v;peak=std::max(peak,std::abs(v));}++count;}
+            for(int i=0;i<128;++i)if(start+i>=201600&&start+i<220800){const double v=audio.getSample(0,i);CHECK(std::isfinite(v));afterReleaseEnergy+=v*v;}
+        }
+        CHECK(count>0&&peak<1.0&&afterReleaseEnergy>0.01);
+        for(int ch=0;ch<2;++ch){const double mean=sum[ch]/count;CHECK(std::abs(mean)<0.10);CHECK(energy[ch]/count-mean*mean>1.e-5);}
+        synth.releaseResources();
+    }
     auto patch=factory.patch;patch.rawPayload[1023]=217;
     auto first=p6::SysexCodec::encodeProgramDump(patch,2,10),second=p6::SysexCodec::encodeProgramDump(patch,2,9);
     std::vector<std::uint8_t> bank=first;bank.insert(bank.end(),second.begin(),second.end());
@@ -99,7 +136,10 @@ static int presetLibraryChecks(const juce::File& captureFolder)
         juce::TextEditor* search=nullptr;for(auto* child:browser->getChildren())if(auto* edit=dynamic_cast<juce::TextEditor*>(child);edit&&edit->getTitle()=="Search presets")search=edit;
         CHECK(search!=nullptr);search->setText("not-a-preset",false);search->onTextChange();
         juce::ListBox* list=nullptr;for(auto* child:browser->getChildren())if(auto* l=dynamic_cast<juce::ListBox*>(child))list=l;
-        CHECK(list!=nullptr&&list->getModel()->getNumRows()==0);search->setText("User test",false);search->onTextChange();CHECK(list->getModel()->getNumRows()==1);
+        CHECK(list!=nullptr&&list->getModel()->getNumRows()==0);
+        juce::ComboBox* sorting=nullptr;for(auto* child:browser->getChildren())if(auto* box=dynamic_cast<juce::ComboBox*>(child);box&&box->getTitle()=="Sort presets")sorting=box;
+        CHECK(sorting!=nullptr);sorting->setSelectedId(2,juce::sendNotificationSync);sorting->setSelectedId(3,juce::sendNotificationSync);sorting->setSelectedId(1,juce::sendNotificationSync);
+        search->setText("User test",false);search->onTextChange();CHECK(list->getModel()->getNumRows()==1);
         search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==774);
         for(int width:{1240,1460,1780}){gallery.setSize(width,P6PluginEditor::expandedHeight);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));}
     }

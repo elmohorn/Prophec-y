@@ -30,7 +30,7 @@ private:
     p6plugin::PresetLibrary library_;
     juce::LookAndFeel_V4 look_;
     juce::TextEditor search_;
-    juce::ComboBox source_,bank_,category_;
+    juce::ComboBox source_,bank_,category_,sort_;
     juce::ToggleButton favorites_{"Favorites only"};
     juce::Label title_,status_,current_;
     juce::TextButton load_{"LOAD"},save_{"SAVE"},saveAs_{"SAVE AS"},favorite_{"FAVORITE"},import_{"IMPORT .SYX"},exportProgram_{"EXPORT PROGRAM"},exportBank_{"EXPORT BANK"},refresh_{"REFRESH"},close_{"CLOSE"};

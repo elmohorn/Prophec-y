@@ -26,6 +26,8 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
     clock_ = 0;
     pressOrder_ = 0;
     heldCount_ = 0;
+    voiceDcL_ = {};
+    voiceDcR_ = {};
     distDcL_ = {};
     distDcR_ = {};
     channelPressure_ = 0.0;
@@ -37,6 +39,7 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
     updatePanGains();
     constexpr double tau = 6.28318530717958647692;
     dcBlockA_ = std::exp(-tau * 12.0 / sampleRate_);
+    voiceDcBlockA_ = std::exp(-tau * 8.0 / sampleRate_);
 }
 
 void P6Engine::setVoiceParams(const VoiceParams& params)
@@ -561,6 +564,18 @@ StereoSample P6Engine::process()
         out.left += sample * panGainLeft_[i];
         out.right += sample * panGainRight_[i];
     }
+
+    // Audio-rate modulation of the filter can rectify the voice sum into DC.
+    // Remove it before it reaches the serial effects, whose feedback networks
+    // otherwise amplify the offset and consume the output headroom.
+    const auto removeDc = [this](double input, DcBlockState& state) noexcept {
+        const double output = input - state.x1 + voiceDcBlockA_ * state.y1;
+        state.x1 = input;
+        state.y1 = output;
+        return output;
+    };
+    out.left = removeDc(out.left, voiceDcL_);
+    out.right = removeDc(out.right, voiceDcR_);
 
     const double performanceGain = programVolume_ * midiVolume_;
     out.left *= performanceGain;

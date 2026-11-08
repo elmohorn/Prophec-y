@@ -158,6 +158,9 @@ private:
     std::uint64_t pressOrder_{};
     std::uint64_t clock_{};
     double dcBlockA_{0.995};
+    double voiceDcBlockA_{0.999};
+    DcBlockState voiceDcL_{};
+    DcBlockState voiceDcR_{};
     mutable DcBlockState distDcL_{};
     mutable DcBlockState distDcR_{};
 };

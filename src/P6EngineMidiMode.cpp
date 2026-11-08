@@ -58,6 +58,10 @@ void P6Engine::midiAllSoundOff()
     // must not walk second-long buffers on the audio thread. The FX layer marks
     // all pre-panic ring-buffer samples invalid in bounded time instead.
     effects_.clearRealtimeState();
+    voiceDcL_ = {};
+    voiceDcR_ = {};
+    distDcL_ = {};
+    distDcR_ = {};
 }
 
 } // namespace p6

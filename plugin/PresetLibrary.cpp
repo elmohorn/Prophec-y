@@ -13,6 +13,24 @@ struct LibraryAccess {
 };
 juce::String sourceName(PresetSource source){return source==PresetSource::Imported?"Imported":source==PresetSource::Factory?"Factory":"User";}
 bool safeId(const juce::String& id){return id.isNotEmpty()&&id.length()<80&&id.containsOnly("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-");}
+// Explicitly inferred from the program name: Sequential's SysEx list does not
+// supply instrument categories. Ambiguous names remain unclassified.
+juce::String inferredCategory(const juce::String& name)
+{
+    const auto n=name.toLowerCase();
+    const auto has=[&](const char* word){return n.contains(word);};
+    if(has("bass"))return "Auto / Bass";
+    if(has("lead"))return "Auto / Lead";
+    if(has("organ")||has("oregan"))return "Auto / Organ";
+    if(has("drum")||has("perc")||has("kick")||has("snare")||has("hi hat")||has("timpani")||has("woodblock"))return "Auto / Percussion";
+    if(has("bell")||has("chime")||has("mallet"))return "Auto / Bell";
+    if(has("pad")||has("string")||has("choir")||has("atmos"))return "Auto / Pad & Strings";
+    if(has("piano")||has("pno")||has("clav")||has("wurl")||has("harpsi")||has("rhodes"))return "Auto / Keys";
+    if(has("brass")||has("horn")||has("trumpet"))return "Auto / Brass";
+    if(has("arp")||has("sequen"))return "Auto / Arp & Sequence";
+    if(has("noise")||has("drone")||has("sweep")||has("space"))return "Auto / FX & Atmosphere";
+    return "Unclassified";
+}
 }
 PresetLibrary::PresetLibrary(juce::File root,WrapperState factory):root_(std::move(root)),factory_(std::move(factory))
 {
@@ -27,7 +45,7 @@ PresetLibrary::PresetLibrary(juce::File root,WrapperState factory):root_(std::mo
             p.name=juce::String(p.state.patch.name);if(p.name.isEmpty())p.name="Unnamed Prophet program";
             p.bank=p.state.patch.bank;p.program=p.state.patch.program;
             p.id=juce::String(key)+"-"+juce::String(p.bank)+"-"+juce::String(p.program);
-            p.bankKey=juce::String(key)+"-"+juce::String(p.bank);p.bankLabel=juce::String(label)+" / Bank "+juce::String(p.bank);p.category=label;
+            p.bankKey=juce::String(key)+"-"+juce::String(p.bank);p.bankLabel=juce::String(label)+" / Bank "+juce::String(p.bank);p.category=inferredCategory(p.name);
             builtIns_.push_back(std::move(p));
         }
     };
