@@ -1,0 +1,21 @@
+name: click-repair-check
+on:
+  push:
+    branches: [validate-click-repairs]
+permissions:
+  contents: read
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build core and regression tests
+        run: cmake --build build --config Release --target p6core_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_plugin_state_tests p6_output_stage_tests p6_preset_bank_tests --parallel 2
+      - name: Run core and regression tests
+        run: ctest --test-dir build -C Release --output-on-failure -R "^(p6core_tests|p6_control_contract_tests|p6_realtime_contract_tests|p6_v018_fx_tests|p6_v019_reference_tests|p6_character_tests|p6_plugin_state_tests|p6_output_stage_tests|p6_preset_bank_tests)$"

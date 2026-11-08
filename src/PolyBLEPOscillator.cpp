@@ -249,8 +249,18 @@ double PolyBLEPOscillator::process(std::optional<double> syncAt)
         // discontinuity. v0.11 can additionally apply the same polyBLAMP
         // corner primitive used by ordinary waveform corners to the derivative
         // jump. It remains opt-in until hardware evidence supports promotion.
-        const double slopeBefore = currentShape.slopePerPhase(phaseAtReset) * dt;
-        const double slopeAfter = currentShape.slopePerPhase(resetPhase) * dt;
+        // A ramp shorter than one sample is handled as a band-limited step
+        // by walk(). Its instantaneous geometric slope is not a resolvable
+        // derivative: applying it again at reset would create a huge impulse.
+        const auto resolvedSlope = [&](double phase) {
+            if ((phase < currentShape.rise && currentShape.rise < dt) ||
+                (phase >= currentShape.rise + currentShape.high &&
+                 phase < currentShape.rise + currentShape.high + currentShape.fall && currentShape.fall < dt))
+                return 0.0;
+            return currentShape.slopePerPhase(phase) * dt;
+        };
+        const double slopeBefore = resolvedSlope(phaseAtReset);
+        const double slopeAfter = resolvedSlope(resetPhase);
         const double slopeJump = slopeAfter - slopeBefore;
         Correction slopeCorrection{};
         if (hardSyncCorrectionMode_ == HardSyncCorrectionMode::StepAndSlope) {
@@ -277,11 +287,9 @@ double PolyBLEPOscillator::process(std::optional<double> syncAt)
         // A reset can truncate a ramp before its closing corner is reached.
         // Close that pending pair at the reset time: discarding it leaves a
         // large, unmatched BLAMP term when a nearly vertical edge is crossed.
-        if (hardSyncCorrectionMode_ == HardSyncCorrectionMode::LegacyStepOnly) {
-            for (const auto& pending : closing_)
-                if (pending)
-                    corner(pending->slopeChange, u, correction);
-        }
+        for (const auto& pending : closing_)
+            if (pending)
+                corner(pending->slopeChange, u, correction);
         closing_ = {};
 
         const double postSpan = rest * dt;

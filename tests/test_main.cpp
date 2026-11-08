@@ -292,6 +292,27 @@ static void testHardSyncTraceAndSlopeCandidate()
     assert(difference > 1.0e-4);
 }
 
+static void testHardSyncUnresolvedEdgeRemainsBounded()
+{
+    // A reset at the pulse edge must not inject the infinite geometric
+    // derivative of an edge narrower than the sample interval into BLAMP.
+    for (const auto frequency : {110.0, 440.0, 1373.0, 5000.0, 12000.0}) {
+        PolyBLEPOscillator master, slave;
+        master.prepare(96000.0); slave.prepare(96000.0);
+        master.setFrequency(997.3); master.reset(0.314);
+        slave.setFrequency(frequency); slave.setShape(1.0);
+        slave.setPulseWidth(0.43); slave.reset(0.123);
+        slave.setHardSyncCorrectionMode(HardSyncCorrectionMode::StepAndSlope);
+        for (int i = 0; i < 50000; ++i) {
+            const auto sync = master.nextWrapFraction();
+            (void)master.process();
+            const double sample = slave.process(sync);
+            assert(std::isfinite(sample));
+            assert(std::abs(sample) < 3.0);
+        }
+    }
+}
+
 static void testGlideModes()
 {
     auto params = [] {
@@ -427,6 +448,19 @@ static void testSsmCandidateSelfOscillation()
         energy += y * y;
     }
     assert(energy > 1.0e-4);
+}
+
+static void testSawLfoWrapCorrection()
+{
+    for (const auto shape : {P6LFO::Shape::Saw, P6LFO::Shape::ReverseSaw}) {
+        P6LFO lfo;
+        lfo.prepare(8000.0); lfo.setRate(1000.0); lfo.setShape(shape);
+        double value = 0.0;
+        for (int i = 0; i < 8; ++i) value = lfo.process();
+        // At the wrap a two-sided BLEP crosses the midpoint. The opposite
+        // sign instead gets clamped to an endpoint, leaving a hard step.
+        assert(std::abs(value - 0.5) < 1.0e-12);
+    }
 }
 
 static void testGlobalLfoShapesAndRouting()
@@ -1816,11 +1850,13 @@ int main()
     testHardSyncTruncatedRampRemainsBounded();
     testSyncCalibrationHooks();
     testHardSyncTraceAndSlopeCandidate();
+    testHardSyncUnresolvedEdgeRemainsBounded();
     testDiagnosticOversamplingAndBypasses();
     testGlideModes();
     testFreeRunningOscillators();
     testDynamicSlop();
     testSsmCandidateSelfOscillation();
+    testSawLfoWrapCorrection();
     testGlobalLfoShapesAndRouting();
     testAftertouchRouting();
     testEnvelopeLifecycle();
