@@ -707,6 +707,43 @@ int main(int argc,char** argv)
     }
     p.selectCharacterType(1);
     editor.reset(p.createEditor());
+    // The Spring checks recreate the editor, so reacquire every pointer before
+    // testing layout. The previous editor and its components no longer exist.
+    presets=nullptr;midiReadout=nullptr;masterLabel=nullptr;master=nullptr;meter=nullptr;
+    resetClip=nullptr;moduleButton=nullptr;studioButton=nullptr;midiChannel=nullptr;
+    fxA=nullptr;fxB=nullptr;fxOn=nullptr;glideOn=nullptr;glideLabel=nullptr;
+    mixA=nullptr;mixB=nullptr;programVol=nullptr;
+    for(auto* child:editor->getChildren()) {
+        if(auto* output=dynamic_cast<OutputMeter*>(child))meter=output;
+        if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
+            if(button->getTitle()=="Preset browser")presets=button;
+            if(button->getButtonText()=="RESET CLIP")resetClip=button;
+            if(button->getButtonText()=="MODULE")moduleButton=button;
+            if(button->getButtonText()=="STUDIO")studioButton=button;
+        }
+        if(auto* label=dynamic_cast<juce::Label*>(child)) {
+            if(label->getTitle()=="Recent MIDI input")midiReadout=label;
+            if(label->getText()=="MASTER")masterLabel=label;
+            if(label->getText()=="GLIDE")glideLabel=label;
+        }
+        if(auto* slider=dynamic_cast<juce::Slider*>(child)) {
+            if(slider->getTitle()=="Master Output")master=slider;
+            if(slider->getTitle()=="MIX A")mixA=slider;
+            if(slider->getTitle()=="MIX B")mixB=slider;
+            if(slider->getTitle()=="PROGRAM VOL")programVol=slider;
+        }
+        if(auto* combo=dynamic_cast<juce::ComboBox*>(child)) {
+            if(combo->getTitle()=="MIDI input channel")midiChannel=combo;
+            if(combo->getTitle()=="Standard FX A type")fxA=combo;
+            if(combo->getTitle()=="Standard FX B type")fxB=combo;
+        }
+        if(auto* toggle=dynamic_cast<juce::ToggleButton*>(child)) {
+            if(toggle->getButtonText()=="FX ON")fxOn=toggle;
+            if(toggle->getButtonText()=="GLIDE ON")glideOn=toggle;
+        }
+    }
+    CHECK(presets&&midiReadout&&masterLabel&&master&&meter&&resetClip&&moduleButton&&studioButton&&midiChannel);
+    CHECK(fxA&&fxB&&fxOn&&glideOn&&glideLabel&&mixA&&mixB&&programVol);
     for(int width:{1240,1460,1780}) {
         editor->setSize(width,P6PluginEditor::expandedHeight);
         for(auto* child:editor->getChildren()) if(child->isVisible()) {
