@@ -26,6 +26,8 @@ _deps/
 
 # Private calibration / hardware captures
 *.syx
+!plugin/assets/presets/sequential_factory.syx
+!plugin/assets/presets/sequential_omom.syx
 *.mid
 *.midi
 *.wav

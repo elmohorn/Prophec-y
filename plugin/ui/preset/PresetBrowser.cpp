@@ -60,7 +60,7 @@ void PresetBrowser::refreshLibrary()
     categories.sortNatural();category_.addItemList(categories,2);bank_.setSelectedId(1,juce::dontSendNotification);category_.setSelectedId(1,juce::dontSendNotification);
     for(int i=0;i<bank_.getNumItems();++i)if(bank_.getItemText(i)==oldBank)bank_.setSelectedId(bank_.getItemId(i),juce::dontSendNotification);
     for(int i=0;i<category_.getNumItems();++i)if(category_.getItemText(i)==oldCategory)category_.setSelectedId(category_.getItemId(i),juce::dontSendNotification);
-    rebuildRows();refreshCurrent();report(result,"Factory includes our Init only. Import your .syx programs/banks, or save a User preset.");
+    rebuildRows();refreshCurrent();report(result,"Factory includes Sequential Factory and Old Men of MIDI. Import .syx programs or save User presets.");
 }
 void PresetBrowser::rebuildRows()
 {

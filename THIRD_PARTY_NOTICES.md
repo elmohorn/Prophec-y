@@ -85,3 +85,7 @@ Optical Spring's dispersive input and pickup blend, and all visual adapters
 are original. Optical Spring reuses Prophec-y's existing algorithmic spring
 FDN. No Gamechanger Audio source, trademark artwork, circuit or firmware was
 copied; these are original effects inspired by physical visual metaphors.
+
+## Prophet-6 preset collections
+
+The bundled Prophet-6 factory programs (v1.01) and Old Men of MIDI sounds originate from Sequential. Names and SysEx bytes are preserved. These preset data are not covered by the Prophec-y source code license. Original downloads: https://sequential.com/support/download/prophet-6-sounds/ .

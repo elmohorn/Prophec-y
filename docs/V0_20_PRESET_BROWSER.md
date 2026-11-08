@@ -4,7 +4,7 @@ Open PRESETS in the Module/Studio header. The native overlay provides name/categ
 
 ## Sources and editing
 
-- **Factory:** our own Init P6 Core. Sequential factory banks are not bundled. Select Init and Load to initialize the musical patch, with the same unsaved-edit protection as other loads.
+- **Factory:** our own Init P6 Core, plus the original 500 Sequential factory programs and 270 Old Men of MIDI programs. Collections use separate bank identities and keep their original names, addresses and SysEx data. Select Init and Load to initialize the musical patch, with the same unsaved-edit protection as other loads.
 - **Imported:** Prophet-6 program/edit-buffer dumps or concatenated bank dumps. Import adds library entries without changing the active sound. Imported/Factory sound data is protected; Save opens Save As.
 - **User:** Save As stores the current patch, four sequence controls and Character configuration. A library name/category and User bank 0–9/program 0–99 are separate metadata. The original Prophet payload and its hardware patch name remain intact. Save overwrites the active User entry; selecting a different row does not change what Save targets.
 
@@ -14,7 +14,7 @@ Master Output, oversampling, clock, calibration, Slop model and runtime wrapper 
 
 ## Persistence and concurrency
 
-Library records are versioned `.p6preset` JSON files in the per-user application-data folder under `Prophec-y/Presets/v1`. Each contains the musical state plus library metadata and, for imports, the original SysEx frame. Favorites survive reopening, including the built-in Init favorite. Back up this folder to preserve your library.
+Library records are versioned `.p6preset` JSON files in the per-user application-data folder under `Prophec-y/Presets/v1`. Each contains the musical state plus library metadata and, for imports, the original SysEx frame. Favorites survive reopening, including built-in program favorites. Back up this folder to preserve your library.
 
 Writes use same-directory temporary replacement. A per-library interprocess lock serializes catalog mutations and scans; occupied User slots and stale overwrites from another instance are rejected. A malformed/unsupported record is skipped with a status warning. Full SysEx input validation precedes writing; failed imports roll back newly written records. This does not claim a whole-bank transaction across a process/power failure.
 

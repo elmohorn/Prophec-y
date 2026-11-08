@@ -30,17 +30,21 @@ static int presetLibraryChecks(const juce::File& captureFolder)
     const auto root=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("p6-browser-test-"+juce::Uuid().toString());
     struct Cleanup {juce::File root;~Cleanup(){root.deleteRecursively();}} cleanup{root};
     const auto factory=P6AudioProcessor::factoryInitPreset();
-    p6plugin::PresetLibrary library(root,factory);CHECK(library.entries().size()==1);CHECK(!root.exists());
+    p6plugin::PresetLibrary library(root,factory);CHECK(library.entries().size()==771);CHECK(!root.exists());
+    int sequential=0,omom=0;for(const auto& p:library.entries()){if(p.category=="Sequential Factory")++sequential;if(p.category=="Old Men of MIDI")++omom;}CHECK(sequential==500);CHECK(omom==270);
+    CHECK(library.find("sequential-factory-0-0")!=nullptr);CHECK(library.find("sequential-omom-0-0")!=nullptr);
+    CHECK(library.find("sequential-factory-0-0")->bankKey!=library.find("sequential-omom-0-0")->bankKey);
+    CHECK(library.setFavorite("sequential-factory-0-0",true).wasOk());
     auto patch=factory.patch;patch.rawPayload[1023]=217;
     auto first=p6::SysexCodec::encodeProgramDump(patch,2,10),second=p6::SysexCodec::encodeProgramDump(patch,2,9);
     std::vector<std::uint8_t> bank=first;bank.insert(bank.end(),second.begin(),second.end());
-    int imported=0;CHECK(library.importSysex(bank,"Local test bank",imported).wasOk());CHECK(imported==2);CHECK(library.entries().size()==3);
+    int imported=0;CHECK(library.importSysex(bank,"Local test bank",imported).wasOk());CHECK(imported==2);CHECK(library.entries().size()==773);
     juce::String importedId,bankKey;for(const auto& p:library.entries())if(p.source==p6plugin::PresetSource::Imported&&p.program==10){importedId=p.id;bankKey=p.bankKey;}
     CHECK(!importedId.isEmpty());CHECK(library.exportBank(bankKey)==bank);
     CHECK(library.setFavorite(importedId,true).wasOk());CHECK(library.setFavorite("factory-init",true).wasOk());
-    p6plugin::PresetLibrary reopened(root,factory);CHECK(reopened.find(importedId)->favorite);CHECK(reopened.find("factory-init")->favorite);
+    p6plugin::PresetLibrary reopened(root,factory);CHECK(reopened.find(importedId)->favorite);CHECK(reopened.find("factory-init")->favorite);CHECK(reopened.find("sequential-factory-0-0")->favorite);
     CHECK(reopened.exportBank(bankKey)==bank);CHECK(reopened.find(importedId)->state.patch.rawPayload[1023]==217);
-    auto broken=bank;broken.push_back(0x55);CHECK(reopened.importSysex(broken,"bad",imported).failed());CHECK(imported==0);CHECK(reopened.entries().size()==3);
+    auto broken=bank;broken.push_back(0x55);CHECK(reopened.importSysex(broken,"bad",imported).failed());CHECK(imported==0);CHECK(reopened.entries().size()==773);
     P6AudioProcessor target;set(target,p6plugin::kMasterOutputID,-24);set(target,"wrapper_clock_source",2);set(target,"wrapper_calibration",1);set(target,p6plugin::kMidiInputChannelID,7);
     auto user=target.presetSnapshot();user.character.type=1;user.character.tube[0]=.73f;
     juce::String userId;CHECK(reopened.saveUser({},user,"User test patch","Tests",0,0,userId).wasOk());
@@ -78,7 +82,7 @@ static int presetLibraryChecks(const juce::File& captureFolder)
         CHECK(search!=nullptr);search->setText("not-a-preset",false);search->onTextChange();
         juce::ListBox* list=nullptr;for(auto* child:browser->getChildren())if(auto* l=dynamic_cast<juce::ListBox*>(child))list=l;
         CHECK(list!=nullptr&&list->getModel()->getNumRows()==0);search->setText("User test",false);search->onTextChange();CHECK(list->getModel()->getNumRows()==1);
-        search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==4);
+        search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==774);
         for(int width:{1240,1460,1780}){gallery.setSize(width,P6PluginEditor::expandedHeight);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));}
     }
     std::cout<<"Preset library: persistence, exact banks, favorites, occupied slots, stale writes, globals, dirty tracking and browser filtering verified\n";
