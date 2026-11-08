@@ -738,7 +738,18 @@ void P6PluginEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::black.withAlpha(.3f));g.fillRoundedRectangle(lower.translated(0.f,2.f),7.f);g.fillRoundedRectangle(top.translated(0.f,2.f),7.f);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff35413e},top.getX(),top.getY(),juce::Colour{0xff101918},top.getRight(),lower.getBottom(),false));g.fillRoundedRectangle(lower,7.f);g.fillRoundedRectangle(top,7.f);
     g.setColour(juce::Colour{0xff101b1b});g.fillRoundedRectangle(lower.reduced(4.f),5.f);g.fillRoundedRectangle(top.reduced(4.f),5.f);
-    g.setColour(juce::Colour{0xff89968d}.withAlpha(.45f));g.drawRoundedRectangle(top.reduced(1.f),6.f,1.f);g.drawRoundedRectangle(lower.reduced(1.f),6.f,1.f);
+    // Trace the outside of the joined shape only: no line crosses the glass
+    // where the upper strip meets the lower display recess.
+    g.setColour(juce::Colour{0xff89968d}.withAlpha(.45f));
+    juce::Path rim;
+    rim.startNewSubPath(top.getX()+6.f,top.getY()+1.f);
+    rim.lineTo(top.getRight()-6.f,top.getY()+1.f);rim.lineTo(top.getRight()-1.f,top.getY()+6.f);
+    rim.lineTo(top.getRight()-1.f,top.getBottom()-6.f);rim.lineTo(top.getRight()-6.f,top.getBottom()-1.f);
+    rim.lineTo(lower.getRight()-1.f,top.getBottom()-1.f);rim.lineTo(lower.getRight()-1.f,lower.getBottom()-6.f);
+    rim.lineTo(lower.getRight()-6.f,lower.getBottom()-1.f);rim.lineTo(lower.getX()+6.f,lower.getBottom()-1.f);
+    rim.lineTo(lower.getX()+1.f,lower.getBottom()-6.f);rim.lineTo(lower.getX()+1.f,top.getBottom()-1.f);
+    rim.lineTo(top.getX()+6.f,top.getBottom()-1.f);rim.lineTo(top.getX()+1.f,top.getBottom()-6.f);
+    rim.lineTo(top.getX()+1.f,top.getY()+6.f);rim.closeSubPath();g.strokePath(rim,juce::PathStrokeType(1.f));
     // Lettering is softly illuminated under the glass, without LED rings.
     g.setFont(juce::Font(25.f).boldened().italicised().withExtraKerningFactor(-.035f));
     const auto brand=juce::Rectangle<int>(juce::roundToInt(58.f*sx),28,juce::roundToInt(194.f*sx),38);
