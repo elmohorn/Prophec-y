@@ -265,7 +265,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
 
     grain_=juce::Image(juce::Image::RGB,384,192,false);juce::Random random(643218);
     for(int y=0;y<grain_.getHeight();++y)for(int x=0;x<grain_.getWidth();++x) {
-        const auto c=static_cast<juce::uint8>(196+random.nextInt(5)+(y%3==0?1:0));grain_.setPixelAt(x,y,juce::Colour(c,c,static_cast<juce::uint8>(c-2)));
+        const auto c=static_cast<juce::uint8>(196+random.nextInt(5)+(y%3==0?1:0));grain_.setPixelAt(x,y,juce::Colour(c,c,c));
     }
     diagnostic_=std::make_unique<juce::GenericAudioProcessorEditor>(p);addChildComponent(*diagnostic_);
     presetName_=p.getProgramName(0);visual_=p.characterTelemetry();
@@ -590,12 +590,12 @@ void P6PluginEditor::section(juce::Graphics& g,const juce::String& text,float x,
 void P6PluginEditor::paintSurface(juce::Graphics& g)
 {
     const float w=static_cast<float>(getWidth()),h=static_cast<float>(getHeight());
-    g.fillAll(juce::Colour{0xffb4b5ae});
+    g.fillAll(juce::Colour{0xffb3b5b6});
     g.setColour(juce::Colours::black.withAlpha(.18f));g.fillRoundedRectangle(17,18,w-34,h-25,12.f);
     g.setColour(juce::Colour{0xff242925});g.fillRoundedRectangle(18,12,w-36,h-28,10.f);
     const juce::Rectangle<float> face(25,10,w-50,h-33);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffdedbd5},36,10,juce::Colour{0xffbab9b3},w*.75f,h,false));g.fillRoundedRectangle(face,7.f);
-    g.setTiledImageFill(grain_,0,0,.10f);g.fillRoundedRectangle(face,7.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffdedfe0},36,10,juce::Colour{0xffb9bbbd},w*.75f,h,false));g.fillRoundedRectangle(face,7.f);
+    g.setTiledImageFill(grain_,0,0,.08f);g.fillRoundedRectangle(face,7.f);
     g.setColour(juce::Colours::white.withAlpha(.78f));g.drawRoundedRectangle(face.reduced(.5f),7.f,1.f);
     g.setColour(juce::Colour{0xff727c74});g.drawLine(22,24,22,h-29,2.f);g.drawLine(w-22,24,w-22,h-29,2.f);
 }
@@ -639,8 +639,8 @@ void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
     const float sx=static_cast<float>(getWidth())/designWidth;
     const juce::Rectangle<float> panel(30*sx,638,getWidth()-60*sx,static_cast<float>(getHeight()-660));
     g.setColour(juce::Colour{0xff343833});g.fillRoundedRectangle(panel.expanded(2),7);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd1cec5},panel.getX(),638,juce::Colour{0xffafafa7},panel.getRight(),panel.getBottom(),false));g.fillRoundedRectangle(panel,6);
-    g.setTiledImageFill(grain_,0,638,.1f);g.fillRoundedRectangle(panel,6);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd1d2d3},panel.getX(),638,juce::Colour{0xffadafb1},panel.getRight(),panel.getBottom(),false));g.fillRoundedRectangle(panel,6);
+    g.setTiledImageFill(grain_,0,638,.08f);g.fillRoundedRectangle(panel,6);
     g.setColour(juce::Colours::white.withAlpha(.8f));g.drawRoundedRectangle(panel.reduced(1),5,1);
     for(float x:{44*sx,getWidth()-44*sx})for(float y:{650.f,panel.getBottom()-12}) {
         g.setColour(juce::Colours::black.withAlpha(.35f));g.fillEllipse(x-5,y-4,11,11);
@@ -720,8 +720,8 @@ void P6PluginEditor::paint(juce::Graphics& g)
     const juce::Rectangle<float> header(36.f*sx,10.f,1388.f*sx,79.f);
     g.setColour(juce::Colours::black.withAlpha(.28f));
     g.fillRoundedRectangle(header.translated(0.f,2.f),6.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff2f1eb},header.getX(),header.getY(),
-                                           juce::Colour{0xff9b9e97},header.getRight(),header.getBottom(),false));
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff1f2f3},header.getX(),header.getY(),
+                                           juce::Colour{0xff9c9ea0},header.getRight(),header.getBottom(),false));
     g.fillRoundedRectangle(header,6.f);
     g.setColour(juce::Colours::white.withAlpha(.68f));
     g.drawRoundedRectangle(header.reduced(.7f),6.f,1.f);
