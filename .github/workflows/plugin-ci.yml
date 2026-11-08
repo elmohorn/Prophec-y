@@ -15,7 +15,6 @@ concurrency:
 
 jobs:
   online-analysis-tooling:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false || github.head_ref == 'ui-character-hardware-reviewed'
     name: Online-reference measurement guards
     runs-on: ubuntu-22.04
     steps:
@@ -42,7 +41,6 @@ jobs:
           python3 -m py_compile tools/sync_fourier_oracle.py tools/analyze_filter_factorial.py
 
   core-sanitizers:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false || github.head_ref == 'ui-character-hardware-reviewed'
     name: Linux ASan+UBSan
     runs-on: ubuntu-22.04
     steps:
@@ -82,7 +80,6 @@ jobs:
           python3 tools/render_external_prior_suite.py /tmp/external_prior_smoke.csv --output-dir /tmp/external-prior-out --dry-run
 
   build-and-validate:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false || github.head_ref == 'ui-character-hardware-reviewed'
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
