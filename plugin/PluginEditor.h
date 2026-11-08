@@ -47,6 +47,8 @@ private:
     P6AudioProcessor& processor_;
     std::unique_ptr<PresetBrowser> browser_;
     juce::TextButton browserButton_{"PRESETS"};
+    juce::TextButton headerMenu_{"..."};
+    juce::Label headerPreset_;
     unsigned browserRefreshTicks_{};
     bool presetIsDirty_{};
     ContextDisplay display_;
@@ -67,7 +69,7 @@ private:
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_,midiInputChannel_,plasmaMode_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> midiChannelBinding_,positionBinding_,keyBinding_,fxATypeBinding_,fxBTypeBinding_,plasmaModeBinding_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassBinding_;
-    std::array<Knob,37> synth_;
+    std::array<Knob,36> synth_;
     std::array<Switch,18> switches_;
     std::array<Knob,7> tube_;
     // UI-only concept controls: these NEVER have APVTS bindings or modify audio.

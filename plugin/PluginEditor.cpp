@@ -170,7 +170,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     plasmaModeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kPlasmaModeID,plasmaMode_);
     midiChannelBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,p6plugin::kMidiInputChannelID,midiInputChannel_);
     master_.setLookAndFeel(&look_);master_.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    master_.setTextBoxStyle(juce::Slider::TextBoxBelow,false,95,18);master_.setTitle("Master Output");
+    master_.setTextBoxStyle(juce::Slider::TextBoxBelow,false,80,18);master_.setTitle("Master Output");
     master_.setDescription("Final output attenuation, separate from Prophet Program Volume. Minus 60 to zero dB.");
     master_.setTooltip("Master Output after all effects. New instances: -18 dB; legacy sessions: 0 dB. Double-click resets to -18 dB.");
     master_.setColour(juce::Slider::textBoxTextColourId,juce::Colour{0xffe4e9e2});
@@ -195,6 +195,17 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     bypassBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,p6plugin::kCharacterBypassID,bypass_);
     previous_.onClick=[this]{setType(processor_.selectedCharacterType()-1);};next_.onClick=[this]{setType(processor_.selectedCharacterType()+1);};
     module_.onClick=[this]{studioView_=false;refreshVisibility();};studio_.onClick=[this]{studioView_=true;refreshVisibility();};
+    // Secondary host controls live together behind the header menu.
+    module_.setVisible(false);studio_.setVisible(false);midiInputChannel_.setVisible(false);midiMonitor_.setVisible(false);clearClips_.setVisible(false);
+    headerMenu_.setLookAndFeel(&look_);headerMenu_.setTitle("Header settings");headerMenu_.setTooltip("MIDI channel, view and clip reset");addAndMakeVisible(headerMenu_);
+    headerPreset_.setTitle("Current preset");headerPreset_.setFont(juce::Font(19.f));headerPreset_.setColour(juce::Label::textColourId,juce::Colour{0xffc1dedb});headerPreset_.setText(processor_.activePresetName(),juce::dontSendNotification);addAndMakeVisible(headerPreset_);
+    headerMenu_.onClick=[this]{
+        juce::PopupMenu menu,midi;const int selected=midiInputChannel_.getSelectedId();
+        for(int i=1;i<=17;++i)midi.addItem(100+i,i==1?juce::String("Omni"):"Channel "+juce::String(i-1),true,i==selected);
+        menu.addSubMenu("MIDI input",midi);menu.addSeparator();menu.addItem(1,"Module",true,!studioView_);menu.addItem(2,"Studio",true,studioView_);menu.addSeparator();menu.addItem(3,"Reset clip indicators");
+        const juce::Component::SafePointer<P6PluginEditor> safe(this);
+        menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&headerMenu_),[safe](int id){if(!safe)return;if(id==1&&safe->module_.onClick)safe->module_.onClick();else if(id==2&&safe->studio_.onClick)safe->studio_.onClick();else if(id==3&&safe->clearClips_.onClick)safe->clearClips_.onClick();else if(id>=101&&id<=117)safe->midiInputChannel_.setSelectedId(id-100,juce::sendNotificationSync);});
+    };
     collapse_.onClick=[this]{collapsed_=!collapsed_;refreshVisibility();};motion_.setToggleState(true,juce::dontSendNotification);
     motion_.setTooltip("Pause the light animation; audio continues.");collapse_.setTooltip("Hide the device, keeping its audio active.");
     opticalPreview_.setLookAndFeel(&look_);
@@ -241,8 +252,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     position_.setTooltip("Start: before distortion, FX A and FX B. End: after FX B.");
     fxAType_.setTooltip("Select standard Prophet-6 FX slot A. Use FX ON to enable the standard chain.");
     fxBType_.setTooltip("Select standard Prophet-6 FX slot B. Slot B also contains the reverbs.");
-    constexpr std::array<int,37> ids{0,3,4,2,5,8,9,7,6,49,45,46,77,143,144,88,89,90,78,79,80,81,67,68,69,70,30,33,63,62,120,128,2,7,27,32,45};
-    constexpr std::array<const char*,37> labels{"FREQ","SHAPE","PULSE WIDTH","LEVEL","FREQ","SHAPE","PULSE WIDTH","LEVEL","FINE","HIGH PASS","LOW PASS","RESONANCE","ENV AMOUNT","FILTER ENV","OSC 2","RATE","INITIAL AMT","WAVEFORM","ATTACK","DECAY","SUSTAIN","RELEASE","ATTACK","DECAY","SUSTAIN","RELEASE","GLIDE","SLOP","PAN SPREAD","PROGRAM VOL","MIX A","MIX B","OSC 1","OSC 2","SUB","NOISE","LOW PASS"};
+    constexpr std::array<int,36> ids{0,3,4,2,5,8,9,7,6,49,45,46,77,143,144,88,89,90,78,79,80,81,67,68,69,70,30,33,63,62,120,128,2,7,27,32};
+    constexpr std::array<const char*,36> labels{"FREQ","SHAPE","PULSE WIDTH","LEVEL","FREQ","SHAPE","PULSE WIDTH","LEVEL","FINE","HIGH PASS","LOW PASS","RESONANCE","ENV AMOUNT","FILTER ENV","OSC 2","RATE","INITIAL AMT","WAVEFORM","ATTACK","DECAY","SUSTAIN","RELEASE","ATTACK","DECAY","SUSTAIN","RELEASE","GLIDE","SLOP","PAN SPREAD","PROGRAM VOL","MIX A","MIX B","OSC 1","OSC 2","SUB","NOISE"};
     for(std::size_t i=0;i<synth_.size();++i)makeKnob(synth_[i],hardwareID(ids[i]),labels[i]);
     for(std::size_t i=32;i<36;++i)synth_[i].slider.setSliderStyle(juce::Slider::LinearVertical);
     constexpr std::array<int,18> switchIds{1,10,11,156,29,48,135,91,145,146,147,148,149,93,94,95,97,98};
@@ -347,7 +358,7 @@ void P6PluginEditor::timerCallback()
     outputMeter_.update(readings);
     if(processor_.selectedCharacterType()!=boundType_)refreshVisibility();
     if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");}
-    const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");if(name!=presetName_){presetName_=name;repaint(displayArea_);}
+    const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");headerPreset_.setText(name,juce::dontSendNotification);if(name!=presetName_){presetName_=name;repaint(displayArea_);}
     if(focusNrpn_>=0) {
         const auto* raw=processor_.parameters().getRawParameterValue(hardwareID(focusNrpn_));
         if(raw) {
@@ -471,7 +482,7 @@ void P6PluginEditor::refreshVisibility()
     for(auto& s:switches_)s.button.setVisible(!studioView_);
     fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
     for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_&&!opticalPreviewActive_);k.label.setVisible(k.slider.isVisible());}
-    diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
+    diagnostic_->setVisible(studioView_);display_.setVisible(true);
     // Tube/Spring use the approved panoramic artwork; existing experimental
     // Character modes retain their original specialized view.
     // Tube is the approved original; never replace or recreate its bezel.
@@ -519,13 +530,15 @@ void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
-    browserButton_.setBounds(rect(265,40,115,28));
+    browserButton_.setBounds(rect(280,34,122,30));
+    headerPreset_.setBounds(rect(427,29,370,38));headerMenu_.setBounds(rect(1360,31,42,32));
     if(browser_)browser_->setBounds(55,98,getWidth()-110,450);
-    master_.setBounds(rect(402,20,108,65));masterLabel_.setBounds(rect(514,62,58,18));
-    outputMeter_.setBounds(rect(575,24,360,59));clearClips_.setBounds(rect(1077,43,94,27));
+    master_.setBounds(rect(875,106,90,92));masterLabel_.setBounds(rect(891,202,58,18));
+    outputMeter_.setBounds(rect(1035,26,296,55));clearClips_.setBounds(rect(1077,43,94,27));
     midiInputChannel_.setBounds(rect(954,43,116,27));midiMonitor_.setBounds(rect(954,23,116,15));
     module_.setBounds(rect(1189,43,92,27));studio_.setBounds(rect(1288,43,97,27));
-    diagnostic_->setBounds(36,92,getWidth()-72,getHeight()-125);
+    // The common OLED and Master remain accessible in Studio mode.
+    diagnostic_->setBounds(36,260,getWidth()-72,getHeight()-293);
     auto knob=[&](std::size_t i,float x,float y,float w=80,float h=72){synth_[i].slider.setBounds(rect(x,y,w,h));synth_[i].label.setBounds(rect(x-5,y+h+1,w+10,18));};
     for(std::size_t i=0;i<4;++i){knob(i,54+94.f*static_cast<float>(i),119);knob(i+4,54+94.f*static_cast<float>(i),269);}
     knob(8,337,366,49,47);
@@ -546,8 +559,7 @@ void P6PluginEditor::resized()
     previous_.setBounds(rect(306,652,31,25));type_.setBounds(rect(343,652,260,25));next_.setBounds(rect(609,652,31,25));
     position_.setBounds(rect(660,652,195,25));bypass_.setBounds(rect(875,652,110,25));
     plasmaMode_.setBounds(rect(1000,652,140,25));motion_.setBounds(rect(1150,652,100,25));collapse_.setBounds(rect(1275,652,110,25));
-    knob(36,883,109,88,88);
-    displayArea_=rect(526,96,322,145);
+    displayArea_=rect(520,98,335,145);
     display_.setBounds(displayArea_);
     tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
     hardware_.setBounds(rect(55,710,610,190));
@@ -720,54 +732,31 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 void P6PluginEditor::paint(juce::Graphics& g)
 {
     paintSurface(g);const float sx=static_cast<float>(getWidth())/designWidth;
-    // Approved option A: the brand is etched on the aluminum at left.
-    // Presets, Master, meters, MIDI and navigation share ONE dark inset
-    // display to the right. The bolted bezel makes this a physical assembly,
-    // rather than a floating black strip or a separate branding screen.
-    const juce::Rectangle<float> header(36.f*sx,10.f,1388.f*sx,79.f);
-    g.setColour(juce::Colours::black.withAlpha(.28f));
-    g.fillRoundedRectangle(header.translated(0.f,2.f),6.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff1f2f3},header.getX(),header.getY(),
-                                           juce::Colour{0xff9c9ea0},header.getRight(),header.getBottom(),false));
-    g.fillRoundedRectangle(header,6.f);
-    g.setColour(juce::Colours::white.withAlpha(.68f));
-    g.drawRoundedRectangle(header.reduced(.7f),6.f,1.f);
-    // No duplicated title or controls inside the display: the aluminum
-    // logo has its own reserved area (x=55..237).
-    g.setColour(juce::Colour{0xff1c2421});
+    // One bolted glass assembly connects the upper strip to the OLED recess.
+    const juce::Rectangle<float> top(36.f*sx,10.f,1388.f*sx,79.f);
+    const juce::Rectangle<float> lower(501.f*sx,73.f,477.f*sx,180.f);
+    g.setColour(juce::Colours::black.withAlpha(.3f));g.fillRoundedRectangle(lower.translated(0.f,2.f),7.f);g.fillRoundedRectangle(top.translated(0.f,2.f),7.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff35413e},top.getX(),top.getY(),juce::Colour{0xff101918},top.getRight(),lower.getBottom(),false));g.fillRoundedRectangle(lower,7.f);g.fillRoundedRectangle(top,7.f);
+    g.setColour(juce::Colour{0xff101b1b});g.fillRoundedRectangle(lower.reduced(4.f),5.f);g.fillRoundedRectangle(top.reduced(4.f),5.f);
+    // Trace the outside of the joined shape only: no line crosses the glass
+    // where the upper strip meets the lower display recess.
+    g.setColour(juce::Colour{0xff89968d}.withAlpha(.45f));
+    juce::Path rim;
+    rim.startNewSubPath(top.getX()+6.f,top.getY()+1.f);
+    rim.lineTo(top.getRight()-6.f,top.getY()+1.f);rim.lineTo(top.getRight()-1.f,top.getY()+6.f);
+    rim.lineTo(top.getRight()-1.f,top.getBottom()-6.f);rim.lineTo(top.getRight()-6.f,top.getBottom()-1.f);
+    rim.lineTo(lower.getRight()-1.f,top.getBottom()-1.f);rim.lineTo(lower.getRight()-1.f,lower.getBottom()-6.f);
+    rim.lineTo(lower.getRight()-6.f,lower.getBottom()-1.f);rim.lineTo(lower.getX()+6.f,lower.getBottom()-1.f);
+    rim.lineTo(lower.getX()+1.f,lower.getBottom()-6.f);rim.lineTo(lower.getX()+1.f,top.getBottom()-1.f);
+    rim.lineTo(top.getX()+6.f,top.getBottom()-1.f);rim.lineTo(top.getX()+1.f,top.getBottom()-6.f);
+    rim.lineTo(top.getX()+1.f,top.getY()+6.f);rim.closeSubPath();g.strokePath(rim,juce::PathStrokeType(1.f));
+    // Lettering is softly illuminated under the glass, without LED rings.
     g.setFont(juce::Font(25.f).boldened().italicised().withExtraKerningFactor(-.035f));
-    g.drawText("Prophec-Y",juce::roundToInt(57.f*sx),33,juce::roundToInt(181.f*sx),34,juce::Justification::centredLeft);
-    const juce::Rectangle<float> bezel(243.f*sx,16.f,1173.f*sx,71.f);
-    g.setColour(juce::Colours::black.withAlpha(.35f));
-    g.fillRoundedRectangle(bezel.translated(0.f,2.f),6.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff59665d},bezel.getX(),bezel.getY(),
-                                           juce::Colour{0xffb9c2b9},bezel.getRight(),bezel.getBottom(),false));
-    g.fillRoundedRectangle(bezel,5.f);
-    g.setColour(juce::Colour{0xffe4e5dd}.withAlpha(.72f));
-    g.drawRoundedRectangle(bezel.reduced(.8f),4.f,1.f);
-    const juce::Rectangle<float> screen(252.f*sx,20.f,1155.f*sx,65.f);
-    g.setColour(juce::Colour{0xff0c1512});
-    g.fillRoundedRectangle(screen,4.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff1e2b25},screen.getX(),screen.getY(),
-                                           juce::Colour{0xff101714},screen.getX(),screen.getBottom(),false));
-    g.fillRoundedRectangle(screen.reduced(1.f),3.f);
-    g.setColour(juce::Colour{0xff819087}.withAlpha(.32f));
-    g.drawRoundedRectangle(screen.reduced(.6f),3.f,1.f);
-    // Subtle layout dividers follow the approved Presets | Master |
-    // Meters | MIDI + Reset | Module/Studio sequence.
-    g.setColour(juce::Colour{0xff80918a}.withAlpha(.45f));
-    for(const float x:{390.f,566.f,942.f,1179.f})
-        g.drawLine(x*sx,28.f,x*sx,76.f,1.f);
-    // Screws belong to the metal rim; none sit over the usable controls.
-    for(const float x:{248.f,1412.f})for(const float y:{23.f,80.f}) {
-        const float px=x*sx;
-        g.setColour(juce::Colours::black.withAlpha(.45f));
-        g.fillEllipse(px-3.5f,y-3.5f,7.f,7.f);
-        g.setGradientFill(juce::ColourGradient(juce::Colour{0xffeeeeea},px-2.5f,y-2.5f,
-                                               juce::Colour{0xff64736a},px+2.5f,y+2.5f,false));
-        g.fillEllipse(px-2.5f,y-2.5f,5.f,5.f);
-        g.setColour(juce::Colour{0xff2e3932});
-        g.drawLine(px-1.5f,y+.5f,px+1.5f,y-.5f,1.f);
+    const auto brand=juce::Rectangle<int>(juce::roundToInt(58.f*sx),28,juce::roundToInt(194.f*sx),38);
+    g.setColour(juce::Colour{0xffe8d5aa}.withAlpha(.13f));g.drawText("Prophec-Y",brand.translated(0,2),juce::Justification::centredLeft);
+    g.setColour(juce::Colour{0xfff4e8ca});g.drawText("Prophec-Y",brand,juce::Justification::centredLeft);
+    for(const auto pos:std::array<juce::Point<float>,6>{{{45.f,20.f},{1415.f,20.f},{45.f,79.f},{1415.f,79.f},{510.f,243.f},{969.f,243.f}}}) {
+        const float x=pos.x*sx,y=pos.y;g.setColour(juce::Colours::black.withAlpha(.55f));g.fillEllipse(x-3.5f,y-3.5f,7.f,7.f);g.setColour(juce::Colour{0xffa8b2ab});g.fillEllipse(x-2.f,y-2.f,4.f,4.f);g.setColour(juce::Colour{0xff26322e});g.drawLine(x-1.5f,y+.5f,x+1.5f,y-.5f,1.f);
     }
     if(studioView_)return;
     section(g,"OSCILLATOR 1",56,90,360);section(g,"OSCILLATOR 2",56,240,360);section(g,"MIXER",56,431,360);

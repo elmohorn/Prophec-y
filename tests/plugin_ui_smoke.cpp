@@ -564,7 +564,7 @@ int main(int argc,char** argv)
                 if(auto* label=dynamic_cast<juce::Label*>(text);label&&label->getText().contains("dB"))driveDisplayFormatted=true;
     CHECK(driveDisplayFormatted);
     CHECK(p.exportEditBuffer()==sysex);
-    // The two cutoff knobs share one raw/host parameter and common control
+    // The single cutoff knob retains its raw/host parameter and common control
     // contract. Invalid text must not produce an edit or a host gesture.
     ProphecyParameterControl* cutoff=nullptr;
     int commonCutoffs=0,commonControls=0;
@@ -573,7 +573,7 @@ int main(int argc,char** argv)
             ++commonControls;
             if(control->parameterNrpn()==45){++commonCutoffs;if(!cutoff)cutoff=control;}
         }
-    CHECK(commonCutoffs==2&&cutoff!=nullptr&&commonControls==37);
+    CHECK(commonCutoffs==1&&cutoff!=nullptr&&commonControls==36);
     auto* cutoffParameter=p.parameters().getParameter("nrpn_0045");
     GestureProbe gestures;cutoffParameter->addListener(&gestures);
     CHECK(cutoff->applyExactText("50 %"));
@@ -870,15 +870,23 @@ int main(int argc,char** argv)
         const juce::Rectangle<int> divider(juce::roundToInt(996.f*sx),107,1,403);
         for(auto* child:editor->getChildren())
             if(child->isVisible())CHECK(!divider.intersects(child->getBounds()));
-        // Approved A: branded aluminum left; all upper controls occupy a
-        // single inset dark screen on the right, not separate boxes.
-        const juce::Rectangle<int> hostPlate(juce::roundToInt(36.f*sx),10,juce::roundToInt(1388.f*sx),79);
-        const juce::Rectangle<int> screen(juce::roundToInt(252.f*sx),20,juce::roundToInt(1155.f*sx),65);
-        const juce::Rectangle<int> logo(juce::roundToInt(57.f*sx),33,juce::roundToInt(181.f*sx),34);
-        CHECK(hostPlate.contains(screen));
-        CHECK(hostPlate.contains(logo));
-        CHECK(!screen.intersects(logo));
-        const std::array<juce::Component*,9> headerControls{presets,master,masterLabel,meter,midiReadout,midiChannel,resetClip,moduleButton,studioButton};
+        const juce::Rectangle<int> screen(juce::roundToInt(40.f*sx),14,juce::roundToInt(1380.f*sx),71);
+        juce::Component* menu=nullptr;juce::Component* presetTitle=nullptr;
+        for(auto* child:editor->getChildren()){if(child->getTitle()=="Header settings")menu=child;if(child->getTitle()=="Current preset")presetTitle=child;}
+        CHECK(menu&&presetTitle&&menu->isVisible()&&presetTitle->isVisible());
+        int lowPassKnobs=0;for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()&&slider->getTitle()=="LOW PASS")++lowPassKnobs;
+        CHECK(lowPassKnobs==1);
+        CHECK(!midiReadout->isVisible()&&!midiChannel->isVisible()&&!resetClip->isVisible()&&!moduleButton->isVisible()&&!studioButton->isVisible());
+        const std::array<juce::Component*,4> headerControls{presets,meter,menu,presetTitle};
+        const juce::Rectangle<int> lowerGlass(juce::roundToInt(501.f*sx),73,juce::roundToInt(477.f*sx),180);
+        CHECK(lowerGlass.contains(master->getBounds())&&lowerGlass.contains(masterLabel->getBounds()));
+        CHECK(!master->getBounds().intersects(masterLabel->getBounds()));
+        if(width==1460){
+            studioButton->onClick();CHECK(master->isVisible());
+            juce::Component* studioPanel=nullptr;for(auto* child:editor->getChildren())if(dynamic_cast<juce::GenericAudioProcessorEditor*>(child))studioPanel=child;
+            CHECK(studioPanel&&studioPanel->isVisible()&&!studioPanel->getBounds().intersects(master->getBounds()));
+            moduleButton->onClick();CHECK(!studioPanel->isVisible());
+        }
         for(auto* control:headerControls)CHECK(screen.contains(control->getBounds()));
         for(std::size_t i=0;i<headerControls.size();++i)
             for(std::size_t j=i+1;j<headerControls.size();++j)
