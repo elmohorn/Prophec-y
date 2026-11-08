@@ -754,6 +754,11 @@ void P6PluginEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::black.withAlpha(.3f));g.fillRoundedRectangle(lower.translated(0.f,2.f),7.f);g.fillRoundedRectangle(top.translated(0.f,2.f),7.f);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff4b4b4b},top.getX(),top.getY(),juce::Colour{0xff1c1c1c},top.getRight(),lower.getBottom(),false));g.fillRoundedRectangle(lower,7.f);g.fillRoundedRectangle(top,7.f);
     g.setColour(juce::Colour{0xff151718});g.fillRoundedRectangle(lower.reduced(4.f),5.f);g.fillRoundedRectangle(top.reduced(4.f),5.f);
+    if(browser_&&browser_->isVisible()) {
+        // Cover the closed header's lower bevel/shadow up to the dropdown.
+        // Without this bridge the two old bevel segments show through as a seam.
+        g.fillRect(top.getX()+2.f,top.getBottom()-5.f,top.getWidth()-4.f,6.f);
+    }
     // Trace the outside of the joined shape only: no line crosses the glass
     // where the upper strip meets the lower display recess.
     g.setColour(juce::Colour{0xffaaaaaa}.withAlpha(.45f));
