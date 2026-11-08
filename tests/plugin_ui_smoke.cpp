@@ -131,8 +131,12 @@ static int presetLibraryChecks(const juce::File& captureFolder)
         PresetBrowser* browser=nullptr;
         for(auto* child:gallery.getChildren())if(auto* b=dynamic_cast<PresetBrowser*>(child))browser=b;
         CHECK(browser!=nullptr);
-        for(auto* child:gallery.getChildren())if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getTitle()=="Preset browser")button->onClick();
-        CHECK(browser->isVisible());CHECK(screenshot(gallery,captureFolder.getChildFile("module_browser.png")));
+        juce::TextButton* browserButton=nullptr;
+        for(auto* child:gallery.getChildren())if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getTitle()=="Preset browser")browserButton=button;
+        CHECK(browserButton!=nullptr);browserButton->onClick();
+        CHECK(browser->isVisible()&&browserButton->getToggleState());CHECK(screenshot(gallery,captureFolder.getChildFile("module_browser.png")));
+        CHECK(browser->keyPressed(juce::KeyPress(juce::KeyPress::escapeKey)));CHECK(!browser->isVisible()&&!browserButton->getToggleState());
+        browserButton->onClick();CHECK(browser->isVisible()&&browserButton->getToggleState());
         juce::TextEditor* search=nullptr;for(auto* child:browser->getChildren())if(auto* edit=dynamic_cast<juce::TextEditor*>(child);edit&&edit->getTitle()=="Search presets")search=edit;
         CHECK(search!=nullptr);search->setText("not-a-preset",false);search->onTextChange();
         juce::ListBox* list=nullptr;for(auto* child:browser->getChildren())if(auto* l=dynamic_cast<juce::ListBox*>(child))list=l;
@@ -141,7 +145,8 @@ static int presetLibraryChecks(const juce::File& captureFolder)
         CHECK(sorting!=nullptr);sorting->setSelectedId(2,juce::sendNotificationSync);sorting->setSelectedId(3,juce::sendNotificationSync);sorting->setSelectedId(1,juce::sendNotificationSync);
         search->setText("User test",false);search->onTextChange();CHECK(list->getModel()->getNumRows()==1);
         search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==774);
-        for(int width:{1240,1460,1780}){gallery.setSize(width,P6PluginEditor::expandedHeight);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));}
+        for(int width:{1240,1460,1780}){gallery.setSize(width,P6PluginEditor::expandedHeight);CHECK(browser->getY()==88);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));}
+        browserButton->onClick();CHECK(!browser->isVisible()&&!browserButton->getToggleState());
     }
     std::cout<<"Preset library: persistence, exact banks, favorites, occupied slots, stale writes, globals, dirty tracking and browser filtering verified\n";
     return 0;
@@ -1046,4 +1051,5 @@ int main(int argc,char** argv)
     editor.reset();p.releaseResources();
     std::cout<<"Native editor, restored controls, SysEx isolation and live audio smoke passed\n";
 }
+
 
