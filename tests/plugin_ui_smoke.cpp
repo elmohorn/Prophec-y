@@ -5,6 +5,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <iostream>
+#include <tuple>
 
 #define CHECK(x) do{if(!(x)){std::cerr<<"failed: " #x <<" line "<<__LINE__<<'\n';return 1;}}while(false)
 static void set(P6AudioProcessor& p,const char* id,float v)
@@ -53,6 +54,25 @@ static int presetLibraryChecks(const juce::File& captureFolder)
     CHECK(brassEnergy>1.e-7&&stringsEnergy>1.e-7&&difference>1.e-7);
     std::cout<<"Official presets render distinct audio: energies "<<brassEnergy<<", "<<stringsEnergy<<", difference "<<difference<<"\n";
     CHECK(library.setFavorite("sequential-factory-0-0",true).wasOk());
+    // OMOM Church Organ: three held notes formerly generated a large DC
+    // offset in audio-rate filter Poly Mod, amplified by the serial reverb.
+    {
+        const auto* organ=library.find("sequential-omom-0-14");CHECK(organ!=nullptr);
+        P6AudioProcessor synth;synth.prepareToPlay(48000,128);set(synth,p6plugin::kMasterOutputID,0.f);
+        synth.loadMusicalPreset(organ->state,organ->id,organ->name);
+        juce::AudioBuffer<float> audio(2,128);double sum[2]{},energy[2]{},peak=0,afterReleaseEnergy=0;int count=0;
+        for(int block=0;block<1800;++block){
+            juce::MidiBuffer midi;const int start=block*128;
+            for(const auto [time,note,on]:std::array<std::tuple<int,int,bool>,4>{{{4800,60,true},{52800,64,true},{100800,67,true},{168000,67,false}}})
+                if(time>=start&&time<start+128)midi.addEvent(on?juce::MidiMessage::noteOn(1,note,juce::uint8{110}):juce::MidiMessage::noteOff(1,note),time-start);
+            synth.processBlock(audio,midi);
+            for(int i=0;i<128;++i)if(start+i>=144000&&start+i<163200){for(int ch=0;ch<2;++ch){const double v=audio.getSample(ch,i);CHECK(std::isfinite(v));sum[ch]+=v;energy[ch]+=v*v;peak=std::max(peak,std::abs(v));}++count;}
+            for(int i=0;i<128;++i)if(start+i>=201600&&start+i<220800){const double v=audio.getSample(0,i);CHECK(std::isfinite(v));afterReleaseEnergy+=v*v;}
+        }
+        CHECK(count>0&&peak<1.0&&afterReleaseEnergy>0.01);
+        for(int ch=0;ch<2;++ch){const double mean=sum[ch]/count;CHECK(std::abs(mean)<0.10);CHECK(energy[ch]/count-mean*mean>1.e-5);}
+        synth.releaseResources();
+    }
     auto patch=factory.patch;patch.rawPayload[1023]=217;
     auto first=p6::SysexCodec::encodeProgramDump(patch,2,10),second=p6::SysexCodec::encodeProgramDump(patch,2,9);
     std::vector<std::uint8_t> bank=first;bank.insert(bank.end(),second.begin(),second.end());
