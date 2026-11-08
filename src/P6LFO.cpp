@@ -70,9 +70,11 @@ double P6LFO::process()
     const double t = phase_;
     switch (shape_) {
     case Shape::Saw:
-        return std::clamp(t + 0.5 * polyBlep(t, dt), 0.0, 1.0);
+        // The downward wrap needs a positive correction at phase zero.
+        return std::clamp(t - 0.5 * polyBlep(t, dt), 0.0, 1.0);
     case Shape::ReverseSaw:
-        return std::clamp(1.0 - t - 0.5 * polyBlep(t, dt), 0.0, 1.0);
+        // Reverse saw wraps upward and therefore uses the opposite sign.
+        return std::clamp(1.0 - t + 0.5 * polyBlep(t, dt), 0.0, 1.0);
     case Shape::Square: {
         double v = t < 0.5 ? 1.0 : 0.0;
         v += 0.5 * polyBlep(t, dt);
