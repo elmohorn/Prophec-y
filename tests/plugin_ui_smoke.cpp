@@ -881,6 +881,12 @@ int main(int argc,char** argv)
         const juce::Rectangle<int> lowerGlass(juce::roundToInt(501.f*sx),73,juce::roundToInt(477.f*sx),180);
         CHECK(lowerGlass.contains(master->getBounds())&&lowerGlass.contains(masterLabel->getBounds()));
         CHECK(!master->getBounds().intersects(masterLabel->getBounds()));
+        if(width==1460){
+            studioButton->onClick();CHECK(master->isVisible());
+            juce::Component* studioPanel=nullptr;for(auto* child:editor->getChildren())if(dynamic_cast<juce::GenericAudioProcessorEditor*>(child))studioPanel=child;
+            CHECK(studioPanel&&studioPanel->isVisible()&&!studioPanel->getBounds().intersects(master->getBounds()));
+            moduleButton->onClick();CHECK(!studioPanel->isVisible());
+        }
         for(auto* control:headerControls)CHECK(screen.contains(control->getBounds()));
         for(std::size_t i=0;i<headerControls.size();++i)
             for(std::size_t j=i+1;j<headerControls.size();++j)

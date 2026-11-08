@@ -482,7 +482,7 @@ void P6PluginEditor::refreshVisibility()
     for(auto& s:switches_)s.button.setVisible(!studioView_);
     fxAType_.setVisible(!studioView_);fxBType_.setVisible(!studioView_);
     for(auto& k:tube_){k.slider.setVisible(!studioView_&&showTube_&&!collapsed_&&!opticalPreviewActive_);k.label.setVisible(k.slider.isVisible());}
-    diagnostic_->setVisible(studioView_);display_.setVisible(!studioView_);
+    diagnostic_->setVisible(studioView_);display_.setVisible(true);
     // Tube/Spring use the approved panoramic artwork; existing experimental
     // Character modes retain their original specialized view.
     // Tube is the approved original; never replace or recreate its bezel.
@@ -537,7 +537,8 @@ void P6PluginEditor::resized()
     outputMeter_.setBounds(rect(1035,26,296,55));clearClips_.setBounds(rect(1077,43,94,27));
     midiInputChannel_.setBounds(rect(954,43,116,27));midiMonitor_.setBounds(rect(954,23,116,15));
     module_.setBounds(rect(1189,43,92,27));studio_.setBounds(rect(1288,43,97,27));
-    diagnostic_->setBounds(36,92,getWidth()-72,getHeight()-125);
+    // The common OLED and Master remain accessible in Studio mode.
+    diagnostic_->setBounds(36,260,getWidth()-72,getHeight()-293);
     auto knob=[&](std::size_t i,float x,float y,float w=80,float h=72){synth_[i].slider.setBounds(rect(x,y,w,h));synth_[i].label.setBounds(rect(x-5,y+h+1,w+10,18));};
     for(std::size_t i=0;i<4;++i){knob(i,54+94.f*static_cast<float>(i),119);knob(i+4,54+94.f*static_cast<float>(i),269);}
     knob(8,337,366,49,47);
