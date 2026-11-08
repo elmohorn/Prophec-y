@@ -564,7 +564,7 @@ int main(int argc,char** argv)
                 if(auto* label=dynamic_cast<juce::Label*>(text);label&&label->getText().contains("dB"))driveDisplayFormatted=true;
     CHECK(driveDisplayFormatted);
     CHECK(p.exportEditBuffer()==sysex);
-    // The two cutoff knobs share one raw/host parameter and common control
+    // The single cutoff knob retains its raw/host parameter and common control
     // contract. Invalid text must not produce an edit or a host gesture.
     ProphecyParameterControl* cutoff=nullptr;
     int commonCutoffs=0,commonControls=0;
@@ -573,7 +573,7 @@ int main(int argc,char** argv)
             ++commonControls;
             if(control->parameterNrpn()==45){++commonCutoffs;if(!cutoff)cutoff=control;}
         }
-    CHECK(commonCutoffs==2&&cutoff!=nullptr&&commonControls==37);
+    CHECK(commonCutoffs==1&&cutoff!=nullptr&&commonControls==36);
     auto* cutoffParameter=p.parameters().getParameter("nrpn_0045");
     GestureProbe gestures;cutoffParameter->addListener(&gestures);
     CHECK(cutoff->applyExactText("50 %"));
