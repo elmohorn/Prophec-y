@@ -1,0 +1,26 @@
+name: glass-library-preview
+on:
+  push:
+    branches: [validate-library-glass]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfontconfig1-dev libfreetype6-dev libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxi-dev libxinerama-dev libxrandr-dev libxrender-dev libgl1-mesa-dev libegl1-mesa-dev xvfb
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON -DP6_BUILD_UI_SMOKE=ON
+      - name: Build editor
+        run: cmake --build build --target P6UiSmoke --parallel 2
+      - name: Test and capture
+        run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: glass-library-preview
+          path: ui-smoke/*.png
