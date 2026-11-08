@@ -24,12 +24,14 @@ void P6PluginEditor::MetalLook::drawButtonBackground(juce::Graphics& g,juce::But
     }
     const auto bounds=button.getLocalBounds().toFloat().reduced(1.f);
     const bool active=button.getToggleState();
-    g.setColour(juce::Colours::black.withAlpha(.8f));g.fillRoundedRectangle(bounds,5.f);
+    // A recessed control behind the header glass: a dark pocket and a fine
+    // edge, with light on the lettering rather than a raised coloured cap.
+    g.setColour(juce::Colour{0xff080a0a});g.fillRoundedRectangle(bounds,5.f);
     const auto face=bounds.reduced(2.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{active?0xff59452f:down?0xff202020:0xff303030},face.getX(),face.getY(),juce::Colour{0xff111111},face.getX(),face.getBottom(),false));
+    g.setGradientFill(juce::ColourGradient(juce::Colour{down?0xff17191a:0xff252728},face.getX(),face.getY(),juce::Colour{0xff111314},face.getX(),face.getBottom(),false));
     g.fillRoundedRectangle(face,3.f);
-    g.setColour(juce::Colour{active?0xffc79962:0xff747474}.withAlpha(highlighted?.95f:.7f));g.drawRoundedRectangle(face,3.f,1.f);
-    g.setColour(juce::Colours::white.withAlpha(.12f));g.drawLine(face.getX()+4.f,face.getY()+2.f,face.getRight()-4.f,face.getY()+2.f,1.f);
+    g.setColour(juce::Colour{active?0xffa98257:0xff777777}.withAlpha(highlighted?.85f:.5f));g.drawRoundedRectangle(face,3.f,1.f);
+    g.setColour(juce::Colours::white.withAlpha(.10f));g.drawLine(face.getX()+5.f,face.getY()+2.f,face.getRight()-5.f,face.getY()+2.f,1.f);
 }
 void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
                                                 float value,float start,float end,juce::Slider& slider)
@@ -309,8 +311,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     browserButton_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xffe8e8e6});
     browserButton_.setColour(juce::TextButton::textColourOnId,juce::Colour{0xffffd399});
     addAndMakeVisible(browserButton_);
-    browserButton_.onClick=[this]{const bool open=!browser_->isVisible();browser_->setVisible(open);browserButton_.setToggleState(open,juce::dontSendNotification);if(open){browser_->refreshLibrary();browser_->toFront(true);}};
-    browser_->onClose=[this]{browser_->setVisible(false);browserButton_.setToggleState(false,juce::dontSendNotification);browserButton_.grabKeyboardFocus();};
+    browserButton_.onClick=[this]{const bool open=!browser_->isVisible();browser_->setVisible(open);browserButton_.setToggleState(open,juce::dontSendNotification);if(open){browser_->refreshLibrary();browser_->toFront(true);}repaint();};
+    browser_->onClose=[this]{browser_->setVisible(false);browserButton_.setToggleState(false,juce::dontSendNotification);browserButton_.grabKeyboardFocus();repaint();};
     presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
     processor_.attachLiveDisplay();refreshVisibility();refreshDisplay();startTimerHz(30);
 }
@@ -750,20 +752,34 @@ void P6PluginEditor::paint(juce::Graphics& g)
     const juce::Rectangle<float> top(36.f*sx,10.f,1388.f*sx,79.f);
     const juce::Rectangle<float> lower(501.f*sx,73.f,477.f*sx,180.f);
     g.setColour(juce::Colours::black.withAlpha(.3f));g.fillRoundedRectangle(lower.translated(0.f,2.f),7.f);g.fillRoundedRectangle(top.translated(0.f,2.f),7.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff35413e},top.getX(),top.getY(),juce::Colour{0xff101918},top.getRight(),lower.getBottom(),false));g.fillRoundedRectangle(lower,7.f);g.fillRoundedRectangle(top,7.f);
-    g.setColour(juce::Colour{0xff101b1b});g.fillRoundedRectangle(lower.reduced(4.f),5.f);g.fillRoundedRectangle(top.reduced(4.f),5.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff4b4b4b},top.getX(),top.getY(),juce::Colour{0xff1c1c1c},top.getRight(),lower.getBottom(),false));g.fillRoundedRectangle(lower,7.f);g.fillRoundedRectangle(top,7.f);
+    g.setColour(juce::Colour{0xff151718});g.fillRoundedRectangle(lower.reduced(4.f),5.f);g.fillRoundedRectangle(top.reduced(4.f),5.f);
+    if(browser_&&browser_->isVisible()) {
+        // Cover the closed header's lower bevel/shadow up to the dropdown.
+        // Without this bridge the two old bevel segments show through as a seam.
+        g.fillRect(top.getX()+2.f,top.getBottom()-5.f,top.getWidth()-4.f,6.f);
+    }
     // Trace the outside of the joined shape only: no line crosses the glass
     // where the upper strip meets the lower display recess.
-    g.setColour(juce::Colour{0xff89968d}.withAlpha(.45f));
+    g.setColour(juce::Colour{0xffaaaaaa}.withAlpha(.45f));
     juce::Path rim;
     rim.startNewSubPath(top.getX()+6.f,top.getY()+1.f);
     rim.lineTo(top.getRight()-6.f,top.getY()+1.f);rim.lineTo(top.getRight()-1.f,top.getY()+6.f);
-    rim.lineTo(top.getRight()-1.f,top.getBottom()-6.f);rim.lineTo(top.getRight()-6.f,top.getBottom()-1.f);
-    rim.lineTo(lower.getRight()-1.f,top.getBottom()-1.f);rim.lineTo(lower.getRight()-1.f,lower.getBottom()-6.f);
-    rim.lineTo(lower.getRight()-6.f,lower.getBottom()-1.f);rim.lineTo(lower.getX()+6.f,lower.getBottom()-1.f);
-    rim.lineTo(lower.getX()+1.f,lower.getBottom()-6.f);rim.lineTo(lower.getX()+1.f,top.getBottom()-1.f);
-    rim.lineTo(top.getX()+6.f,top.getBottom()-1.f);rim.lineTo(top.getX()+1.f,top.getBottom()-6.f);
-    rim.lineTo(top.getX()+1.f,top.getY()+6.f);rim.closeSubPath();g.strokePath(rim,juce::PathStrokeType(1.f));
+    if(browser_&&browser_->isVisible()) {
+        // The dropdown replaces the lower outline while open: it is one
+        // continuous pane, not a second rectangle under the header.
+        rim.lineTo(top.getRight()-1.f,top.getBottom());
+        rim.startNewSubPath(top.getX()+1.f,top.getBottom());
+        rim.lineTo(top.getX()+1.f,top.getY()+6.f);rim.lineTo(top.getX()+6.f,top.getY()+1.f);
+    } else {
+        rim.lineTo(top.getRight()-1.f,top.getBottom()-6.f);rim.lineTo(top.getRight()-6.f,top.getBottom()-1.f);
+        rim.lineTo(lower.getRight()-1.f,top.getBottom()-1.f);rim.lineTo(lower.getRight()-1.f,lower.getBottom()-6.f);
+        rim.lineTo(lower.getRight()-6.f,lower.getBottom()-1.f);rim.lineTo(lower.getX()+6.f,lower.getBottom()-1.f);
+        rim.lineTo(lower.getX()+1.f,lower.getBottom()-6.f);rim.lineTo(lower.getX()+1.f,top.getBottom()-1.f);
+        rim.lineTo(top.getX()+6.f,top.getBottom()-1.f);rim.lineTo(top.getX()+1.f,top.getBottom()-6.f);
+        rim.lineTo(top.getX()+1.f,top.getY()+6.f);rim.closeSubPath();
+    }
+    g.strokePath(rim,juce::PathStrokeType(1.f));
     // Lettering is softly illuminated under the glass, without LED rings.
     g.setFont(juce::Font(25.f).boldened().italicised().withExtraKerningFactor(-.035f));
     const auto brand=juce::Rectangle<int>(juce::roundToInt(58.f*sx),28,juce::roundToInt(194.f*sx),38);

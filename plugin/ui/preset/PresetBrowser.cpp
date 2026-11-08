@@ -45,12 +45,22 @@ PresetBrowser::PresetBrowser(P6AudioProcessor& processor,juce::File root):proces
 void PresetBrowser::paint(juce::Graphics& g)
 {
     // Fully opaque continuation of the top glass, with no seam at its top.
-    g.fillAll(juce::Colour{0xff1b1b1b});
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff202020},0.f,0.f,juce::Colour{0xff151515},0.f,static_cast<float>(getHeight()),false));g.fillRect(getLocalBounds());
-    g.setColour(juce::Colour{0xff777777});
-    g.drawVerticalLine(0,0.f,static_cast<float>(getHeight()));g.drawVerticalLine(getWidth()-1,0.f,static_cast<float>(getHeight()));
-    g.drawHorizontalLine(getHeight()-1,0.f,static_cast<float>(getWidth()));
-    g.setColour(juce::Colour{0xff3c3c3c});g.drawHorizontalLine(getHeight()-3,2.f,static_cast<float>(getWidth()-2));
+    g.fillAll(juce::Colour{0xff151718});
+    // The same opaque smoked glass as the header; the thin metal sides and
+    // bottom rim continue its outline without a horizontal join at the top.
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff151718},0.f,0.f,juce::Colour{0xff0f1011},0.f,static_cast<float>(getHeight()),false));g.fillRect(getLocalBounds());
+    g.setColour(juce::Colour{0xff555555});
+    g.drawVerticalLine(0,0.f,static_cast<float>(getHeight()-5));g.drawVerticalLine(getWidth()-1,0.f,static_cast<float>(getHeight()-5));
+    g.drawHorizontalLine(getHeight()-1,5.f,static_cast<float>(getWidth()-5));
+    g.drawLine(0.f,static_cast<float>(getHeight()-5),5.f,static_cast<float>(getHeight()-1));
+    g.drawLine(static_cast<float>(getWidth()-1),static_cast<float>(getHeight()-5),static_cast<float>(getWidth()-5),static_cast<float>(getHeight()-1));
+    g.setColour(juce::Colour{0xff343434});g.drawHorizontalLine(getHeight()-4,6.f,static_cast<float>(getWidth()-6));
+    for(const float x:{9.f,static_cast<float>(getWidth()-9)}) {
+        const float y=static_cast<float>(getHeight()-10);
+        g.setColour(juce::Colour{0xff090909});g.fillEllipse(x-4.f,y-4.f,8.f,8.f);
+        g.setColour(juce::Colour{0xff9c9c9c});g.fillEllipse(x-2.f,y-2.f,4.f,4.f);
+        g.setColour(juce::Colour{0xff303030});g.drawLine(x-1.5f,y+.5f,x+1.5f,y-.5f,1.f);
+    }
     g.setColour(juce::Colour{0xff555555});g.drawHorizontalLine(65,18.f,static_cast<float>(getWidth()-18));
     g.setFont(10.f);g.setColour(juce::Colour{0xffc6aa87});const int columns=getWidth()-36;
     g.drawText("NAME",26,112,columns*36/100-12,18,juce::Justification::centredLeft);
