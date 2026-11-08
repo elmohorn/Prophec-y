@@ -43,7 +43,7 @@ void ContextDisplay::paint(juce::Graphics& g)
     const juce::Colour ink{0xffcce0e4},dim{0xff78959e},line{0xff36515b},accent{0xffe6aa69};
     g.setColour(juce::Colour{0xff8b948b});g.fillRoundedRectangle(r.expanded(2),6);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff142127},0,0,juce::Colour{0xff070d10},r.getRight(),r.getBottom(),false));g.fillRoundedRectangle(r,4);
-    g.setColour(ink);g.setFont(15.f);g.drawText(content_.preset,16,8,getWidth()-110,23,juce::Justification::centredLeft);
+    g.setColour(ink);g.setFont(15.f);g.drawText("SIGNAL / CONTEXT",16,8,getWidth()-110,23,juce::Justification::centredLeft);
     const bool context=view_==View::Context || contextTicks_>0;
     g.setColour(dim);g.setFont(8.f);g.drawText(context?"CONTEXT":view_==View::Spectrum?"SPECTRUM":"WAVEFORM",getWidth()-92,11,76,16,juce::Justification::centredRight);
     g.setColour(line);g.drawLine(16,35.f,static_cast<float>(getWidth()-16),35.f,1.f);
