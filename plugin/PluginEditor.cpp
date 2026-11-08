@@ -17,6 +17,20 @@ int nrpnFromID(const juce::String& id)
 
 
 }
+void P6PluginEditor::MetalLook::drawButtonBackground(juce::Graphics& g,juce::Button& button,const juce::Colour& colour,bool highlighted,bool down)
+{
+    if(button.getTitle()!="Preset browser") {
+        juce::LookAndFeel_V4::drawButtonBackground(g,button,colour,highlighted,down);return;
+    }
+    const auto bounds=button.getLocalBounds().toFloat().reduced(1.f);
+    const bool active=button.getToggleState();
+    g.setColour(juce::Colours::black.withAlpha(.8f));g.fillRoundedRectangle(bounds,5.f);
+    const auto face=bounds.reduced(2.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{active?0xff59452f:down?0xff202020:0xff303030},face.getX(),face.getY(),juce::Colour{0xff111111},face.getX(),face.getBottom(),false));
+    g.fillRoundedRectangle(face,3.f);
+    g.setColour(juce::Colour{active?0xffc79962:0xff747474}.withAlpha(highlighted?.95f:.7f));g.drawRoundedRectangle(face,3.f,1.f);
+    g.setColour(juce::Colours::white.withAlpha(.12f));g.drawLine(face.getX()+4.f,face.getY()+2.f,face.getRight()-4.f,face.getY()+2.f,1.f);
+}
 void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
                                                 float value,float start,float end,juce::Slider& slider)
 {
@@ -290,13 +304,13 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     setResizable(true,false);setResizeLimits(1240,compactHeight,1920,1200);setSize(1460,compactHeight);
     browser_=std::make_unique<PresetBrowser>(processor_,std::move(presetRoot));addChildComponent(*browser_);
     browserButton_.setLookAndFeel(&look_);browserButton_.setTitle("Preset browser");
-    browserButton_.setColour(juce::TextButton::buttonColourId,juce::Colour{0xff3b4942});
-    browserButton_.setColour(juce::TextButton::buttonOnColourId,juce::Colour{0xff516356});
-    browserButton_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xffe6ede3});
+    browserButton_.setColour(juce::TextButton::buttonColourId,juce::Colour{0xff242424});
+    browserButton_.setColour(juce::TextButton::buttonOnColourId,juce::Colour{0xff59452f});
+    browserButton_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xffe8e8e6});
     browserButton_.setColour(juce::TextButton::textColourOnId,juce::Colour{0xffffd399});
     addAndMakeVisible(browserButton_);
-    browserButton_.onClick=[this]{browser_->setVisible(!browser_->isVisible());if(browser_->isVisible()){browser_->refreshLibrary();browser_->toFront(true);}};
-    browser_->onClose=[this]{browser_->setVisible(false);browserButton_.grabKeyboardFocus();};
+    browserButton_.onClick=[this]{const bool open=!browser_->isVisible();browser_->setVisible(open);browserButton_.setToggleState(open,juce::dontSendNotification);if(open){browser_->refreshLibrary();browser_->toFront(true);}};
+    browser_->onClose=[this]{browser_->setVisible(false);browserButton_.setToggleState(false,juce::dontSendNotification);browserButton_.grabKeyboardFocus();};
     presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
     processor_.attachLiveDisplay();refreshVisibility();refreshDisplay();startTimerHz(30);
 }
@@ -532,7 +546,7 @@ void P6PluginEditor::resized()
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
     browserButton_.setBounds(rect(280,34,122,30));
     headerPreset_.setBounds(rect(427,29,370,38));headerMenu_.setBounds(rect(1360,31,42,32));
-    if(browser_)browser_->setBounds(55,98,getWidth()-110,450);
+    if(browser_)browser_->setBounds(rect(36,88,1388,450));
     master_.setBounds(rect(875,106,90,92));masterLabel_.setBounds(rect(891,202,58,18));
     outputMeter_.setBounds(rect(1035,26,296,55));clearClips_.setBounds(rect(1077,43,94,27));
     midiInputChannel_.setBounds(rect(954,43,116,27));midiMonitor_.setBounds(rect(954,23,116,15));
@@ -827,3 +841,4 @@ void P6PluginEditor::updateDevice()
     auto reading=visual_;reading.active=reading.active&&reading.type==boundType_;
     device_.update(boundType_,values,reading,motion_.getToggleState());
 }
+

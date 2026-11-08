@@ -8,6 +8,7 @@ public:
     ~PresetBrowser() override {closing_=true;chooser_.reset();setLookAndFeel(nullptr);}
     void paint(juce::Graphics&) override;
     void resized() override;
+    bool keyPressed(const juce::KeyPress& key) override {if(key==juce::KeyPress::escapeKey){if(onClose)onClose();return true;}return false;}
     bool refreshCurrent();
     void refreshLibrary();
     std::function<void()> onClose;
@@ -39,3 +40,4 @@ private:
     std::vector<juce::String> rows_,banks_;
     bool closing_{};
 };
+

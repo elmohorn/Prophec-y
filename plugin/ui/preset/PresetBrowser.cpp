@@ -44,9 +44,13 @@ PresetBrowser::PresetBrowser(P6AudioProcessor& processor,juce::File root):proces
 }
 void PresetBrowser::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour{0xff292929});
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff353535},0.f,0.f,juce::Colour{0xff262626},0.f,static_cast<float>(getHeight()),false));g.fillRect(getLocalBounds());
-    g.setColour(juce::Colour{0xff777777});g.drawRect(getLocalBounds(),2);
+    // Fully opaque continuation of the top glass, with no seam at its top.
+    g.fillAll(juce::Colour{0xff1b1b1b});
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff202020},0.f,0.f,juce::Colour{0xff151515},0.f,static_cast<float>(getHeight()),false));g.fillRect(getLocalBounds());
+    g.setColour(juce::Colour{0xff777777});
+    g.drawVerticalLine(0,0.f,static_cast<float>(getHeight()));g.drawVerticalLine(getWidth()-1,0.f,static_cast<float>(getHeight()));
+    g.drawHorizontalLine(getHeight()-1,0.f,static_cast<float>(getWidth()));
+    g.setColour(juce::Colour{0xff3c3c3c});g.drawHorizontalLine(getHeight()-3,2.f,static_cast<float>(getWidth()-2));
     g.setColour(juce::Colour{0xff555555});g.drawHorizontalLine(65,18.f,static_cast<float>(getWidth()-18));
     g.setFont(10.f);g.setColour(juce::Colour{0xffc6aa87});const int columns=getWidth()-36;
     g.drawText("NAME",26,112,columns*36/100-12,18,juce::Justification::centredLeft);
@@ -175,3 +179,4 @@ void PresetBrowser::exportFile(bool bank)
         const bool ok=temp.getFile().replaceWithData(bytes.data(),bytes.size())&&temp.overwriteTargetFileWithTemporary();safe->report(ok?juce::Result::ok():juce::Result::fail("Could not export SysEx file"),"Exported "+file.getFileName());
     });
 }
+

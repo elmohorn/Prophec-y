@@ -27,6 +27,7 @@ private:
         std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> attachment;
     };
     struct MetalLook final : juce::LookAndFeel_V4 {
+        void drawButtonBackground(juce::Graphics&,juce::Button&,const juce::Colour&,bool,bool) override;
         void drawRotarySlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider&) override;
         void drawLinearSlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider::SliderStyle,juce::Slider&) override;
         void drawToggleButton(juce::Graphics&,juce::ToggleButton&,bool,bool) override;
@@ -93,3 +94,4 @@ private:
     juce::Rectangle<int> tubeArea_,displayArea_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(P6PluginEditor)
 };
+
