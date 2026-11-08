@@ -752,6 +752,11 @@ int main(int argc,char** argv)
             CHECK(child->getBottom()<=editor->getHeight()-28);
         }
         const float sx=static_cast<float>(width)/1460.f;
+        // The column separator must not run through any visible control.
+        // Its lower end stops before the standard FX section spans columns.
+        const juce::Rectangle<int> divider(juce::roundToInt(996.f*sx),107,1,403);
+        for(auto* child:editor->getChildren())
+            if(child->isVisible())CHECK(!divider.intersects(child->getBounds()));
         // Approved A: branded aluminum left; all upper controls occupy a
         // single inset dark screen on the right, not separate boxes.
         const juce::Rectangle<int> hostPlate(juce::roundToInt(36.f*sx),10,juce::roundToInt(1388.f*sx),79);
