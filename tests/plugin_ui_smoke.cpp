@@ -305,7 +305,9 @@ int main(int argc,char** argv)
                toggle && (toggle->getTitle().startsWith("Poly Mod ") || toggle->getTitle().startsWith("LFO "))
                && static_cast<bool>(toggle->getProperties().getWithDefault("ledTile",false))) {
                 ++modulationButtons;
-                CHECK(juce::Font(9.5f).getStringWidthFloat(toggle->getButtonText()) <= static_cast<float>(toggle->getWidth()));
+                juce::GlyphArrangement text;
+                text.addLineOfText(juce::Font(9.5f),toggle->getButtonText(),0.f,0.f);
+                CHECK(text.getBoundingBox(0,-1,true).getWidth() <= static_cast<float>(toggle->getWidth()));
                 CHECK(toggle->getTooltip().isNotEmpty());
             }
         CHECK(modulationButtons==10);
