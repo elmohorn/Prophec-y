@@ -1,0 +1,48 @@
+name: character-rgba-bake
+
+# Manual-only artifact builder for reproducing the interim PNG extraction.
+# Never overwrites committed or artist-authored alpha masks automatically.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bake:
+    name: Bake and verify Character RGBA artwork
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install RGBA extraction dependency
+        run: python3 -m pip install Pillow
+      - name: Bake full-resolution RGBA layers from approved atlas
+        run: |
+          python3 tools/build_character_rgba.py \
+            --source plugin/assets/character_cameras_atlas.jpg \
+            --output-dir plugin/assets/character_rgba
+      - name: Verify dimensions, real alpha and visual changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageChops
+          root=Path('plugin/assets/character_rgba')
+          names=('spring_backplate','spring_upper_coil','spring_lower_coil','spring_reflection_overlay',
+                 'optical_backplate','optical_lamp_off','optical_lamp_on','optical_ldr_overlay')
+          for name in names:
+              with Image.open(root/(name+'.png')) as img:
+                  assert img.mode=='RGBA' and img.size==(640,190), name
+                  lo,hi=img.getchannel('A').getextrema()
+                  assert lo==0 and hi>0, (name,lo,hi)
+                  if name not in ('spring_backplate','optical_backplate'):
+                      assert img.getchannel('A').getbbox(), name
+          dark=Image.open(root/'optical_backplate.png').convert('RGBA')
+          lit=Image.alpha_composite(dark,Image.open(root/'optical_lamp_on.png').convert('RGBA'))
+          assert ImageChops.difference(dark,lit).getbbox(), 'light must react'
+          PY
+      - name: Archive reproducible RGBA assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-Character-RGBA-artwork
+          path: plugin/assets/character_rgba/*.png
+          if-no-files-found: error

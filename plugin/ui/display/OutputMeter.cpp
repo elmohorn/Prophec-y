@@ -8,7 +8,7 @@ void OutputMeter::paint(juce::Graphics& g)
     // The meter is part of the approved single continuous header screen.
     // Paint transparently over the parent OLED instead of a separate box.
     const float width=static_cast<float>(getWidth());
-    g.setFont(9.f);g.setColour(juce::Colour{0xffa5b3ab});
+    g.setFont(10.f);g.setColour(juce::Colour{0xffc3cec6});
     g.drawText("OUTPUT / SAMPLE PEAK + RMS",8,2,getWidth()-100,13,juce::Justification::centredLeft);
     const bool hot=readings_.clips&12u;
     g.setColour(hot?juce::Colour{0xffffbc72}:juce::Colour{0xffa5b3ab});

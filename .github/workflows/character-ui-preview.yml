@@ -1,0 +1,65 @@
+name: character-ui-preview
+
+on:
+  pull_request:
+    branches: [v0.20-ui]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Only the newest pending visual capture needs a hosted runner.
+concurrency:
+  group: character-ui-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshot-smoke:
+    name: Capture JUCE Character FX views
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      # Validate committed artist-controlled PNGs; do not rebake in CI.
+      # an artist may later replace them with hand-isolated RGBA masters.
+      - name: Verify committed RGBA layer set
+        run: |
+          for asset in spring_backplate spring_upper_coil spring_lower_coil spring_reflection_overlay \
+                       optical_backplate optical_lamp_off optical_lamp_on optical_ldr_overlay; do
+            test -s "plugin/assets/character_rgba/${asset}.png"
+          done
+      - name: Install native JUCE dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfontconfig1-dev libfreetype6-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxi-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev \
+            libgl1-mesa-dev libegl1-mesa-dev xvfb
+      - name: Configure native editor smoke
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON -DP6_BUILD_UI_SMOKE=ON
+      - name: Build screenshot harness
+        run: cmake --build build --target P6UiSmoke P6CharacterVisualProbe P6TelemetryMailboxProbe --parallel 2
+      - name: Check measured DSP-to-visual response without JUCE
+        run: ctest --test-dir build -C Release --output-on-failure -R '^p6_character_(visual_dynamics|telemetry_mailbox)$'
+      - name: Capture native Tube, Spring and optical design preview
+        run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
+      - name: Upload native editor screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-Character-native-screenshots
+          path: ui-smoke/*.png
+          if-no-files-found: error
+      - name: Upload committed transparent photo layers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-Character-RGBA-artwork
+          path: plugin/assets/character_rgba/*.png
+          if-no-files-found: error
+      - name: Archive approved source atlas for RGBA layer audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-Character-atlas-source
+          path: plugin/assets/character_cameras_atlas.jpg
+          if-no-files-found: error

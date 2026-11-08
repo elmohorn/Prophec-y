@@ -97,6 +97,297 @@ int main(int argc,char** argv)
     const auto off=motionTestChamber.createComponentSnapshot(motionTestChamber.getLocalBounds());
     bool differs=false;for(int y=0;y<184;++y)for(int x=0;x<320;++x)differs=differs||(lit.getPixelAt(x,y)!=off.getPixelAt(x,y));
     CHECK(differs);
+    // The Spring coil must react to sustained measured energy, not freeze as
+    // a static helix. MOTION freezes the exact frame; bypass removes the
+    // illumination and displacement without touching processor state.
+    CharacterHardwareWindow springVisual;
+    springVisual.setSize(640, 190);
+    const std::array<float, 3> springPickups{{.022f, .035f, .05f}};
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, true,
+                          .1f, .18f, .08f, springPickups);
+    const auto springFrameA = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, true,
+                          .1f, .18f, .08f, springPickups);
+    const auto springFrameB = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool springMoved = false;
+    for (int y = 0; y < springFrameA.getHeight(); ++y)
+        for (int x = 0; x < springFrameA.getWidth(); ++x)
+            springMoved = springMoved ||
+                          springFrameA.getPixelAt(x, y) != springFrameB.getPixelAt(x, y);
+    CHECK(springMoved);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, false,
+                          .1f, .18f, .08f, springPickups);
+    const auto springPaused = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool springFrozen = true;
+    for (int y = 0; y < springFrameB.getHeight(); ++y)
+        for (int x = 0; x < springFrameB.getWidth(); ++x)
+            springFrozen = springFrozen &&
+                           springFrameB.getPixelAt(x, y) == springPaused.getPixelAt(x, y);
+    CHECK(springFrozen);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring, false, false, 0.f, 0.f, 0.f);
+    const auto springBypass = springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool springDimmed = false;
+    for (int y = 0; y < springPaused.getHeight(); ++y)
+        for (int x = 0; x < springPaused.getWidth(); ++x)
+            springDimmed = springDimmed ||
+                           springPaused.getPixelAt(x, y) != springBypass.getPixelAt(x, y);
+    CHECK(springDimmed);
+    if (argc > 1) {
+        const juce::File folder{juce::String(argv[1])};
+        folder.createDirectory();
+        CHECK(screenshot(springVisual, folder.getChildFile("spring_tank_bypass.png")));
+        springVisual.setState(CharacterHardwareWindow::Mode::Spring, true, true,
+                              .1f, .18f, .08f, springPickups);
+        CHECK(screenshot(springVisual, folder.getChildFile("spring_tank_active.png")));
+    }
+    // Rendered photographic layers must animate without touching the fixed
+    // physical Tube bezel / glass. Small synthetic RGBA assets make the test
+    // independent of artistic assets and keep the native smoke deterministic.
+    juce::Image springBack(juce::Image::ARGB,640,190,true);
+    {
+        juce::Graphics g(springBack);
+        g.setColour(juce::Colour{0xff292019});
+        g.fillRect(15,15,610,140);
+    }
+    std::array<juce::Image,3> springLayers;
+    for(int i=0;i<3;++i) {
+        springLayers[static_cast<std::size_t>(i)]=juce::Image(juce::Image::ARGB,640,190,true);
+        juce::Graphics g(springLayers[static_cast<std::size_t>(i)]);
+        g.setColour(juce::Colour{0xffcda56a});
+        g.fillRect(120,38+i*40,400,12);
+    }
+    springVisual.setSpringArtwork(springBack,springLayers);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .2f,.16f,.1f,springPickups);
+    const auto artLive=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .2f,.16f,.1f,springPickups);
+    const auto artNext=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool artMoved=false;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        artMoved=artMoved||(artLive.getPixelAt(x,y)!=artNext.getPixelAt(x,y));
+    CHECK(artMoved);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,true,false,
+                          .2f,.16f,.1f,springPickups);
+    const auto artFrozen=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool photoFrozen=true;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        photoFrozen=photoFrozen&&(artNext.getPixelAt(x,y)==artFrozen.getPixelAt(x,y));
+    CHECK(photoFrozen);
+    springVisual.setState(CharacterHardwareWindow::Mode::Spring,false,false,0.f,0.f,0.f);
+    const auto artOff=springVisual.createComponentSnapshot(springVisual.getLocalBounds());
+    bool photoBypassChanged=false;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        photoBypassChanged=photoBypassChanged||
+                           artFrozen.getPixelAt(x,y)!=artOff.getPixelAt(x,y);
+    CHECK(photoBypassChanged);
+    // Optical artwork is a preview, not a DSP state change. Distinct lit
+    // filament pixels must track LFO light level across UI frames.
+    juce::Image opticalBack(juce::Image::ARGB,640,190,true);
+    juce::Image opticalOff(juce::Image::ARGB,640,190,true);
+    juce::Image opticalOn(juce::Image::ARGB,640,190,true);
+    juce::Image opticalLdr(juce::Image::ARGB,640,190,true);
+    {
+        juce::Graphics g(opticalOn);
+        g.setColour(juce::Colours::orange);
+        g.fillEllipse(170.f,58.f,65.f,65.f);
+        juce::Graphics sensor(opticalLdr);
+        sensor.setColour(juce::Colours::orange.withAlpha(.45f));
+        sensor.fillEllipse(395.f,66.f,28.f,28.f);
+    }
+    CharacterHardwareWindow opticalVisual;
+    opticalVisual.setSize(640,190);
+    opticalVisual.setOpticalArtwork(opticalBack,opticalOff,opticalOn,opticalLdr);
+    opticalVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,0.f,0.f,0.f,{},0.f);
+    const auto opticalDark=opticalVisual.createComponentSnapshot(opticalVisual.getLocalBounds());
+    opticalVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,0.f,0.f,0.f,{},1.f);
+    const auto opticalBright=opticalVisual.createComponentSnapshot(opticalVisual.getLocalBounds());
+    CHECK(opticalDark.getPixelAt(200,90)!=opticalBright.getPixelAt(200,90));
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};
+        CHECK(screenshot(springVisual,folder.getChildFile("spring_layered_asset_probe.png")));
+        CHECK(screenshot(opticalVisual,folder.getChildFile("optical_layered_asset_probe.png")));
+    }
+    // Exercise the actual JPEG atlas composition path (not the vector
+    // fallback): measured spring taps move the metallic foreground under
+    // a fixed hardware bezel; pause freezes and bypass stops movement.
+    juce::Image syntheticPhoto(juce::Image::RGB,448,360,true);
+    {
+        juce::Graphics g(syntheticPhoto);
+        g.fillAll(juce::Colour{0xff1a100a});
+        g.setColour(juce::Colour{0xffd8c3a3});
+        for(int row=0;row<2;++row)
+            for(int x=90;x<370;x+=8)
+                g.fillRect(x,23+row*45,3,25);
+        // Dark bulb, then genuinely brighter bulb plus independent sensor.
+        g.setColour(juce::Colour{0xff593c21});
+        g.fillEllipse(160.f,165.f,95.f,70.f);
+        g.setColour(juce::Colour{0xffffc05e});
+        g.fillEllipse(160.f,285.f,95.f,70.f);
+        g.setColour(juce::Colour{0xffffa943});
+        g.fillEllipse(370.f,291.f,42.f,58.f);
+    }
+    juce::MemoryOutputStream photoBytes;
+    CHECK(juce::JPEGImageFormat().writeImageToStream(syntheticPhoto,photoBytes));
+    CharacterHardwareWindow photoVisual;
+    photoVisual.setSize(640,190);
+    photoVisual.setPhotoAtlas(photoBytes.getData(),static_cast<int>(photoBytes.getDataSize()));
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .16f,.18f,.09f,springPickups);
+    const auto photoA=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,true,
+                          .16f,.18f,.09f,springPickups);
+    const auto photoB=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    bool photoMoved=false;
+    for(int y=30;y<140;++y)for(int x=75;x<560;++x)
+        photoMoved=photoMoved||photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
+    CHECK(photoMoved);
+    // Both photographic coil bands must respond, not merely a global meter.
+    bool upperPhotoMoved=false,lowerPhotoMoved=false,fastenersStayedFixed=true;
+    for(int y=45;y<78;++y)for(int x=170;x<485;++x)
+        upperPhotoMoved|=photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
+    for(int y=93;y<138;++y)for(int x=170;x<485;++x)
+        lowerPhotoMoved|=photoA.getPixelAt(x,y)!=photoB.getPixelAt(x,y);
+    for(int y=30;y<140;++y)for(int x=39;x<75;++x)
+        fastenersStayedFixed&=photoA.getPixelAt(x,y)==photoB.getPixelAt(x,y);
+    CHECK(upperPhotoMoved&&lowerPhotoMoved&&fastenersStayedFixed);
+
+    // An extra-wide host editor must LETTERBOX the exact same physical
+    // chamber, not distort the screws, metal bezel or coil pitch.
+    CharacterHardwareWindow photoAspect;
+    photoAspect.setSize(640,190);
+    photoAspect.setPhotoAtlas(photoBytes.getData(),static_cast<int>(photoBytes.getDataSize()));
+    photoAspect.setState(CharacterHardwareWindow::Mode::Spring,true,false,
+                         0.f,0.f,0.f,{});
+    const auto normalAspect=photoAspect.createComponentSnapshot(photoAspect.getLocalBounds());
+    photoAspect.setSize(800,190);
+    const auto wideAspect=photoAspect.createComponentSnapshot(photoAspect.getLocalBounds());
+    for(int y=17;y<183;y+=17)for(int x=30;x<615;x+=19)
+        CHECK(normalAspect.getPixelAt(x,y)==wideAspect.getPixelAt(x+80,y));
+
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,true,false,
+                          0.f,0.f,0.f,{});
+    const auto photoPaused=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    bool photoHolds=true;
+    for(int y=0;y<190;++y)for(int x=0;x<640;++x)
+        photoHolds=photoHolds&&(photoB.getPixelAt(x,y)==photoPaused.getPixelAt(x,y));
+    CHECK(photoHolds);
+    photoVisual.setState(CharacterHardwareWindow::Mode::Spring,false,false,
+                          0.f,0.f,0.f,{});
+    const auto photoBypassed=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    bool photoBypassWorks=false;
+    for(int y=30;y<140;++y)for(int x=75;x<560;++x)
+        photoBypassWorks=photoBypassWorks||
+            photoPaused.getPixelAt(x,y)!=photoBypassed.getPixelAt(x,y);
+    CHECK(photoBypassWorks);
+    // Lamp and LDR have distinct response times in the same photograph;
+    // the test's preview value stands in for the real-output-gated LFO.
+    photoVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                          true,true,0.f,0.f,0.f,{},0.f);
+    const auto photoLampDark=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    for(int n=0;n<5;++n)
+        photoVisual.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                              true,true,.3f,.3f,0.f,{},1.f);
+    const auto photoLampBright=photoVisual.createComponentSnapshot(photoVisual.getLocalBounds());
+    CHECK(photoLampDark.getPixelAt(270,90)!=photoLampBright.getPixelAt(270,90));
+    // Filament and sensor are reactive, fixed socket and chassis are not.
+    CHECK(photoLampDark.getPixelAt(530,94)!=photoLampBright.getPixelAt(530,94));
+    for(int y=35;y<136;y+=11)
+    {
+        CHECK(photoLampDark.getPixelAt(48,y)==photoLampBright.getPixelAt(48,y));
+        CHECK(photoLampDark.getPixelAt(603,y)==photoLampBright.getPixelAt(603,y));
+    }
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};
+        CHECK(screenshot(photoVisual,folder.getChildFile("optical_audio_reactive_probe.png")));
+        photoVisual.setState(CharacterHardwareWindow::Mode::Spring,
+                              true,true,.16f,.18f,.09f,springPickups);
+        CHECK(screenshot(photoVisual,folder.getChildFile("spring_photo_reactive_probe.png")));
+    }
+    // Authored transparent RGBA artwork must take precedence over heuristic
+    // masks extracted from the lossy atlas, preserving exact background
+    // and moving-coil pixels without relying on JPEG chroma thresholds.
+    CharacterHardwareWindow explicitOnly,explicitOverJpeg;
+    explicitOnly.setSize(640,190);explicitOverJpeg.setSize(640,190);
+    explicitOverJpeg.setPhotoAtlas(photoBytes.getData(),
+                                   static_cast<int>(photoBytes.getDataSize()));
+    explicitOnly.setSpringArtwork(springBack,springLayers);
+    explicitOverJpeg.setSpringArtwork(springBack,springLayers);
+    explicitOnly.setState(CharacterHardwareWindow::Mode::Spring,
+                          true,true,.2f,.16f,.1f,springPickups);
+    explicitOverJpeg.setState(CharacterHardwareWindow::Mode::Spring,
+                              true,true,.2f,.16f,.1f,springPickups);
+    const auto springSource=explicitOnly.createComponentSnapshot(explicitOnly.getLocalBounds());
+    const auto springOverride=explicitOverJpeg.createComponentSnapshot(explicitOverJpeg.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(springSource.getPixelAt(x,y)==springOverride.getPixelAt(x,y));
+    explicitOnly.setOpticalArtwork(opticalBack,opticalOff,opticalOn,opticalLdr);
+    explicitOverJpeg.setOpticalArtwork(opticalBack,opticalOff,opticalOn,opticalLdr);
+    explicitOnly.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                          true,true,0.f,0.f,0.f,{},.9f);
+    explicitOverJpeg.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                              true,true,0.f,0.f,0.f,{},.9f);
+    const auto opticalSource=explicitOnly.createComponentSnapshot(explicitOnly.getLocalBounds());
+    const auto opticalOverride=explicitOverJpeg.createComponentSnapshot(explicitOverJpeg.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(opticalSource.getPixelAt(x,y)==opticalOverride.getPixelAt(x,y));
+
+    // A malformed/opaque authored mask must not overwrite the real
+    // photographic fallback. Invalid dimensions and missing alpha should
+    // be rejected, rather than stretched across the camera.
+    CharacterHardwareWindow fallbackOnly,invalidOverride;
+    fallbackOnly.setSize(640,190);
+    invalidOverride.setSize(640,190);
+    fallbackOnly.setPhotoAtlas(photoBytes.getData(),
+                               static_cast<int>(photoBytes.getDataSize()));
+    invalidOverride.setPhotoAtlas(photoBytes.getData(),
+                                  static_cast<int>(photoBytes.getDataSize()));
+    auto invalidLayers=springLayers;
+    invalidLayers[0]=juce::Image(juce::Image::ARGB,32,32,true);
+    invalidOverride.setSpringArtwork(springBack,invalidLayers);
+    fallbackOnly.setState(CharacterHardwareWindow::Mode::Spring,
+                           true,true,.2f,.16f,.1f,springPickups);
+    invalidOverride.setState(CharacterHardwareWindow::Mode::Spring,
+                              true,true,.2f,.16f,.1f,springPickups);
+    const auto fallbackPixels=fallbackOnly.createComponentSnapshot(fallbackOnly.getLocalBounds());
+    const auto rejectedPixels=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(fallbackPixels.getPixelAt(x,y)==rejectedPixels.getPixelAt(x,y));
+
+    // A fully opaque mask stored in ARGB is NOT valid alpha artwork.
+    // Rejected material must leave the photographic atlas unchanged.
+    juce::Image opaqueArgb(juce::Image::ARGB,640,190,true);
+    {
+        juce::Graphics paint(opaqueArgb);
+        paint.fillAll(juce::Colours::red);
+    }
+    auto opaqueLayers=springLayers;
+    opaqueLayers[0]=opaqueArgb;
+    invalidOverride.setSpringArtwork(springBack,opaqueLayers);
+    const auto rejectedOpaque=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(fallbackPixels.getPixelAt(x,y)==rejectedOpaque.getPixelAt(x,y));
+
+    // A fully transparent mask is invalid as well; it cannot animate.
+    auto emptyLayers=springLayers;
+    emptyLayers[0]=juce::Image(juce::Image::ARGB,640,190,true);
+    invalidOverride.setSpringArtwork(springBack,emptyLayers);
+    const auto rejectedEmpty=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(fallbackPixels.getPixelAt(x,y)==rejectedEmpty.getPixelAt(x,y));
+
+    fallbackOnly.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                          true,true,.2f,.2f,0.f,{},.7f);
+    invalidOverride.setOpticalArtwork(opticalBack,opticalOff,opaqueArgb,opticalLdr);
+    invalidOverride.setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                             true,true,.2f,.2f,0.f,{},.7f);
+    const auto opticalFallback=fallbackOnly.createComponentSnapshot(fallbackOnly.getLocalBounds());
+    const auto rejectedOptical=invalidOverride.createComponentSnapshot(invalidOverride.getLocalBounds());
+    for(int y=0;y<190;y+=7)for(int x=0;x<640;x+=11)
+        CHECK(opticalFallback.getPixelAt(x,y)==rejectedOptical.getPixelAt(x,y));
+
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
@@ -200,6 +491,7 @@ int main(int argc,char** argv)
     set(p,"nrpn_0078",previousAttack);set(p,"wrapper_calibration",0.f);
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
+
     // The screwed-on header is a separate surface: its controls must not
     // collide with each other or with Master at any supported editor width.
     TubeChamber* chamber=nullptr;
@@ -260,10 +552,161 @@ int main(int argc,char** argv)
     }
     CHECK(fxA&&fxB&&fxOn&&glideOn&&glideLabel&&mixA&&mixB&&programVol);
     CHECK(fxA->getItemText(0)=="A: OFF"&&fxB->getItemText(0)=="B: OFF");
+
+    CharacterHardwareWindow* hardware=nullptr;
+    TubeChamber* originalTube=nullptr;
+    juce::TextButton* optoPreview=nullptr;
+    for(auto* child:editor->getChildren()) {
+        if(auto* device=dynamic_cast<CharacterHardwareWindow*>(child))hardware=device;
+        if(auto* tube=dynamic_cast<TubeChamber*>(child))originalTube=tube;
+        if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
+            if(button->getButtonText()=="HIDE")fold=button;
+            if(button->getButtonText()=="OPTO PREVIEW")optoPreview=button;
+        }
+    }
+    // The Tube artwork is the original TubeChamber; Spring and optical
+    // previews use the new panoramic photo window instead.
+    CHECK(hardware!=nullptr&&originalTube!=nullptr&&fold!=nullptr&&optoPreview!=nullptr);
+#if defined(P6_HAS_SPRING_RGBA)
+    CHECK(hardware->hasSpringArtwork());
+#else
+    CHECK(!hardware->hasSpringArtwork());
+#endif
+#if defined(P6_HAS_OPTICAL_RGBA)
+    CHECK(hardware->hasOpticalArtwork());
+#else
+    CHECK(!hardware->hasOpticalArtwork());
+#endif
+    CHECK(originalTube->isVisible()&&!hardware->isVisible());
+
     juce::MemoryBlock beforeFold;p.getStateInformation(beforeFold);
-    fold->onClick();CHECK(!chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
-    juce::MemoryBlock afterFold;p.getStateInformation(afterFold);CHECK(beforeFold==afterFold);
-    fold->onClick();CHECK(chamber->isVisible());CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+    fold->onClick();
+    CHECK(!originalTube->isVisible()&&!hardware->isVisible());
+    CHECK(editor->getHeight()==P6PluginEditor::compactHeight);
+    juce::MemoryBlock afterFold;p.getStateInformation(afterFold);
+    CHECK(beforeFold==afterFold);
+    fold->onClick();
+    CHECK(originalTube->isVisible()&&!hardware->isVisible());
+    CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+    // Optical preview must replace Tube VISUALLY but never alter any
+    // musical parameter, preset or wrapper state.
+    juce::MemoryBlock beforePreview;p.getStateInformation(beforePreview);
+    optoPreview->onClick();
+    CHECK(hardware->isVisible()&&!originalTube->isVisible()&&optoPreview->getToggleState());
+    // Interactive concept knobs and waveform must be visible but must NEVER
+    // mutate any actual audio/host parameter or saved preset.
+    int livePreviewControls=0;
+    bool liveWaveform=false;
+    for(auto* child:editor->getChildren())
+    {
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);
+           slider&&slider->getTitle().startsWith("Optical preview "))
+        {
+            CHECK(slider->isVisible());
+            ++livePreviewControls;
+            slider->setValue(.72,juce::sendNotificationSync);
+        }
+        if(auto* wave=dynamic_cast<juce::ComboBox*>(child);
+           wave&&wave->getTitle()=="Optical preview LFO waveform")
+        {
+            CHECK(wave->isVisible()&&wave->getNumItems()==4);
+            wave->setSelectedId(2,juce::sendNotificationSync);
+            liveWaveform=true;
+        }
+    }
+    CHECK(livePreviewControls==3&&liveWaveform);
+    // Exercise the exact installed atlas in the actual editor (not only a
+    // synthetic isolated fixture). A visual preview can light the filament
+    // without mutating host state or enabling nonexistent optical DSP.
+    const auto actualDark=hardware->createComponentSnapshot(hardware->getLocalBounds());
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};folder.createDirectory();
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview_dark.png")));
+    }
+    for(int step=0;step<24;++step)
+        hardware->setState(CharacterHardwareWindow::Mode::OpticalTremoloPreview,
+                           true,true,.2f,.2f,0.f,{},1.f,.72f,1.f/30.f);
+    const auto actualLit=hardware->createComponentSnapshot(hardware->getLocalBounds());
+    bool actualLampChanged=false;
+    for(int y=25;y<actualDark.getHeight()-35;y+=3)
+        for(int x=35;x<actualDark.getWidth()-35;x+=3)
+            actualLampChanged |= actualDark.getPixelAt(x,y)!=actualLit.getPixelAt(x,y);
+    CHECK(actualLampChanged);
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};folder.createDirectory();
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview_lit.png")));
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_tremolo_preview.png")));
+        for (int width:{1240,1780})
+        {
+            editor->setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(screenshot(*editor,folder.getChildFile(
+                "module_optical_tremolo_preview_"+juce::String(width)+".png")));
+        }
+        editor->setSize(1460,P6PluginEditor::expandedHeight);
+    }
+    optoPreview->onClick();
+    CHECK(!hardware->isVisible()&&originalTube->isVisible()&&!optoPreview->getToggleState());
+    juce::MemoryBlock afterPreview;p.getStateInformation(afterPreview);
+    CHECK(beforePreview==afterPreview);
+    // Selecting Spring must expose the Spring camera and reuse all seven
+    // parameter attachments with Spring parameter IDs, never the Tube IDs.
+    const float springInitial=p.parameters().getRawParameterValue(
+        p6plugin::kCustomIDs[1][0])->load();
+    p.selectCharacterType(3);
+    editor.reset(p.createEditor());
+    bool springCamera=false;
+    std::array<bool,7> springControlBound{};
+    std::array<float,7> tubeValuesBefore{},springValuesBefore{};
+    for(std::size_t i=0;i<7;++i)
+    {
+        tubeValuesBefore[i]=p.parameters().getRawParameterValue(
+            p6plugin::kTubeIDs[i])->load();
+        springValuesBefore[i]=p.parameters().getRawParameterValue(
+            p6plugin::kCustomIDs[1][i])->load();
+    }
+    for(auto* child:editor->getChildren())
+    {
+        if(auto* camera=dynamic_cast<CharacterHardwareWindow*>(child))
+            springCamera=camera->isVisible();
+        if(auto* tube=dynamic_cast<TubeChamber*>(child))
+            CHECK(!tube->isVisible());
+        if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()&&
+           slider->getTooltip().contains("Optical Spring"))
+        {
+            for(std::size_t i=0;i<7;++i)
+            {
+                if(slider->getTitle()!=p6plugin::kCustomNames[1][i])continue;
+                springControlBound[i]=true;
+                const float testValue=.2f+.085f*static_cast<float>(i);
+                slider->setValue(testValue,juce::sendNotificationSync);
+                CHECK(std::abs(p.parameters().getRawParameterValue(
+                    p6plugin::kCustomIDs[1][i])->load()-testValue)<.002f);
+                for(std::size_t j=0;j<7;++j)
+                    CHECK(p.parameters().getRawParameterValue(
+                        p6plugin::kTubeIDs[j])->load()==tubeValuesBefore[j]);
+                slider->setValue(springValuesBefore[i],juce::sendNotificationSync);
+            }
+        }
+    }
+    CHECK(springCamera);
+    for(bool bound:springControlBound)CHECK(bound);
+    for(std::size_t i=0;i<7;++i)
+        CHECK(std::abs(p.parameters().getRawParameterValue(
+            p6plugin::kCustomIDs[1][i])->load()-springValuesBefore[i])<.002f);
+    if(argc>1)
+    {
+        const juce::File folder{juce::String(argv[1])};
+        CHECK(screenshot(*editor,folder.getChildFile("module_optical_spring.png")));
+        for (int width:{1240,1780})
+        {
+            editor->setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(screenshot(*editor,folder.getChildFile(
+                "module_optical_spring_"+juce::String(width)+".png")));
+        }
+        editor->setSize(1460,P6PluginEditor::expandedHeight);
+    }
+    p.selectCharacterType(1);
+    editor.reset(p.createEditor());
     for(int width:{1240,1460,1780}) {
         editor->setSize(width,P6PluginEditor::expandedHeight);
         for(auto* child:editor->getChildren()) if(child->isVisible()) {
@@ -324,6 +767,19 @@ int main(int argc,char** argv)
         for(int c=0;c<2;++c)for(int n=0;n<128;++n){CHECK(std::isfinite(audio.getSample(c,n)));energy+=audio.getSample(c,n)*audio.getSample(c,n);}
     }
     CHECK(energy>0);
+    // Verify the full processor->UI mailbox is wired, not only that the
+    // independent mailbox template behaves correctly under concurrency.
+    p6plugin::CharacterTelemetry coherentFrame{};
+    std::uint32_t coherentGeneration{};
+    CHECK(p.readCharacterTelemetry(coherentFrame,coherentGeneration));
+    CHECK(coherentGeneration>0);
+    CHECK(coherentGeneration==p.characterTelemetryRevision());
+    CHECK(std::isfinite(coherentFrame.inputRms));
+    CHECK(std::isfinite(coherentFrame.outputRms));
+    CHECK(std::isfinite(coherentFrame.changeRms));
+    for(float value:coherentFrame.device.values)CHECK(std::isfinite(value));
+    for(float value:coherentFrame.device.input)CHECK(std::isfinite(value));
+    for(float value:coherentFrame.device.wet)CHECK(std::isfinite(value));
     auto meters=p.consumeOutputReadings();CHECK(meters.prePeak[0]>0&&meters.peak[0]>0);
     CHECK(std::abs(meters.peak[0]/meters.prePeak[0]-std::pow(10.f,-18.f/20.f))<.0001f);
     CHECK(p.consumeOutputReadings().peak[0]==0); // UI consumption retains short peaks until read
@@ -338,6 +794,13 @@ int main(int argc,char** argv)
     if(argc>1) {
         const juce::File folder{juce::String(argv[1])};folder.createDirectory();
         CHECK(screenshot(*editor,folder.getChildFile("module_tube.png")));
+        for (int width:{1240,1780})
+        {
+            editor->setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(screenshot(*editor,folder.getChildFile(
+                "module_tube_"+juce::String(width)+".png")));
+        }
+        editor->setSize(1460,P6PluginEditor::expandedHeight);
         // Capture the actual contextual display and prove selection alone
         // preserves both the canonical patch and complete wrapper state.
         const auto oldA=p.parameters().getRawParameterValue("nrpn_0067")->load();

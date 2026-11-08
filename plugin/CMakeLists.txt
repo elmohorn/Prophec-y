@@ -20,12 +20,52 @@ juce_add_plugin(P6CorePlugin
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE)
 
-juce_add_binary_data(P6PanelAssets SOURCES assets/tube_glass.png assets/tube_chamber.jpg)
+set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg)
+# Optional camera atlas uses native Tube frame; builds without asset retain fallback.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_cameras_atlas.jpg")
+    list(APPEND P6_PANEL_ASSETS assets/character_cameras_atlas.jpg)
+    set(P6_HAS_CHARACTER_ATLAS TRUE)
+endif()
+
+# Authored/interim RGBA camera layers are independently replaceable. A
+# complete four-layer set is required for each module; incomplete installs
+# always fall back to the embedded approved JPEG or procedural rendering.
+set(P6_CHARACTER_RGBA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_rgba")
+set(P6_SPRING_RGBA
+    spring_backplate.png spring_upper_coil.png
+    spring_lower_coil.png spring_reflection_overlay.png)
+set(P6_OPTICAL_RGBA
+    optical_backplate.png optical_lamp_off.png
+    optical_lamp_on.png optical_ldr_overlay.png)
+set(P6_SPRING_RGBA_COMPLETE TRUE)
+set(P6_OPTICAL_RGBA_COMPLETE TRUE)
+foreach(asset IN LISTS P6_SPRING_RGBA)
+    if(NOT EXISTS "${P6_CHARACTER_RGBA_DIR}/${asset}")
+        set(P6_SPRING_RGBA_COMPLETE FALSE)
+    endif()
+endforeach()
+foreach(asset IN LISTS P6_OPTICAL_RGBA)
+    if(NOT EXISTS "${P6_CHARACTER_RGBA_DIR}/${asset}")
+        set(P6_OPTICAL_RGBA_COMPLETE FALSE)
+    endif()
+endforeach()
+if(P6_SPRING_RGBA_COMPLETE)
+    foreach(asset IN LISTS P6_SPRING_RGBA)
+        list(APPEND P6_PANEL_ASSETS "assets/character_rgba/${asset}")
+    endforeach()
+endif()
+if(P6_OPTICAL_RGBA_COMPLETE)
+    foreach(asset IN LISTS P6_OPTICAL_RGBA)
+        list(APPEND P6_PANEL_ASSETS "assets/character_rgba/${asset}")
+    endforeach()
+endif()
+juce_add_binary_data(P6PanelAssets SOURCES ${P6_PANEL_ASSETS})
 set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_sources(P6CorePlugin PRIVATE
     PluginProcessor.cpp
     PluginProcessor.h
+    RealtimeSnapshotMailbox.h
     OutputStage.h
     PresetBankCodec.cpp
     PresetBankCodec.h
@@ -39,6 +79,11 @@ target_sources(P6CorePlugin PRIVATE
     ui/controls/ProphecyParameterControl.h
     ui/fx/CharacterDeviceView.cpp
     ui/fx/CharacterDeviceView.h
+    ui/fx/CharacterHardwareWindow.h
+    ui/fx/CharacterHardwarePrimitives.h
+    ui/fx/CharacterProceduralArt.h
+    ui/fx/CharacterPhotoLayers.h
+    ui/fx/CharacterVisualDynamics.h
     ui/fx/TubeChamber.cpp
     ui/fx/TubeChamber.h
     ui/display/OutputMeter.cpp
@@ -47,6 +92,16 @@ target_sources(P6CorePlugin PRIVATE
     ui/display/ContextDisplay.h
     PluginStateCodec.cpp
     PluginStateCodec.h)
+
+if(P6_HAS_CHARACTER_ATLAS)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_CHARACTER_ATLAS=1)
+endif()
+if(P6_SPRING_RGBA_COMPLETE)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_SPRING_RGBA=1)
+endif()
+if(P6_OPTICAL_RGBA_COMPLETE)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_OPTICAL_RGBA=1)
+endif()
 
 target_compile_definitions(P6CorePlugin
     PUBLIC
@@ -95,5 +150,36 @@ if(P6_BUILD_UI_SMOKE)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/P6UiSmoke_artefacts/$<CONFIG>")
     target_include_directories(P6UiSmoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(P6UiSmoke PRIVATE P6CorePlugin p6character juce::juce_audio_processors)
+    # Verify that installed RGBA artwork, not only test fixtures, is bound
+    # to the shipping editor whenever a complete asset set is present.
+    if(P6_SPRING_RGBA_COMPLETE)
+        target_compile_definitions(P6UiSmoke PRIVATE P6_HAS_SPRING_RGBA=1)
+    endif()
+    if(P6_OPTICAL_RGBA_COMPLETE)
+        target_compile_definitions(P6UiSmoke PRIVATE P6_HAS_OPTICAL_RGBA=1)
+    endif()
+
+    # JUCE-free deterministic test for measured telemetry -> physical motion;
+    # it can run even when no GUI host or VST3 bundle is available.
+    add_executable(P6CharacterVisualProbe ../tests/character_visual_dynamics_probe.cpp)
+    target_include_directories(P6CharacterVisualProbe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    # Keep 'assert' active in Release screenshot CI as well as Debug.
+    if(MSVC)
+        target_compile_options(P6CharacterVisualProbe PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(P6CharacterVisualProbe PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME p6_character_visual_dynamics COMMAND P6CharacterVisualProbe)
+
+    find_package(Threads REQUIRED)
+    add_executable(P6TelemetryMailboxProbe ../tests/character_telemetry_mailbox_probe.cpp)
+    target_include_directories(P6TelemetryMailboxProbe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(P6TelemetryMailboxProbe PRIVATE Threads::Threads)
+    if(MSVC)
+        target_compile_options(P6TelemetryMailboxProbe PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(P6TelemetryMailboxProbe PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME p6_character_telemetry_mailbox COMMAND P6TelemetryMailboxProbe)
 endif()
 

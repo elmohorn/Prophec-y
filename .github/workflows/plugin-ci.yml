@@ -2,8 +2,12 @@ name: plugin-ci
 
 on:
   workflow_dispatch:
+  # Release branches build on push. Feature branches build through their PR
+  # only, preventing a duplicate Linux/Windows matrix on every push.
   push:
+    branches: [main, v0.20-ui]
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
 
 concurrency:
   group: plugin-ci-${{ github.workflow }}-${{ github.ref }}
@@ -11,6 +15,7 @@ concurrency:
 
 jobs:
   online-analysis-tooling:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false || github.head_ref == 'ui-character-hardware-reviewed'
     name: Online-reference measurement guards
     runs-on: ubuntu-22.04
     steps:
@@ -37,6 +42,7 @@ jobs:
           python3 -m py_compile tools/sync_fourier_oracle.py tools/analyze_filter_factorial.py
 
   core-sanitizers:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false || github.head_ref == 'ui-character-hardware-reviewed'
     name: Linux ASan+UBSan
     runs-on: ubuntu-22.04
     steps:
@@ -55,6 +61,11 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
         run: ctest --test-dir build-sanitize --output-on-failure
+      - name: Character mailbox concurrency and visual dynamics under ASan/UBSan
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: python3 tools/verify_character_core.py --sanitizers asan-ubsan --stress-rounds 20
       - name: Reference corpus tooling self-tests
         shell: bash
         run: |
@@ -71,6 +82,7 @@ jobs:
           python3 tools/render_external_prior_suite.py /tmp/external_prior_smoke.csv --output-dir /tmp/external-prior-out --dry-run
 
   build-and-validate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false || github.head_ref == 'ui-character-hardware-reviewed'
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -110,7 +122,7 @@ jobs:
         shell: bash
         run: >-
           cmake --build build --config Release
-          --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark p6_character_benchmark p6_neon_rate_probe P6CorePlugin_VST3 P6UiSmoke P6RestoreProbe
+          --target p6_preset_bank_tests p6_output_stage_tests p6_context_preview_tests p6_parameter_presentation_tests p6_state_compatibility_tests p6core_tests p6_plugin_state_tests p6_control_contract_tests p6_realtime_contract_tests p6_v018_fx_tests p6_v019_reference_tests p6_character_tests p6_parameter_domain_audit p6_render_reference p6_generate_p0a_capture_pack p6_sync_harmonic_probe p6_dsp_fingerprint p6_perf_benchmark p6_character_benchmark p6_neon_rate_probe P6CorePlugin_VST3 P6UiSmoke P6RestoreProbe P6CharacterVisualProbe P6TelemetryMailboxProbe
           --parallel 2
 
       - name: Core, state, control, realtime and FX tests
