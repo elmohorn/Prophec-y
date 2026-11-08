@@ -287,9 +287,9 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     browserButton_.onClick=[this]{browser_->setVisible(!browser_->isVisible());if(browser_->isVisible()){browser_->refreshLibrary();browser_->toFront(true);}};
     browser_->onClose=[this]{browser_->setVisible(false);browserButton_.grabKeyboardFocus();};
     presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
-    refreshVisibility();refreshDisplay();startTimerHz(30);
+    processor_.attachLiveDisplay();refreshVisibility();refreshDisplay();startTimerHz(30);
 }
-P6PluginEditor::~P6PluginEditor(){stopTimer();setLookAndFeel(nullptr);}
+P6PluginEditor::~P6PluginEditor(){stopTimer();processor_.detachLiveDisplay();setLookAndFeel(nullptr);}
 void P6PluginEditor::makeKnob(Knob& k,const juce::String& id,const juce::String& name,bool values)
 {
     k.slider.setLookAndFeel(&look_);k.slider.setColour(juce::Slider::textBoxTextColourId,ink);
@@ -326,6 +326,13 @@ void P6PluginEditor::timerCallback()
         1.f/30.f;
     lastUiFrameTimeMs_=nowMs;
     if(!isShowing())return;
+    display_.tick();
+    p6plugin::ui::LiveAudioFrame outputFrame{};
+    std::uint32_t outputFrameRevision{};
+    if(processor_.readLiveOutput(outputFrame,outputFrameRevision) && outputFrameRevision!=lastLiveOutputRevision_) {
+        lastLiveOutputRevision_=outputFrameRevision;staleLiveOutputTicks_=0;
+        display_.setLiveFrame(outputFrame);
+    } else if(++staleLiveOutputTicks_>=30)display_.clearLiveFrame();
     const auto events=processor_.recentMidiEvents();juce::String monitor;
     for(const auto& event:events)if(event.valid) {
         if(monitor.isNotEmpty())monitor+="\n";
@@ -540,7 +547,7 @@ void P6PluginEditor::resized()
     position_.setBounds(rect(660,652,195,25));bypass_.setBounds(rect(875,652,110,25));
     plasmaMode_.setBounds(rect(1000,652,140,25));motion_.setBounds(rect(1150,652,100,25));collapse_.setBounds(rect(1275,652,110,25));
     knob(36,883,109,88,88);
-    displayArea_=rect(526,96,322,122);
+    displayArea_=rect(526,96,322,145);
     display_.setBounds(displayArea_);
     tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
     hardware_.setBounds(rect(55,710,610,190));

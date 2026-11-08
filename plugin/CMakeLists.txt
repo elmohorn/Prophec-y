@@ -90,6 +90,7 @@ target_sources(P6CorePlugin PRIVATE
     ui/display/OutputMeter.h
     ui/display/ContextDisplay.cpp
     ui/display/ContextDisplay.h
+    ui/display/LiveSpectrum.h
     PluginStateCodec.cpp
     PluginStateCodec.h)
 

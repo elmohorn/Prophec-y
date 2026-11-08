@@ -2,7 +2,7 @@ name: character-ui-preview
 
 on:
   pull_request:
-    branches: [v0.20-ui, ui-right-alignment-integrated-fx]
+    branches: [v0.20-ui, ui-right-alignment-integrated-fx, integrate-refined-spring-and-header]
   workflow_dispatch:
 
 permissions:

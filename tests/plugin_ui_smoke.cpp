@@ -87,6 +87,33 @@ static int presetLibraryChecks(const juce::File& captureFolder)
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    {
+        ContextDisplay live;live.setSize(322,145);
+        p6plugin::ui::LiveAudioFrame tone{},silence{};
+        for(std::size_t i=0;i<tone.left.size();++i) {
+            tone.left[i]=std::sin(2.f*std::numbers::pi_v<float>*32.f*static_cast<float>(i)/static_cast<float>(tone.left.size()));
+            tone.right[i]=-tone.left[i];
+        }
+        live.setLiveFrame(silence);
+        const auto quiet=live.createComponentSnapshot(live.getLocalBounds());
+        live.setLiveFrame(tone);
+        const auto active=live.createComponentSnapshot(live.getLocalBounds());
+        bool different=false;
+        for(int y=58;y<125;++y)for(int x=17;x<305;++x)different|=quiet.getPixelAt(x,y)!=active.getPixelAt(x,y);
+        CHECK(different);
+        CHECK(live.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)));
+        const auto waveform=live.createComponentSnapshot(live.getLocalBounds());
+        different=false;
+        for(int y=58;y<125;++y)for(int x=17;x<305;++x)different|=waveform.getPixelAt(x,y)!=active.getPixelAt(x,y);
+        CHECK(different);
+        if(argc>1) {
+            const juce::File folder{juce::String(argv[1])};folder.createDirectory();
+            CHECK(screenshot(live,folder.getChildFile("display_live_waveform.png")));
+            CHECK(live.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)));
+            CHECK(live.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)));
+            CHECK(screenshot(live,folder.getChildFile("display_live_spectrum.png")));
+        }
+    }
     // Motion pauses the current heater frame; bypass extinguishes it.
     TubeChamber motionTestChamber;motionTestChamber.setSize(320,184);motionTestChamber.setIllumination(true,true,.8f,.5f);
     const auto lit=motionTestChamber.createComponentSnapshot(motionTestChamber.getLocalBounds());
@@ -389,6 +416,30 @@ int main(int argc,char** argv)
         CHECK(opticalFallback.getPixelAt(x,y)==rejectedOptical.getPixelAt(x,y));
 
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
+    {
+        P6AudioProcessor probe,baseline;probe.prepareToPlay(48000,128);baseline.prepareToPlay(48000,128);
+        p6plugin::ui::LiveAudioFrame captured{};std::uint32_t revision{};
+        CHECK(!probe.readLiveOutput(captured,revision));
+        probe.attachLiveDisplay();
+        std::array<float,p6plugin::ui::kLiveFrameSize> expectedL{},expectedR{};
+        juce::AudioBuffer<float> b(2,128),reference(2,128);juce::MidiBuffer events;
+        events.addEvent(juce::MidiMessage::noteOn(1,60,juce::uint8{100}),0);
+        for(int block=0;block<8;++block) {
+            probe.processBlock(b,events);baseline.processBlock(reference,events);events.clear();
+            for(int i=0;i<128;++i) {
+                CHECK(b.getSample(0,i)==reference.getSample(0,i));
+                CHECK(b.getSample(1,i)==reference.getSample(1,i));
+                expectedL[static_cast<std::size_t>(block*128+i)]=b.getSample(0,i);
+                expectedR[static_cast<std::size_t>(block*128+i)]=b.getSample(1,i);
+            }
+        }
+        CHECK(probe.readLiveOutput(captured,revision));CHECK(captured.sampleRate==48000.);
+        CHECK(captured.left==expectedL && captured.right==expectedR);
+        const auto lastRevision=revision;probe.detachLiveDisplay();
+        for(int i=0;i<8;++i)probe.processBlock(b,events);
+        CHECK(probe.readLiveOutput(captured,revision) && revision==lastRevision);
+        probe.releaseResources();baseline.releaseResources();
+    }
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
     CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);

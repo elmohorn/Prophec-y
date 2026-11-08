@@ -398,6 +398,8 @@ p6::MapperCalibration P6AudioProcessor::selectedCalibration() const
 
 void P6AudioProcessor::prepareToPlay (double sampleRate, int maximumExpectedSamplesPerBlock)
 {
+    liveOutputCount_=0;
+    liveOutputFrame_.sampleRate=sampleRate;
     output_.prepare(sampleRate,masterDb_->load(std::memory_order_relaxed));
     outputClips_.store(0,std::memory_order_relaxed);
     for(std::size_t c=0;c<2;++c){outputPeak_[c].store(0);preMasterPeak_[c].store(0);outputRms_[c].store(0);}
@@ -670,6 +672,8 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     auto* left = buffer.getWritePointer (0);
     auto* right = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) : left;
 
+    const bool captureLiveOutput=liveDisplayCount_.load(std::memory_order_relaxed)>0;
+    if(!captureLiveOutput)liveOutputCount_=0;
     for (int sample = 0; sample < numSamples; ++sample)
     {
         while (event != end && (*event).samplePosition <= sample)
@@ -686,6 +690,14 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         const auto out = scheduler_.process();
         const auto final=output_.process(static_cast<float>(out.left)*character_.routeGain(),static_cast<float>(out.right)*character_.routeGain());
         left[sample]=final[0];right[sample]=final[1];
+        if(captureLiveOutput) {
+            liveOutputFrame_.left[liveOutputCount_]=final[0];
+            liveOutputFrame_.right[liveOutputCount_]=final[1];
+            if(++liveOutputCount_==p6plugin::ui::kLiveFrameSize) {
+                (void)liveOutputMailbox_.publish(liveOutputFrame_);
+                liveOutputCount_=0;
+            }
+        }
     }
     const auto readings=output_.readings();
     for(std::size_t c=0;c<2;++c) {

@@ -45,6 +45,9 @@ else()
 endif()
 
 enable_testing()
+add_executable(p6_live_spectrum_tests tests/live_spectrum_test.cpp)
+target_include_directories(p6_live_spectrum_tests PRIVATE plugin)
+add_test(NAME p6_live_spectrum_tests COMMAND p6_live_spectrum_tests)
 add_library(p6character plugin/CharacterFx.cpp plugin/CustomCharacter.cpp
     third_party/DaisySP/Source/Effects/wavefolder.cpp
     third_party/DaisySP/Source/Filters/svf.cpp

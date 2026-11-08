@@ -82,6 +82,8 @@ private:
     p6plugin::CharacterTelemetry visual_{};
     p6plugin::CharacterTelemetry lastCoherentTelemetry_{};
     unsigned lastVisualRevision_{},lastPitchBendRevision_{};
+    std::uint32_t lastLiveOutputRevision_{};
+    int staleLiveOutputTicks_{};
     int staleVisualTicks_{},pitchDisplayTicks_{},pitchBendRaw14_{8192};
     bool studioView_{},collapsed_{},showTube_{},opticalPreviewActive_{};
     float previewLfoPhase_{},previewAudioLevel_{};
