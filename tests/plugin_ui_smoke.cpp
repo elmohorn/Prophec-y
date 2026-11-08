@@ -34,6 +34,24 @@ static int presetLibraryChecks(const juce::File& captureFolder)
     int sequential=0,omom=0;for(const auto& p:library.entries()){if(p.category=="Sequential Factory")++sequential;if(p.category=="Old Men of MIDI")++omom;}CHECK(sequential==500);CHECK(omom==270);
     CHECK(library.find("sequential-factory-0-0")!=nullptr);CHECK(library.find("sequential-omom-0-0")!=nullptr);
     CHECK(library.find("sequential-factory-0-0")->bankKey!=library.find("sequential-omom-0-0")->bankKey);
+    // Exercise the same processor load path used by the browser and compare actual audio.
+    const auto renderOfficial=[&](const char* id) {
+        P6AudioProcessor synth;synth.prepareToPlay(48000,128);
+        const auto* preset=library.find(id);
+        if(!preset)return std::vector<float>{};
+        synth.loadMusicalPreset(preset->state,preset->id,preset->name);
+        juce::AudioBuffer<float> buffer(2,128);juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1,60,juce::uint8{100}),0);
+        std::vector<float> samples;
+        for(int block=0;block<120;++block){synth.processBlock(buffer,midi);midi.clear();for(int i=0;i<128;++i)samples.push_back(buffer.getSample(0,i));}
+        synth.releaseResources();return samples;
+    };
+    const auto brass=renderOfficial("sequential-factory-0-0"),strings=renderOfficial("sequential-factory-0-1");
+    CHECK(!brass.empty()&&brass.size()==strings.size());
+    double brassEnergy=0,stringsEnergy=0,difference=0;
+    for(std::size_t i=0;i<brass.size();++i){CHECK(std::isfinite(brass[i])&&std::isfinite(strings[i]));brassEnergy+=brass[i]*brass[i];stringsEnergy+=strings[i]*strings[i];const auto d=brass[i]-strings[i];difference+=d*d;}
+    CHECK(brassEnergy>1.e-7&&stringsEnergy>1.e-7&&difference>1.e-7);
+    std::cout<<"Official presets render distinct audio: energies "<<brassEnergy<<", "<<stringsEnergy<<", difference "<<difference<<"\n";
     CHECK(library.setFavorite("sequential-factory-0-0",true).wasOk());
     auto patch=factory.patch;patch.rawPayload[1023]=217;
     auto first=p6::SysexCodec::encodeProgramDump(patch,2,10),second=p6::SysexCodec::encodeProgramDump(patch,2,9);
