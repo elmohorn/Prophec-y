@@ -285,7 +285,7 @@ int main(int argc,char** argv)
         for(std::size_t i=0;i<headerControls.size();++i)
             for(std::size_t j=i+1;j<headerControls.size();++j)
                 CHECK(!headerControls[i]->getBounds().intersects(headerControls[j]->getBounds()));
-        // Two FX rows, status toggle and all three controls fit in the bay.
+        // Two FX rows and their controls fit in the shared synthesizer panel.
         const juce::Rectangle<int> fxBay(juce::roundToInt(906.f*sx),528,juce::roundToInt(496.f*sx),104);
         for(auto* fx:std::array<juce::Component*,6>{fxA,fxB,fxOn,mixA,mixB,programVol})
             CHECK(fxBay.contains(fx->getBounds()));
@@ -297,6 +297,18 @@ int main(int argc,char** argv)
         CHECK(!mixA->getBounds().intersects(mixB->getBounds()));
         CHECK(!mixB->getBounds().intersects(programVol->getBounds()));
         CHECK(!glideOn->getBounds().intersects(glideLabel->getBounds()));
+        // Check rendered label width, not just button rectangles: the long
+        // original LFO and Poly Mod names were truncated even without overlap.
+        int modulationButtons=0;
+        for(auto* child:editor->getChildren())
+            if(auto* toggle=dynamic_cast<juce::ToggleButton*>(child);
+               toggle && (toggle->getTitle().startsWith("Poly Mod ") || toggle->getTitle().startsWith("LFO "))
+               && static_cast<bool>(toggle->getProperties().getWithDefault("ledTile",false))) {
+                ++modulationButtons;
+                CHECK(juce::Font(9.5f).getStringWidthFloat(toggle->getButtonText()) <= static_cast<float>(toggle->getWidth()));
+                CHECK(toggle->getTooltip().isNotEmpty());
+            }
+        CHECK(modulationButtons==10);
     }
     editor->setSize(1460,P6PluginEditor::expandedHeight);
 

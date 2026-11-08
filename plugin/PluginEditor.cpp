@@ -74,7 +74,7 @@ void P6PluginEditor::MetalLook::drawToggleButton(juce::Graphics& g,juce::ToggleB
         g.setGradientFill(juce::ColourGradient(amber.withAlpha(.65f),xx+6,yy+6,amber.withAlpha(0.f),xx+16,yy+6,true));
         g.fillEllipse(xx-5,yy-5,22,22);g.setColour(juce::Colour{0xffffbe77});g.fillEllipse(xx+4,yy+4,4,4);
     }
-    g.setColour(b.isEnabled()?ink:muted);g.setFont(10.5f);
+    g.setColour(b.isEnabled()?ink:muted);g.setFont(tile?9.5f:10.5f);
     g.drawText(b.getButtonText(),tile?0:20,tile?16:0,tile?b.getWidth():b.getWidth()-20,tile?14:b.getHeight(),tile?juce::Justification::centred:juce::Justification::centredLeft);
 }
 juce::Label* P6PluginEditor::MetalLook::createComboBoxTextBox(juce::ComboBox& c)
@@ -173,10 +173,12 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     for(std::size_t i=0;i<synth_.size();++i)makeKnob(synth_[i],hardwareID(ids[i]),labels[i]);
     for(std::size_t i=32;i<36;++i)synth_[i].slider.setSliderStyle(juce::Slider::LinearVertical);
     constexpr std::array<int,18> switchIds{1,10,11,156,29,48,135,91,145,146,147,148,149,93,94,95,97,98};
-    constexpr std::array<const char*,18> switchNames{"SYNC","LOW FREQ","KEYBOARD","UNISON","GLIDE ON","VELOCITY","FX ON","SYNC","FREQ 1","SHAPE 1","PW 1","LP","HP","OSC 1","OSC 2","PW 1+2","LP","HP"};
+    constexpr std::array<const char*,18> switchNames{"SYNC","LOW FREQ","KEYBOARD","UNISON","GLIDE ON","VELOCITY","FX ON","SYNC","FRQ1","SHP1","PW1","LP","HP","OSC1","OSC2","PW","LP","HP"};
+    constexpr std::array<const char*,18> switchDescriptions{"Sync","Low frequency","Keyboard","Unison","Glide on","Velocity","FX on","LFO sync","Oscillator 1 frequency","Oscillator 1 shape","Oscillator 1 pulse width","Low pass","High pass","Oscillator 1 frequency","Oscillator 2 frequency","Oscillators 1 and 2 pulse width","Low pass","High pass"};
     for(std::size_t i=0;i<switches_.size();++i) {
         auto& sw=switches_[i];sw.button.setLookAndFeel(&look_);sw.button.setButtonText(switchNames[i]);
-        sw.button.setTitle(juce::String(i<13&&i>=8?"Poly Mod ":i>=13?"LFO ":"")+switchNames[i]);
+        const auto description=juce::String(i<13&&i>=8?"Poly Mod ":i>=13?"LFO ":"")+switchDescriptions[i];
+        sw.button.setTitle(description);sw.button.setTooltip(description);
         if(i>=8||i<4||i==6)sw.button.getProperties().set("ledTile",true);
         addAndMakeVisible(sw.button);
         sw.attachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,hardwareID(switchIds[i]),sw.button);
@@ -334,7 +336,7 @@ void P6PluginEditor::resized()
     knob(9,502,318,79,77);knob(10,621,279,139,137);knob(11,785,318,79,77);knob(12,890,318,79,77);
     knob(13,1016,115,76,68);knob(14,1108,115,76,68);
     knob(15,1016,224,62,65);knob(16,1090,224,62,65);knob(17,1164,224,62,65);
-    for(std::size_t i=0;i<4;++i){knob(18+i,1030+94.f*static_cast<float>(i),344,75,68);knob(22+i,1030+94.f*static_cast<float>(i),444,75,68);}
+    for(std::size_t i=0;i<4;++i){knob(18+i,1030+94.f*static_cast<float>(i),338,75,65);knob(22+i,1030+94.f*static_cast<float>(i),445,75,64);}
     knob(26,553,535,72,65);knob(27,653,535,72,65);knob(28,753,535,72,65);knob(29,1301,548,83,62);
     for(std::size_t i=0;i<2;++i)knob(30+i,1110+94.f*static_cast<float>(i),548,76,62);
     for(std::size_t i=0;i<4;++i){synth_[32+i].slider.setBounds(rect(72+84.f*static_cast<float>(i),463,55,117));synth_[32+i].label.setBounds(rect(64+84.f*static_cast<float>(i),583,71,18));}
@@ -412,41 +414,6 @@ void P6PluginEditor::refreshDisplay()
     }
     display_.setContent(std::move(content));
 }
-void P6PluginEditor::paintFxBay(juce::Graphics& g)
-{
-    // Separate, flush-mounted hardware bay for the actual Prophet-6 FX A/B chain.
-    // This is strictly a presentation change: no DSP, APVTS or slot-order change.
-    const float sx=static_cast<float>(getWidth())/designWidth;
-    const juce::Rectangle<float> rim(906.f*sx,528.f,496.f*sx,104.f);
-    g.setColour(juce::Colours::black.withAlpha(.28f));
-    g.fillRoundedRectangle(rim.translated(0.f,2.f),5.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff6b726d},rim.getX(),rim.getY(),
-                                           juce::Colour{0xff434b46},rim.getRight(),rim.getBottom(),false));
-    g.fillRoundedRectangle(rim,5.f);
-    const auto face=rim.reduced(3.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffdeded6},face.getX(),face.getY(),
-                                           juce::Colour{0xffb0b5ae},face.getX(),face.getBottom(),false));
-    g.fillRoundedRectangle(face,3.f);
-    g.setColour(juce::Colours::white.withAlpha(.65f));g.drawRoundedRectangle(face.reduced(.5f),3.f,1.f);
-    g.setColour(juce::Colour{0xff303c35});
-    g.setFont(juce::Font(10.f).boldened().withExtraKerningFactor(.1f));
-    g.drawText("FX CHAIN",juce::roundToInt(924.f*sx),532,juce::roundToInt(160.f*sx),16,juce::Justification::centredLeft);
-    g.setColour(juce::Colour{0xff6c7970});
-    g.setFont(juce::Font(8.f).withExtraKerningFactor(.1f));
-    g.drawText("A / B",juce::roundToInt(1044.f*sx),533,juce::roundToInt(48.f*sx),15,juce::Justification::centredRight);
-    for(const float x:{1100.f,1200.f,1296.f}) {
-        g.setColour(juce::Colour{0xff6c746d}.withAlpha(.22f));
-        g.drawLine(x*sx,546.f,x*sx,624.f,1.f);
-    }
-    for(const float x:{914.f,1394.f})for(const float y:{536.f,624.f}) {
-        const float px=x*sx;
-        g.setColour(juce::Colours::black.withAlpha(.35f));g.fillEllipse(px-3.7f,y-3.7f,7.4f,7.4f);
-        g.setGradientFill(juce::ColourGradient(juce::Colour{0xfff7f7ef},px-2.7f,y-2.7f,
-                                               juce::Colour{0xff757f77},px+2.7f,y+2.7f,false));
-        g.fillEllipse(px-2.7f,y-2.7f,5.4f,5.4f);
-        g.setColour(juce::Colour{0xff48534a});g.drawLine(px-1.6f,y+.7f,px+1.6f,y-.7f,1.f);
-    }
-}
 void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
@@ -484,7 +451,7 @@ void P6PluginEditor::paintTube(juce::Graphics& g)
 }
 void P6PluginEditor::paint(juce::Graphics& g)
 {
-    paintSurface(g);if(!studioView_)paintFxBay(g);const float sx=static_cast<float>(getWidth())/designWidth;
+    paintSurface(g);const float sx=static_cast<float>(getWidth())/designWidth;
     // Approved option A: the brand is etched on the aluminum at left.
     // Presets, Master, meters, MIDI and navigation share ONE dark inset
     // display to the right. The bolted bezel makes this a physical assembly,
@@ -537,7 +504,8 @@ void P6PluginEditor::paint(juce::Graphics& g)
     if(studioView_)return;
     section(g,"OSCILLATOR 1",56,90,360);section(g,"OSCILLATOR 2",56,240,360);section(g,"MIXER",56,431,360);
     section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);
-    section(g,"POLY MOD",1020,94,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,316,373);section(g,"AMPLIFIER ENVELOPE",1020,426,373);
+    section(g,"POLY MOD",1020,94,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,312,373);section(g,"AMPLIFIER ENVELOPE",1020,425,373);
+    section(g,"FX",916,531,475);
     g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
