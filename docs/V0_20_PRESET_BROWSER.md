@@ -1,6 +1,6 @@
 # v0.20 — Local preset browser
 
-Open PRESETS in the Module/Studio header. The native overlay provides name/category/bank/program search, source, bank and category filters, favorites, explicit Load, Save, Save As, Import .syx, Export Program and Export Bank.
+Open PRESETS in the Module/Studio header. The native overlay provides name/category/bank/program search, source, bank and category filters, sort by bank/name/source, favorites, explicit Load, Save, Save As, Import .syx, Export Program and Export Bank.
 
 ## Sources and editing
 
@@ -33,3 +33,5 @@ Closing/reopening the editor retains the active library association in the proce
 The capture uses synthetic test entries, not bundled factory sounds. Fifteen core suites include new transactional bank parsing and dirty-signature coverage. Native smoke checks disk save/reload, favorites, exact program/bank bytes and original order, User-slot collision, stale instance writes, failed save retaining dirty state/data, preserved global settings/Character, search filtering and bounds at three widths. Windows/Linux, pluginval and sanitizer gates remain required for preview publication. Native file-dialog and manual DAW workflows still need hands-on use.
 
 MIDI channel selection/monitor remains postponed by the owner. Contextual Studio is the next main block. Compare/A-B, undo/redo, library-association persistence in DAW sessions and broader browser polish remain open; they are not claimed by this delivery.
+
+Factory program categories prefixed `Auto /` are inferred conservatively from their names, not supplied or verified by Sequential; ambiguous names remain Unclassified. User categories remain user-authored.

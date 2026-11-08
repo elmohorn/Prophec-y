@@ -515,7 +515,14 @@ void P6AudioProcessor::applyHostTransport()
             if (ppq.hasValue())
             {
                 const auto bpm = position->getBpm().orFallback (scheduler_.clock().bpm());
-                scheduler_.alignToHostPpq (*ppq, bpm, position->getIsPlaying());
+                if (position->getIsPlaying() || sequencePlay_.load(std::memory_order_relaxed)) {
+                    scheduler_.alignToHostPpq (*ppq, bpm, position->getIsPlaying());
+                } else {
+                    // Audition arpeggiated presets while the DAW transport is
+                    // stopped, at the host tempo; re-align once it starts.
+                    scheduler_.setClockBpm(bpm);
+                    scheduler_.setClockSyncMode(p6::ClockSyncMode::Internal);
+                }
                 return;
             }
         }
