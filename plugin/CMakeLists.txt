@@ -20,7 +20,8 @@ juce_add_plugin(P6CorePlugin
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE)
 
-set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg)
+set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg
+    assets/presets/sequential_factory.syx assets/presets/sequential_omom.syx)
 # Optional camera atlas uses native Tube frame; builds without asset retain fallback.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_cameras_atlas.jpg")
     list(APPEND P6_PANEL_ASSETS assets/character_cameras_atlas.jpg)

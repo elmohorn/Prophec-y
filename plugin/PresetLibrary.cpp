@@ -1,4 +1,5 @@
 #include "PresetLibrary.h"
+#include "BinaryData.h"
 #include "p6/SysexCodec.h"
 #include <algorithm>
 
@@ -13,7 +14,27 @@ struct LibraryAccess {
 juce::String sourceName(PresetSource source){return source==PresetSource::Imported?"Imported":source==PresetSource::Factory?"Factory":"User";}
 bool safeId(const juce::String& id){return id.isNotEmpty()&&id.length()<80&&id.containsOnly("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-");}
 }
-PresetLibrary::PresetLibrary(juce::File root,WrapperState factory):root_(std::move(root)),factory_(std::move(factory)){PresetEntry init;init.id="factory-init";init.name="Init P6 Core";init.bankKey="factory";init.bankLabel="Factory / Init";init.category="Init";init.source=PresetSource::Factory;init.state=factory_;entries_.push_back(init);scan();}
+PresetLibrary::PresetLibrary(juce::File root,WrapperState factory):root_(std::move(root)),factory_(std::move(factory))
+{
+    PresetEntry init;init.id="factory-init";init.name="Init P6 Core";init.bankKey="factory";init.bankLabel="Factory / Init";init.category="Init";init.source=PresetSource::Factory;init.state=factory_;builtIns_.push_back(std::move(init));
+    const auto addBank=[this](const char* bytes,int size,const char* key,const char* label,int expected) {
+        std::vector<ImportedProgram> programs;std::string error;
+        if(!decodePresetBank({reinterpret_cast<const std::uint8_t*>(bytes),static_cast<std::size_t>(size)},programs,error)||static_cast<int>(programs.size())!=expected) {
+            builtInError_="Could not load "+juce::String(label)+" preset collection: "+juce::String(error);return;
+        }
+        for(auto& program:programs) {
+            PresetEntry p;p.source=PresetSource::Factory;p.state=std::move(program.state);p.original=std::move(program.original);
+            p.name=juce::String(p.state.patch.name);if(p.name.isEmpty())p.name="Unnamed Prophet program";
+            p.bank=p.state.patch.bank;p.program=p.state.patch.program;
+            p.id=juce::String(key)+"-"+juce::String(p.bank)+"-"+juce::String(p.program);
+            p.bankKey=juce::String(key)+"-"+juce::String(p.bank);p.bankLabel=juce::String(label)+" / Bank "+juce::String(p.bank);p.category=label;
+            builtIns_.push_back(std::move(p));
+        }
+    };
+    addBank(BinaryData::sequential_factory_syx,BinaryData::sequential_factory_syxSize,"sequential-factory","Sequential Factory",500);
+    addBank(BinaryData::sequential_omom_syx,BinaryData::sequential_omom_syxSize,"sequential-omom","Old Men of MIDI",270);
+    entries_=builtIns_;scan();
+}
 juce::File PresetLibrary::defaultRoot(){return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("Prophec-y/Presets/v1");}
 const PresetEntry* PresetLibrary::find(const juce::String& id) const{for(const auto& p:entries_)if(p.id==id)return &p;return nullptr;}
 juce::Result PresetLibrary::scan()
@@ -24,7 +45,7 @@ juce::Result PresetLibrary::scan()
 juce::Result PresetLibrary::scanUnlocked()
 {
     if(root_.exists()&&!root_.isDirectory())return juce::Result::fail("Preset library path is not a directory");
-    entries_.clear();PresetEntry init;init.id="factory-init";init.name="Init P6 Core";init.category="Init";init.bankKey="factory";init.bankLabel="Factory / Init";init.source=PresetSource::Factory;init.state=factory_;entries_.push_back(init);
+    entries_=builtIns_;
     int skipped=0;
     for(const auto& file:root_.findChildFiles(juce::File::findFiles,false,"*.p6preset")) {
         if(file.getSize()>128*1024){++skipped;continue;}
@@ -32,7 +53,8 @@ juce::Result PresetLibrary::scanUnlocked()
         if(!object||static_cast<int>(object->getProperty("version"))!=1){++skipped;continue;}
         const auto id=object->getProperty("id").toString();
         if(!safeId(id)||id!=file.getFileNameWithoutExtension()){++skipped;continue;}
-        if(id=="factory-init"){entries_[0].favorite=static_cast<bool>(object->getProperty("favorite"));continue;}
+        const auto builtin=std::find_if(entries_.begin(),entries_.end(),[&](const auto& p){return p.source==PresetSource::Factory&&p.id==id;});
+        if(builtin!=entries_.end()){builtin->favorite=static_cast<bool>(object->getProperty("favorite"));continue;}
         PresetEntry entry;entry.id=id;entry.name=object->getProperty("name").toString();entry.category=object->getProperty("category").toString();
         const auto source=object->getProperty("source").toString();if(source!="Imported"&&source!="User"){++skipped;continue;}
         entry.source=source=="Imported"?PresetSource::Imported:PresetSource::User;
@@ -49,6 +71,7 @@ juce::Result PresetLibrary::scanUnlocked()
         entries_.push_back(std::move(entry));
     }
     std::stable_sort(entries_.begin()+1,entries_.end(),[](const auto& a,const auto& b){if(a.bankLabel!=b.bankLabel)return a.bankLabel.compareNatural(b.bankLabel)<0;if(a.program!=b.program)return a.program<b.program;return a.name.compareNatural(b.name)<0;});
+    if(builtInError_.isNotEmpty())return juce::Result::fail(builtInError_);
     return skipped?juce::Result::fail(juce::String(skipped)+" unreadable preset file(s) skipped"):juce::Result::ok();
 }
 juce::Result PresetLibrary::write(const PresetEntry& p) const

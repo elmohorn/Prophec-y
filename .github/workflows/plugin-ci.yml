@@ -5,7 +5,7 @@ on:
   # Release branches build on push. Feature branches build through their PR
   # only, preventing a duplicate Linux/Windows matrix on every push.
   push:
-    branches: [main, v0.20-ui]
+    branches: [main, v0.20-ui, validate-official-presets]
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 

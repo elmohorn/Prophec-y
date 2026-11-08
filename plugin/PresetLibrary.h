@@ -30,5 +30,7 @@ private:
     juce::File root_;
     WrapperState factory_;
     std::vector<PresetEntry> entries_;
+    std::vector<PresetEntry> builtIns_;
+    juce::String builtInError_;
 };
 } // namespace p6plugin

@@ -29,7 +29,7 @@ La preview 282 implementa el diseño Character aprobado: **panel de aluminio ind
 
 La preview 282 añade **Master Output y medidores L/R de pico, RMS y CLIP**, después de toda la cadena. Instancias nuevas: **-18 dB**. Sesiones anteriores: **0 dB**, conservando su nivel; puedes bajar el Master para darles margen. El volumen Prophet se identifica ahora como PROGRAM VOL. Master introducido en codec v3; sesión actual v5 fuera del SysEx, rampa de 20 ms y aviso PRE antes del Master. No se añade limitador ni normalización de voces. [Detalle, migración y captura real](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_MASTER_OUTPUT.md).
 
-La preview 282 incorpora el **browser local de presets**: Factory Init / Imported / User, búsqueda y filtros, favoritos persistentes, Save/Save As, protección de cambios sin guardar e import/export de programa/banco `.syx`. Cargar un preset conserva los controles globales, incluido Master; los dumps importados conservan sus bytes y orden. Factory trae nuestro Init, sin bancos Sequential. Tras reabrir un proyecto DAW se recupera el sonido, pero la asociación de biblioteca es transitoria: usa Save As hasta volver a seleccionar una entrada. [Uso, límites y captura nativa](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRESET_BROWSER.md).
+La preview 282 incorpora el **browser local de presets**: Factory Init / Imported / User, búsqueda y filtros, favoritos persistentes, Save/Save As, protección de cambios sin guardar e import/export de programa/banco `.syx`. Cargar un preset conserva los controles globales, incluido Master; los dumps importados conservan sus bytes y orden. Factory incluye nuestro Init, los 500 programas de fábrica de Sequential y 270 programas Old Men of MIDI, organizados en colecciones separadas. Tras reabrir un proyecto DAW se recupera el sonido, pero la asociación de biblioteca es transitoria: usa Save As hasta volver a seleccionar una entrada. [Uso, límites y captura nativa](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRESET_BROWSER.md).
 
 ### Instalación en Windows
 
@@ -38,7 +38,7 @@ La preview 282 incorpora el **browser local de presets**: Factory Init / Importe
 3. Copia esa carpeta completa a `C:\Program Files\Common Files\VST3\`.
 4. Abre el DAW, vuelve a escanear plugins y carga **P6 Core** como instrumento VST3.
 
-En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se incluye aplicación standalone ni instalador. Ambas versiones usan la misma identidad de plugin: conserva una copia de la anterior fuera de la carpeta de plugins antes de reemplazarla. Factory SysEx y audios de terceros no se redistribuyen.
+En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se incluye aplicación standalone ni instalador. Ambas versiones usan la misma identidad de plugin: conserva una copia de la anterior fuera de la carpeta de plugins antes de reemplazarla. Los bancos Prophet-6 incluidos proceden de Sequential; los audios de referencia de terceros no se redistribuyen.
 
 ### Qué contiene cada versión
 
@@ -238,4 +238,4 @@ The release CI builds Windows and Linux VST3 targets, runs core/state/control/re
 
 ## Licensing
 
-The project uses/adapts MIT-licensed implementation ideas/code from `joshjetson/phosphor`; attribution is maintained in `THIRD_PARTY_NOTICES.md`. `ShmKnd/Patina` was reviewed as an MIT-licensed topology/architecture reference for additional effects. GPL/AGPL projects are reference-only unless explicitly documented otherwise. Factory SysEx and third-party reference audio are **not redistributed** by this source package.
+The project uses/adapts MIT-licensed implementation ideas/code from `joshjetson/phosphor`; attribution is maintained in `THIRD_PARTY_NOTICES.md`. `ShmKnd/Patina` was reviewed as an MIT-licensed topology/architecture reference for additional effects. GPL/AGPL projects are reference-only unless explicitly documented otherwise. The Prophet-6 preset dumps included in this package originate from Sequential and are not covered by the project code license. Third-party reference audio is not redistributed.
