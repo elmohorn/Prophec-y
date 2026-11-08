@@ -767,7 +767,11 @@ void P6PluginEditor::paint(juce::Graphics& g)
     section(g,"FILTER",478,264,495);section(g,"PERFORMANCE",478,510,370);
     section(g,"POLY MOD",1020,94,373);section(g,"LFO",1020,200,373);section(g,"FILTER ENVELOPE",1020,312,373);section(g,"AMPLIFIER ENVELOPE",1020,425,373);
     section(g,"FX",916,531,475);
-    g.setColour(muted.withAlpha(.3f));g.drawLine(445*sx,107,445*sx,615,1.f);g.drawLine(1027*sx,107,1027*sx,615,1.f);
+    g.setColour(muted.withAlpha(.3f));
+    g.drawLine(445*sx,107,445*sx,615,1.f);
+    // Keep the column divider in the gap between Filter and modulation.
+    // Stop above FX, whose controls span across both columns.
+    g.drawLine(996*sx,107,996*sx,510,1.f);
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
     paintCharacterPanel(g);
