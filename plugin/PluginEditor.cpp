@@ -71,11 +71,16 @@ void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,i
         const float d=(i%6==0)?1.3f:.8f;
         g.setColour(ink.withAlpha(.7f));g.fillEllipse(cx+std::sin(a)*(r+5)-d,cy-std::cos(a)*(r+5)-d,2*d,2*d);
     }
+    // Cast shadow and contact edge belong to the physical knob above the panel.
+    // Keep them inside the slider's bounds so they do not cover nearby labels.
+    const bool isMaster=slider.getTitle()=="Master Output";
     for(int layer=5;layer>0;--layer) {
-        const float spread=static_cast<float>(layer)*1.15f;
-        g.setColour(juce::Colours::black.withAlpha(.035f));
-        g.fillEllipse(cx-r-spread,cy-r+4.f-spread*.2f,2*r+2*spread,2*r+2*spread);
+        const float spread=static_cast<float>(layer)*(isMaster?.65f:1.f);
+        g.setColour(juce::Colours::black.withAlpha(isMaster?.045f:.035f));
+        g.fillEllipse(cx-r-spread,cy-r+2.f-spread*.2f,2*r+2*spread,2*r+2*spread);
     }
+    g.setColour(juce::Colours::black.withAlpha(isMaster?.42f:.25f));
+    g.fillEllipse(cx-r-1.f,cy-r+1.5f,2*r+2.f,2*r+2.f);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xffeff0e9},cx-r,cy-r,juce::Colour{0xff777d79},cx+r,cy+r,false));
     g.fillEllipse(cx-r-1,cy-r-1,2*r+2,2*r+2);
     g.setColour(juce::Colour{0xff0c0e0e});g.fillEllipse(cx-r,cy-r,2*r,2*r);
