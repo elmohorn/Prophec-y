@@ -82,7 +82,7 @@ void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,i
     }
     g.setColour(juce::Colours::black.withAlpha(isMaster?.42f:.25f));
     g.fillEllipse(cx-r-1.f,cy-r+1.5f,2*r+2.f,2*r+2.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffeff0e9},cx-r,cy-r,juce::Colour{0xff777d79},cx+r,cy+r,false));
+    g.setGradientFill(juce::ColourGradient(juce::Colour{isMaster?0xff686966:0xffeff0e9},cx-r,cy-r,juce::Colour{isMaster?0xff242625:0xff777d79},cx+r,cy+r,false));
     g.fillEllipse(cx-r-1,cy-r-1,2*r+2,2*r+2);
     g.setColour(juce::Colour{0xff0c0e0e});g.fillEllipse(cx-r,cy-r,2*r,2*r);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff555653},cx-r*.5f,cy-r,juce::Colour{0xff181a19},cx+r*.6f,cy+r,false));
@@ -345,7 +345,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     addAndMakeVisible(browserButton_);
     browserButton_.onClick=[this]{const bool open=!browser_->isVisible();browser_->setVisible(open);browserButton_.setToggleState(open,juce::dontSendNotification);if(open){browser_->refreshLibrary();browser_->toFront(true);}repaint();};
     browser_->onClose=[this]{browser_->setVisible(false);browserButton_.setToggleState(false,juce::dontSendNotification);browserButton_.grabKeyboardFocus();repaint();};
-    presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
+    presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(juce::String(presetIsDirty_?"PRESETS *  ":"PRESETS  ")+juce::String::charToString(0x25be));
     processor_.attachLiveDisplay();refreshVisibility();refreshDisplay();startTimerHz(30);
 }
 P6PluginEditor::~P6PluginEditor(){stopTimer();processor_.detachLiveDisplay();setLookAndFeel(nullptr);}
@@ -405,7 +405,7 @@ void P6PluginEditor::timerCallback()
     if(staleOutputTicks_>=30){readings.peak={};readings.rms={};readings.prePeak={};}
     outputMeter_.update(readings);
     if(processor_.selectedCharacterType()!=boundType_)refreshVisibility();
-    if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");}
+    if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(juce::String(presetIsDirty_?"PRESETS *  ":"PRESETS  ")+juce::String::charToString(0x25be));}
     const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");headerPreset_.setText(name,juce::dontSendNotification);if(name!=presetName_){presetName_=name;repaint(displayArea_);}
     if(focusNrpn_>=0) {
         const auto* raw=processor_.parameters().getRawParameterValue(hardwareID(focusNrpn_));
