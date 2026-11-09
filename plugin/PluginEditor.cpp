@@ -44,20 +44,21 @@ int nrpnFromID(const juce::String& id)
 }
 void P6PluginEditor::MetalLook::drawButtonBackground(juce::Graphics& g,juce::Button& button,const juce::Colour& colour,bool highlighted,bool down)
 {
-    if(button.getTitle()!="Preset browser") {
+    const bool preset=button.getTitle()=="Preset browser";
+    const bool menu=button.getTitle()=="Header settings";
+    if(!preset&&!menu) {
         juce::LookAndFeel_V4::drawButtonBackground(g,button,colour,highlighted,down);return;
     }
-    const auto bounds=button.getLocalBounds().toFloat().reduced(1.f);
+    const auto bounds=button.getLocalBounds().toFloat().reduced(2.f);
     const bool active=button.getToggleState();
     // A recessed control behind the header glass: a dark pocket and a fine
     // edge, with light on the lettering rather than a raised coloured cap.
-    g.setColour(juce::Colour{0xff080a0a});g.fillRoundedRectangle(bounds,5.f);
-    const auto face=bounds.reduced(2.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{down?0xff17191a:0xff252728},face.getX(),face.getY(),juce::Colour{0xff111314},face.getX(),face.getBottom(),false));
-    g.fillRoundedRectangle(face,3.f);
-    g.setColour(juce::Colour{active?0xffa98257:0xff777777}.withAlpha(highlighted?.85f:.5f));g.drawRoundedRectangle(face,3.f,1.f);
-    g.setColour(juce::Colours::white.withAlpha(.10f));g.drawLine(face.getX()+5.f,face.getY()+2.f,face.getRight()-5.f,face.getY()+2.f,1.f);
-    g.setColour(juce::Colours::black.withAlpha(.6f));g.drawLine(face.getX()+4.f,face.getBottom()-2.f,face.getRight()-4.f,face.getBottom()-2.f,1.f);
+    g.setColour(juce::Colour{0xff0b0c0c});g.fillRoundedRectangle(bounds,6.f);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{down?0xff29231d:0xff1b1a18},bounds.getX(),bounds.getY(),juce::Colour{0xff101110},bounds.getX(),bounds.getBottom(),false));
+    g.fillRoundedRectangle(bounds.reduced(1.f),5.f);
+    const auto edge=juce::Colour{0xffffdfad};
+    g.setColour(edge.withAlpha(highlighted||active?.95f:.70f));g.drawRoundedRectangle(bounds.reduced(.5f),5.f,1.2f);
+    g.setColour(edge.withAlpha(.11f));g.drawRoundedRectangle(bounds.reduced(2.f),4.f,.8f);
 }
 void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
                                                 float value,float start,float end,juce::Slider& slider)
@@ -81,7 +82,7 @@ void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,i
     }
     g.setColour(juce::Colours::black.withAlpha(isMaster?.42f:.25f));
     g.fillEllipse(cx-r-1.f,cy-r+1.5f,2*r+2.f,2*r+2.f);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xffeff0e9},cx-r,cy-r,juce::Colour{0xff777d79},cx+r,cy+r,false));
+    g.setGradientFill(juce::ColourGradient(juce::Colour{isMaster?0xff686966:0xffeff0e9},cx-r,cy-r,juce::Colour{isMaster?0xff242625:0xff777d79},cx+r,cy+r,false));
     g.fillEllipse(cx-r-1,cy-r-1,2*r+2,2*r+2);
     g.setColour(juce::Colour{0xff0c0e0e});g.fillEllipse(cx-r,cy-r,2*r,2*r);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff555653},cx-r*.5f,cy-r,juce::Colour{0xff181a19},cx+r*.6f,cy+r,false));
@@ -244,8 +245,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     module_.onClick=[this]{studioView_=false;refreshVisibility();};studio_.onClick=[this]{studioView_=true;refreshVisibility();};
     // Secondary host controls live together behind the header menu.
     module_.setVisible(false);studio_.setVisible(false);midiInputChannel_.setVisible(false);midiMonitor_.setVisible(false);clearClips_.setVisible(false);
-    headerMenu_.setLookAndFeel(&look_);headerMenu_.setTitle("Header settings");headerMenu_.setTooltip("MIDI channel, view and clip reset");addAndMakeVisible(headerMenu_);
-    headerPreset_.setTitle("Current preset");headerPreset_.setFont(juce::Font(19.f));headerPreset_.setColour(juce::Label::textColourId,juce::Colour{0xffc1dedb});headerPreset_.setText(processor_.activePresetName(),juce::dontSendNotification);addAndMakeVisible(headerPreset_);
+    headerMenu_.setLookAndFeel(&look_);headerMenu_.setTitle("Header settings");headerMenu_.setTooltip("MIDI channel, view and clip reset");headerMenu_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xfff5ead9});addAndMakeVisible(headerMenu_);
+    headerPreset_.setTitle("Current preset");headerPreset_.setFont(juce::Font(19.f));headerPreset_.setColour(juce::Label::textColourId,juce::Colour{0xffeeeae4});headerPreset_.setText(processor_.activePresetName(),juce::dontSendNotification);addAndMakeVisible(headerPreset_);
     headerMenu_.onClick=[this]{
         juce::PopupMenu menu,midi;const int selected=midiInputChannel_.getSelectedId();
         for(int i=1;i<=17;++i)midi.addItem(100+i,i==1?juce::String("Omni"):"Channel "+juce::String(i-1),true,i==selected);
@@ -344,7 +345,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     addAndMakeVisible(browserButton_);
     browserButton_.onClick=[this]{const bool open=!browser_->isVisible();browser_->setVisible(open);browserButton_.setToggleState(open,juce::dontSendNotification);if(open){browser_->refreshLibrary();browser_->toFront(true);}repaint();};
     browser_->onClose=[this]{browser_->setVisible(false);browserButton_.setToggleState(false,juce::dontSendNotification);browserButton_.grabKeyboardFocus();repaint();};
-    presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");
+    presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(juce::String(presetIsDirty_?"PRESETS *  ":"PRESETS  ")+juce::String::charToString(0x25be));
     processor_.attachLiveDisplay();refreshVisibility();refreshDisplay();startTimerHz(30);
 }
 P6PluginEditor::~P6PluginEditor(){stopTimer();processor_.detachLiveDisplay();setLookAndFeel(nullptr);}
@@ -404,7 +405,7 @@ void P6PluginEditor::timerCallback()
     if(staleOutputTicks_>=30){readings.peak={};readings.rms={};readings.prePeak={};}
     outputMeter_.update(readings);
     if(processor_.selectedCharacterType()!=boundType_)refreshVisibility();
-    if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(presetIsDirty_?"PRESETS *":"PRESETS");}
+    if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(juce::String(presetIsDirty_?"PRESETS *  ":"PRESETS  ")+juce::String::charToString(0x25be));}
     const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");headerPreset_.setText(name,juce::dontSendNotification);if(name!=presetName_){presetName_=name;repaint(displayArea_);}
     if(focusNrpn_>=0) {
         const auto* raw=processor_.parameters().getRawParameterValue(hardwareID(focusNrpn_));
@@ -577,10 +578,10 @@ void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
-    browserButton_.setBounds(rect(280,34,122,30));
+    browserButton_.setBounds(rect(280,31,130,37));
     headerPreset_.setBounds(rect(427,29,370,38));headerMenu_.setBounds(rect(1360,31,42,32));
     if(browser_)browser_->setBounds(rect(36,88,1388,450));
-    master_.setBounds(rect(875,106,90,92));masterLabel_.setBounds(rect(891,202,58,18));
+    master_.setBounds(rect(858,109,94,94));masterLabel_.setBounds(rect(874,205,62,18));
     outputMeter_.setBounds(rect(1035,26,296,55));clearClips_.setBounds(rect(1077,43,94,27));
     midiInputChannel_.setBounds(rect(954,43,116,27));midiMonitor_.setBounds(rect(954,23,116,15));
     module_.setBounds(rect(1189,43,92,27));studio_.setBounds(rect(1288,43,97,27));
@@ -607,7 +608,7 @@ void P6PluginEditor::resized()
     previous_.setBounds(rect(306,652,31,25));type_.setBounds(rect(343,652,260,25));next_.setBounds(rect(609,652,31,25));
     position_.setBounds(rect(660,652,195,25));bypass_.setBounds(rect(875,652,110,25));
     plasmaMode_.setBounds(rect(1000,652,140,25));motion_.setBounds(rect(1150,652,100,25));collapse_.setBounds(rect(1275,652,110,25));
-    displayArea_=rect(520,98,335,145);
+    displayArea_=rect(522,103,306,141);
     display_.setBounds(displayArea_);
     tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
     hardware_.setBounds(rect(55,710,610,190));
@@ -782,7 +783,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
     paintSurface(g);const float sx=static_cast<float>(getWidth())/designWidth;
     // One bolted glass assembly connects the upper strip to the OLED recess.
     const juce::Rectangle<float> top(36.f*sx,10.f,1388.f*sx,79.f);
-    const juce::Rectangle<float> lower(501.f*sx,73.f,477.f*sx,180.f);
+    const juce::Rectangle<float> lower(493.f*sx,73.f,485.f*sx,180.f);
     g.setColour(juce::Colours::black.withAlpha(.3f));g.fillRoundedRectangle(lower.translated(0.f,2.f),7.f);g.fillRoundedRectangle(top.translated(0.f,2.f),7.f);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff4b4b4b},top.getX(),top.getY(),juce::Colour{0xff1c1c1c},top.getRight(),lower.getBottom(),false));g.fillRoundedRectangle(lower,7.f);g.fillRoundedRectangle(top,7.f);
     g.setColour(juce::Colour{0xff151718});g.fillRoundedRectangle(lower.reduced(4.f),5.f);g.fillRoundedRectangle(top.reduced(4.f),5.f);
@@ -818,7 +819,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
     }
     g.strokePath(rim,juce::PathStrokeType(1.f));
     drawNeonBrand(g,sx);
-    for(const auto pos:std::array<juce::Point<float>,6>{{{45.f,20.f},{1415.f,20.f},{45.f,79.f},{1415.f,79.f},{510.f,243.f},{969.f,243.f}}}) {
+    for(const auto pos:std::array<juce::Point<float>,6>{{{45.f,20.f},{1415.f,20.f},{45.f,79.f},{1415.f,79.f},{502.f,243.f},{969.f,243.f}}}) {
         const float x=pos.x*sx,y=pos.y;g.setColour(juce::Colours::black.withAlpha(.55f));g.fillEllipse(x-3.5f,y-3.5f,7.f,7.f);g.setColour(juce::Colour{0xffa8b2ab});g.fillEllipse(x-2.f,y-2.f,4.f,4.f);g.setColour(juce::Colour{0xff26322e});g.drawLine(x-1.5f,y+.5f,x+1.5f,y-.5f,1.f);
     }
     if(studioView_)return;
@@ -890,4 +891,5 @@ void P6PluginEditor::updateDevice()
     auto reading=visual_;reading.active=reading.active&&reading.type==boundType_;
     device_.update(boundType_,values,reading,motion_.getToggleState());
 }
+
 

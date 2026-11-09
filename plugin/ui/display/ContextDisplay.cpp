@@ -41,8 +41,9 @@ void ContextDisplay::paint(juce::Graphics& g)
 {
     auto r=getLocalBounds().toFloat().reduced(2);
     const juce::Colour ink{0xffcce0e4},dim{0xff78959e},line{0xff36515b},accent{0xffe6aa69};
-    g.setColour(juce::Colour{0xff8b948b});g.fillRoundedRectangle(r.expanded(2),6);
-    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff142127},0,0,juce::Colour{0xff070d10},r.getRight(),r.getBottom(),false));g.fillRoundedRectangle(r,4);
+    g.setColour(juce::Colour{0xff070909});g.fillRoundedRectangle(r.expanded(1),4);
+    g.setGradientFill(juce::ColourGradient(juce::Colour{0xff111516},0,0,juce::Colour{0xff07090a},r.getRight(),r.getBottom(),false));g.fillRoundedRectangle(r,3);
+    g.setColour(juce::Colour{0xff41413d}.withAlpha(.5f));g.drawRoundedRectangle(r,3,.7f);
     g.setColour(ink);g.setFont(15.f);g.drawText("SIGNAL / CONTEXT",16,8,getWidth()-110,23,juce::Justification::centredLeft);
     const bool context=view_==View::Context || contextTicks_>0;
     g.setColour(dim);g.setFont(8.f);g.drawText(context?"CONTEXT":view_==View::Spectrum?"SPECTRUM":"WAVEFORM",getWidth()-92,11,76,16,juce::Justification::centredRight);
@@ -65,7 +66,7 @@ void ContextDisplay::paint(juce::Graphics& g)
             }
             g.setColour(juce::Colour{0xffb6e3db});g.strokePath(trace,juce::PathStrokeType(1.2f));
         } else if(haveLiveFrame_ && view_==View::Spectrum && liveFrame_.sampleRate>0) {
-            constexpr int bands=64;juce::Path trace;
+            constexpr int bands=64;
             const double top=std::min(20000.0,liveFrame_.sampleRate*.5);
             const double bottom=std::min(40.0,top*.5);
             for(int i=0;i<bands;++i) {
@@ -76,9 +77,9 @@ void ContextDisplay::paint(juce::Graphics& g)
                 for(auto j=first;j<=last;++j)maximum=std::max(maximum,liveSpectrum_[j]);
                 const float value=std::clamp((maximum+90.f)/90.f,0.f,1.f);
                 const float x=plot.getX()+plot.getWidth()*static_cast<float>(i)/(bands-1),y=plot.getBottom()-value*plot.getHeight();
-                if(i==0)trace.startNewSubPath(x,y);else trace.lineTo(x,y);
+                const auto colour=juce::Colour{0xffe5a35f}.interpolatedWith(juce::Colour{0xffebe2d0},static_cast<float>(i)/(bands-1));
+                g.setColour(colour.withAlpha(.88f));g.drawLine(x,plot.getBottom(),x,y,2.f);
             }
-            g.setColour(juce::Colour{0xffb6e3db});g.strokePath(trace,juce::PathStrokeType(1.2f));
         }
     } else if(content_.pitchBend) {
         const float x=plot.getCentreX()+static_cast<float>(content_.position)*plot.getWidth()*.48f;
@@ -104,3 +105,4 @@ void ContextDisplay::paint(juce::Graphics& g)
         view_==View::Spectrum?"STEREO OUTPUT / LOG FREQUENCY / CLICK TO CHANGE":"LEFT OUTPUT / CLICK TO CHANGE";
     g.drawText(caption,16,getHeight()-18,getWidth()-32,15,juce::Justification::centredLeft);
 }
+
