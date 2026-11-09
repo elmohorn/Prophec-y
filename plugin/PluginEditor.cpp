@@ -786,11 +786,9 @@ void P6PluginEditor::paint(juce::Graphics& g)
     }
     // A restrained reflection on the opaque smoked glass. Nothing from the
     // synth beneath is composited through the pane.
-    juce::Path reflection;reflection.startNewSubPath(690.f*sx,14.f);reflection.lineTo(795.f*sx,14.f);
-    reflection.lineTo(755.f*sx,84.f);reflection.lineTo(650.f*sx,84.f);reflection.closeSubPath();
-    g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(.065f),720.f*sx,14.f,
-                                           juce::Colours::white.withAlpha(0.f),755.f*sx,84.f,false));
-    g.fillPath(reflection);
+    g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(.055f),760.f*sx,14.f,
+                                           juce::Colours::white.withAlpha(0.f),865.f*sx,84.f,true));
+    g.fillRoundedRectangle(top.reduced(4.f),5.f);
     // Trace the outside of the joined shape only: no line crosses the glass
     // where the upper strip meets the lower display recess.
     g.setColour(juce::Colour{0xffaaaaaa}.withAlpha(.45f));

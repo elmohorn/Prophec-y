@@ -49,11 +49,6 @@ void PresetBrowser::paint(juce::Graphics& g)
     // The same opaque smoked glass as the header; the thin metal sides and
     // bottom rim continue its outline without a horizontal join at the top.
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xff151718},0.f,0.f,juce::Colour{0xff0f1011},0.f,static_cast<float>(getHeight()),false));g.fillRect(getLocalBounds());
-    juce::Path reflection;const float w=static_cast<float>(getWidth());
-    reflection.startNewSubPath(w*.442f,0.f);reflection.lineTo(w*.518f,0.f);
-    reflection.lineTo(w*.40f,static_cast<float>(getHeight()));reflection.lineTo(w*.324f,static_cast<float>(getHeight()));reflection.closeSubPath();
-    g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(.022f),w*.48f,0.f,
-                                           juce::Colours::white.withAlpha(0.f),w*.38f,static_cast<float>(getHeight()),false));g.fillPath(reflection);
     g.setColour(juce::Colour{0xff555555});
     g.drawVerticalLine(0,0.f,static_cast<float>(getHeight()-5));g.drawVerticalLine(getWidth()-1,0.f,static_cast<float>(getHeight()-5));
     g.drawHorizontalLine(getHeight()-1,5.f,static_cast<float>(getWidth()-5));
