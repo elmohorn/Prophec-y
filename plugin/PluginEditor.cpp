@@ -10,6 +10,31 @@ const juce::Colour ink{0xff252827},muted{0xff636a68},amber{0xffe68c40},silver{0x
 juce::String hardwareID(int nrpn) { return "nrpn_"+juce::String(nrpn).paddedLeft('0',4); }
 constexpr float designWidth=1460.f;
 
+// Single-stroke lettering, rather than filled text with a backlight: each
+// stroke is the visible neon tube. Paths are built on the GUI thread only.
+void drawNeonBrand(juce::Graphics& g,float sx)
+{
+    juce::Path tube;
+    // Prophec-Y in a simple monoline script, with rounded tube ends.
+    tube.startNewSubPath(2,24);tube.lineTo(2,2);tube.lineTo(10,2);tube.cubicTo(20,2,20,13,10,13);tube.lineTo(2,13);
+    tube.startNewSubPath(20,24);tube.lineTo(20,9);tube.lineTo(20,13);tube.cubicTo(22,9,25,8,29,9);
+    tube.startNewSubPath(36,9);tube.cubicTo(26,9,26,24,36,24);tube.cubicTo(46,24,46,9,36,9);
+    tube.startNewSubPath(49,30);tube.lineTo(49,9);tube.lineTo(49,12);tube.cubicTo(58,4,65,12,62,19);tube.cubicTo(60,25,53,26,49,21);
+    tube.startNewSubPath(68,2);tube.lineTo(68,24);tube.startNewSubPath(68,15);tube.cubicTo(69,7,80,6,80,15);tube.lineTo(80,24);
+    tube.startNewSubPath(85,17);tube.lineTo(97,17);tube.cubicTo(98,6,85,6,85,16);tube.cubicTo(85,25,93,26,98,22);
+    tube.startNewSubPath(113,11);tube.cubicTo(105,5,100,12,101,17);tube.cubicTo(101,24,108,26,113,22);
+    tube.startNewSubPath(117,17);tube.lineTo(126,17);
+    tube.startNewSubPath(129,2);tube.lineTo(137,13);tube.lineTo(145,2);tube.startNewSubPath(137,13);tube.lineTo(137,24);
+    const auto transform=juce::AffineTransform::shear(-.12f,0.f).scaled(sx,1.f).translated(61.f*sx,31.f);
+    tube.applyTransform(transform);
+    for(const auto layer:std::array<std::pair<float,float>,3>{{{8.f,.025f},{5.f,.055f},{3.f,.16f}}}) {
+        g.setColour(juce::Colour{0xffffb45d}.withAlpha(layer.second));
+        g.strokePath(tube,juce::PathStrokeType(layer.first,juce::PathStrokeType::curved,juce::PathStrokeType::rounded));
+    }
+    g.setColour(juce::Colour{0xffffe2ad});g.strokePath(tube,juce::PathStrokeType(1.65f,juce::PathStrokeType::curved,juce::PathStrokeType::rounded));
+    g.setColour(juce::Colour{0xfffff9e9});g.strokePath(tube,juce::PathStrokeType(.65f,juce::PathStrokeType::curved,juce::PathStrokeType::rounded));
+}
+
 int nrpnFromID(const juce::String& id)
 {
     return id.startsWith("nrpn_") ? id.substring(5).getIntValue() : -1;
@@ -759,6 +784,11 @@ void P6PluginEditor::paint(juce::Graphics& g)
         // Without this bridge the two old bevel segments show through as a seam.
         g.fillRect(top.getX()+2.f,top.getBottom()-5.f,top.getWidth()-4.f,6.f);
     }
+    // A restrained reflection on the opaque smoked glass. Nothing from the
+    // synth beneath is composited through the pane.
+    g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(.055f),760.f*sx,14.f,
+                                           juce::Colours::white.withAlpha(0.f),865.f*sx,84.f,true));
+    g.fillRoundedRectangle(top.reduced(4.f),5.f);
     // Trace the outside of the joined shape only: no line crosses the glass
     // where the upper strip meets the lower display recess.
     g.setColour(juce::Colour{0xffaaaaaa}.withAlpha(.45f));
@@ -780,11 +810,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
         rim.lineTo(top.getX()+1.f,top.getY()+6.f);rim.closeSubPath();
     }
     g.strokePath(rim,juce::PathStrokeType(1.f));
-    // Lettering is softly illuminated under the glass, without LED rings.
-    g.setFont(juce::Font(25.f).boldened().italicised().withExtraKerningFactor(-.035f));
-    const auto brand=juce::Rectangle<int>(juce::roundToInt(58.f*sx),28,juce::roundToInt(194.f*sx),38);
-    g.setColour(juce::Colour{0xffe8d5aa}.withAlpha(.13f));g.drawText("Prophec-Y",brand.translated(0,2),juce::Justification::centredLeft);
-    g.setColour(juce::Colour{0xfff4e8ca});g.drawText("Prophec-Y",brand,juce::Justification::centredLeft);
+    drawNeonBrand(g,sx);
     for(const auto pos:std::array<juce::Point<float>,6>{{{45.f,20.f},{1415.f,20.f},{45.f,79.f},{1415.f,79.f},{510.f,243.f},{969.f,243.f}}}) {
         const float x=pos.x*sx,y=pos.y;g.setColour(juce::Colours::black.withAlpha(.55f));g.fillEllipse(x-3.5f,y-3.5f,7.f,7.f);g.setColour(juce::Colour{0xffa8b2ab});g.fillEllipse(x-2.f,y-2.f,4.f,4.f);g.setColour(juce::Colour{0xff26322e});g.drawLine(x-1.5f,y+.5f,x+1.5f,y-.5f,1.f);
     }
