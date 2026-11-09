@@ -145,7 +145,13 @@ static int presetLibraryChecks(const juce::File& captureFolder)
         CHECK(sorting!=nullptr);sorting->setSelectedId(2,juce::sendNotificationSync);sorting->setSelectedId(3,juce::sendNotificationSync);sorting->setSelectedId(1,juce::sendNotificationSync);
         search->setText("User test",false);search->onTextChange();CHECK(list->getModel()->getNumRows()==1);
         search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==774);
-        for(int width:{1240,1460,1780}){gallery.setSize(width,P6PluginEditor::expandedHeight);CHECK(browser->getY()==88);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));}
+        for(int width:{1240,1460,1780}){
+            gallery.setSize(width,P6PluginEditor::expandedHeight);
+            CHECK(browser->getY()==88);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));
+            for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));
+            CHECK((list->getHeight()-2)%list->getRowHeight()==0);
+            CHECK(screenshot(gallery,captureFolder.getChildFile("module_browser_"+juce::String(width)+".png")));
+        }
         browserButton->onClick();CHECK(!browser->isVisible()&&!browserButton->getToggleState());
     }
     std::cout<<"Preset library: persistence, exact banks, favorites, occupied slots, stale writes, globals, dirty tracking and browser filtering verified\n";
@@ -870,6 +876,17 @@ int main(int argc,char** argv)
             CHECK(child->getBottom()<=editor->getHeight()-28);
         }
         const float sx=static_cast<float>(width)/1460.f;
+        // First envelope knob aligns with the first Poly Mod knob; the first
+        // LFO knob shares that center as well.
+        juce::Slider *polyFirst=nullptr,*lfoFirst=nullptr,*envFirst=nullptr;
+        for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()) {
+            if(slider->getTitle()=="FILTER ENV"&&slider->getY()<200)polyFirst=slider;
+            if(slider->getTitle()=="RATE"&&slider->getY()>200&&slider->getY()<300)lfoFirst=slider;
+            if(slider->getTitle()=="ATTACK"&&slider->getY()>300&&slider->getY()<400)envFirst=slider;
+        }
+        CHECK(polyFirst&&lfoFirst&&envFirst);
+        CHECK(std::abs(polyFirst->getBounds().getCentreX()-envFirst->getBounds().getCentreX())<=2);
+        CHECK(std::abs(polyFirst->getBounds().getCentreX()-lfoFirst->getBounds().getCentreX())<=2);
         // The column separator must not run through any visible control.
         // Its lower end stops before the standard FX section spans columns.
         const juce::Rectangle<int> divider(juce::roundToInt(996.f*sx),107,1,403);
