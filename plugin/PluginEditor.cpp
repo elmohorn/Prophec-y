@@ -593,7 +593,7 @@ void P6PluginEditor::resized()
     for(std::size_t i=0;i<2;++i)knob(30+i,1110+94.f*static_cast<float>(i),548,76,62);
     for(std::size_t i=0;i<4;++i){synth_[32+i].slider.setBounds(rect(72+84.f*static_cast<float>(i),463,55,117));synth_[32+i].label.setBounds(rect(64+84.f*static_cast<float>(i),583,71,18));}
     switches_[0].button.setBounds(rect(70,373,71,36));switches_[1].button.setBounds(rect(171,373,71,36));switches_[2].button.setBounds(rect(265,373,71,36));
-    switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(479,600,66,27));switches_[5].button.setBounds(rect(795,446,98,24));
+    switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(462,600,83,27));switches_[5].button.setBounds(rect(795,446,98,24));
     switches_[6].button.setBounds(rect(925,553,92,26));switches_[7].button.setBounds(rect(1288,273,65,24));
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
     fxAType_.setBounds(rect(923,582,171,20));fxBType_.setBounds(rect(923,607,171,20));

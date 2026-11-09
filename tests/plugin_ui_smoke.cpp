@@ -925,6 +925,9 @@ int main(int argc,char** argv)
         CHECK(!mixA->getBounds().intersects(mixB->getBounds()));
         CHECK(!mixB->getBounds().intersects(programVol->getBounds()));
         CHECK(!glideOn->getBounds().intersects(glideLabel->getBounds()));
+        juce::GlyphArrangement glideText;
+        glideText.addLineOfText(juce::Font(10.5f),glideOn->getButtonText(),0.f,0.f);
+        CHECK(glideText.getBoundingBox(0,-1,true).getWidth()<=static_cast<float>(glideOn->getWidth()-20));
         // Check rendered label width, not just button rectangles: the long
         // original LFO and Poly Mod names were truncated even without overlap.
         int modulationButtons=0;
