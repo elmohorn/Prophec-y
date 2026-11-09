@@ -57,6 +57,7 @@ void P6PluginEditor::MetalLook::drawButtonBackground(juce::Graphics& g,juce::But
     g.fillRoundedRectangle(face,3.f);
     g.setColour(juce::Colour{active?0xffa98257:0xff777777}.withAlpha(highlighted?.85f:.5f));g.drawRoundedRectangle(face,3.f,1.f);
     g.setColour(juce::Colours::white.withAlpha(.10f));g.drawLine(face.getX()+5.f,face.getY()+2.f,face.getRight()-5.f,face.getY()+2.f,1.f);
+    g.setColour(juce::Colours::black.withAlpha(.6f));g.drawLine(face.getX()+4.f,face.getBottom()-2.f,face.getRight()-4.f,face.getBottom()-2.f,1.f);
 }
 void P6PluginEditor::MetalLook::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
                                                 float value,float start,float end,juce::Slider& slider)
@@ -585,13 +586,14 @@ void P6PluginEditor::resized()
     knob(8,337,366,49,47);
     knob(9,502,318,79,77);knob(10,621,279,139,137);knob(11,785,318,79,77);knob(12,890,318,79,77);
     knob(13,1016,115,76,68);knob(14,1108,115,76,68);
-    knob(15,1016,224,62,65);knob(16,1090,224,62,65);knob(17,1164,224,62,65);
-    for(std::size_t i=0;i<4;++i){knob(18+i,1030+94.f*static_cast<float>(i),338,75,65);knob(22+i,1030+94.f*static_cast<float>(i),445,75,64);}
+    knob(15,1023,224,62,65);knob(16,1097,224,62,65);knob(17,1171,224,62,65);
+    // Align the first two envelope centers with the Poly Mod controls above.
+    for(std::size_t i=0;i<4;++i){knob(18+i,1016+94.f*static_cast<float>(i),338,75,65);knob(22+i,1016+94.f*static_cast<float>(i),445,75,64);}
     knob(26,553,535,72,65);knob(27,653,535,72,65);knob(28,753,535,72,65);knob(29,1301,548,83,62);
     for(std::size_t i=0;i<2;++i)knob(30+i,1110+94.f*static_cast<float>(i),548,76,62);
     for(std::size_t i=0;i<4;++i){synth_[32+i].slider.setBounds(rect(72+84.f*static_cast<float>(i),463,55,117));synth_[32+i].label.setBounds(rect(64+84.f*static_cast<float>(i),583,71,18));}
     switches_[0].button.setBounds(rect(70,373,71,36));switches_[1].button.setBounds(rect(171,373,71,36));switches_[2].button.setBounds(rect(265,373,71,36));
-    switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(479,600,66,27));switches_[5].button.setBounds(rect(795,446,98,24));
+    switches_[3].button.setBounds(rect(475,557,70,36));switches_[4].button.setBounds(rect(462,600,83,27));switches_[5].button.setBounds(rect(795,446,98,24));
     switches_[6].button.setBounds(rect(925,553,92,26));switches_[7].button.setBounds(rect(1288,273,65,24));
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
     fxAType_.setBounds(rect(923,582,171,20));fxBType_.setBounds(rect(923,607,171,20));
