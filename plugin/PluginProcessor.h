@@ -158,6 +158,8 @@ private:
     std::atomic<float>* arpCharacterFreeze_{};
     std::array<std::atomic<float>*,8> arpSteps_{};
     std::atomic<int> arpPlaybackStep_{-1};
+    std::atomic<std::uint32_t> arpVariationSeed_{0x735a2d97u},arpRestoreSeed_{0x735a2d97u},arpRestoreRevision_{};
+    std::uint32_t appliedArpRestoreRevision_{};
     std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
     std::atomic<unsigned> outputClips_{},outputRevision_{};
     std::atomic<float> characterExcitation_{};

@@ -51,6 +51,8 @@ public:
     void setArpCharacterRhythm(int pulses) noexcept { arpCharacter_.setRhythm(pulses); }
     void setArpCharacterMotion(double amount) noexcept { arpCharacter_.setMotion(amount); }
     void setArpCharacterFreeze(bool freeze) noexcept { arpCharacter_.setFreeze(freeze); }
+    void restoreArpVariationSeed(std::uint32_t seed) noexcept { arpCharacter_.restoreVariationSeed(seed); }
+    [[nodiscard]] std::uint32_t arpVariationSeed() const noexcept { return arpCharacter_.variationSeed(); }
 
     void setClockBpm(double bpm)
     {

@@ -71,6 +71,8 @@ std::vector<std::uint8_t> encodeState(const WrapperState& state)
     out.push_back(state.arpCharacterMask);
     out.push_back(std::min<std::uint8_t>(state.arpCharacterRhythm,8));
     putU16(out,static_cast<std::uint16_t>(std::lround(1000.f*(std::isfinite(state.arpCharacterMotion)?std::clamp(state.arpCharacterMotion,0.f,1.f):0.f))));
+    putU16(out,static_cast<std::uint16_t>(state.arpVariationSeed&0xffffu));
+    putU16(out,static_cast<std::uint16_t>(state.arpVariationSeed>>16u));
     return out;
 }
 
@@ -138,6 +140,8 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
         if(enabled>1||freeze>1||decoded.arpCharacterRhythm>8||motion>1000)return false;
         decoded.arpCharacterEnabled=enabled!=0;decoded.arpCharacterFreeze=freeze!=0;
         decoded.arpCharacterMotion=static_cast<float>(motion)/1000.f;
+        const auto seedLow=getU16(bytes,offset),seedHigh=getU16(bytes,offset);
+        decoded.arpVariationSeed=static_cast<std::uint32_t>(seedLow)|(static_cast<std::uint32_t>(seedHigh)<<16u);
     }
     state = std::move(decoded);
     return true;

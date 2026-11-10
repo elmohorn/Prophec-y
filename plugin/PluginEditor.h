@@ -118,13 +118,13 @@ private:
     int arpOffset() const noexcept { return arpOpen_ ? 160 : 56; }
     ArpPanelSwitch arpPanelSwitch_;
     juce::ToggleButton arpOn_{"ON"},arpHold_{"HOLD"},arpSync_{"SYNC"},arpCharEnabled_{"CHAR"},arpFreeze_{"FREEZE"};
-    juce::ComboBox arpMode_,arpOctaves_,arpDivision_;
-    juce::Slider arpRhythm_,arpMotion_;
+    juce::ComboBox arpMode_,arpOctaves_,arpDivision_,arpClock_;
+    juce::Slider arpRhythm_,arpMotion_,arpBpm_;
     std::array<ArpStepButton,8> arpSteps_;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>,8> arpStepBindings_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> arpOnBinding_,arpHoldBinding_,arpSyncBinding_,arpCharacterBinding_,arpFreezeBinding_;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> arpModeBinding_,arpOctaveBinding_,arpDivisionBinding_;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> arpRhythmBinding_,arpMotionBinding_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> arpModeBinding_,arpOctaveBinding_,arpDivisionBinding_,arpClockBinding_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> arpRhythmBinding_,arpMotionBinding_,arpBpmBinding_;
     float previewLfoPhase_{},previewAudioLevel_{};
     double lastUiFrameTimeMs_{};
     juce::Rectangle<int> tubeArea_,displayArea_;

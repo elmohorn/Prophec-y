@@ -10,6 +10,7 @@ namespace p6 {
 class P6ArpCharacter {
 public:
     struct Step { bool play; double velocityScale; std::uint8_t index; };
+    P6ArpCharacter() noexcept { reset(); }
     void setEnabled(bool enabled) noexcept { enabled_ = enabled; }
     void setMask(std::uint8_t mask) noexcept { mask_ = mask; }
     void setRhythm(int pulses) noexcept { rhythm_ = std::clamp(pulses, 0, 8); }
@@ -17,7 +18,14 @@ public:
         motion_ = std::isfinite(motion) ? std::clamp(motion, 0.0, 1.0) : 0.0;
     }
     void setFreeze(bool freeze) noexcept { freeze_ = freeze; }
-    void reset() noexcept { step_ = 0; rng_ = 0x735a2d97u; fillVariations(); }
+    void restoreVariationSeed(std::uint32_t seed) noexcept {
+        rng_ = seed != 0 ? seed : 0x735a2d97u; fillVariations();
+    }
+    [[nodiscard]] std::uint32_t variationSeed() const noexcept { return variationSeed_; }
+    void reset() noexcept {
+        step_ = 0;
+        if(!freeze_) { rng_ = 0x735a2d97u; fillVariations(); }
+    }
     [[nodiscard]] Step next() noexcept {
         const auto index = static_cast<std::uint8_t>(step_ % 8u);
         if (index == 0 && step_ != 0 && !freeze_) fillVariations();
@@ -36,6 +44,7 @@ public:
     }
 private:
     void fillVariations() noexcept {
+        variationSeed_ = rng_;
         for (auto& value : variations_) {
             rng_ ^= rng_ << 13; rng_ ^= rng_ >> 17; rng_ ^= rng_ << 5;
             value = static_cast<double>(rng_) / 2147483647.5 - 1.0;
@@ -46,6 +55,7 @@ private:
     int rhythm_{8};
     double motion_{};
     std::uint32_t rng_{0x735a2d97u}, step_{};
+    std::uint32_t variationSeed_{0x735a2d97u};
     std::array<double,8> variations_{};
 };
 } // namespace p6

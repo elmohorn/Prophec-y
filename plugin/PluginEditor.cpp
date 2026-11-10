@@ -223,13 +223,17 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     for(auto* b:{&arpOn_,&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_}){b->setLookAndFeel(&look_);addAndMakeVisible(b);}
     arpCharEnabled_.setTooltip("Enable the Prophec-Y character layer; classic arpeggiator is unchanged when off.");
     arpFreeze_.setTooltip("Freeze the current eight-step velocity variation.");
-    for(auto* b:{&arpMode_,&arpOctaves_,&arpDivision_}){b->setLookAndFeel(&look_);addAndMakeVisible(b);}
+    for(auto* b:{&arpMode_,&arpOctaves_,&arpDivision_,&arpClock_}){b->setLookAndFeel(&look_);addAndMakeVisible(b);}
     arpMode_.addItemList(juce::StringArray{"UP","DOWN","UP / DOWN","RANDOM","ASSIGN"},1);
     arpOctaves_.addItemList(juce::StringArray{"1","2","3"},1);
     arpDivision_.addItemList(juce::StringArray{"1/2","1/4","1/8","1/8 D","1/8 S","1/8 T","1/16","1/16 S","1/16 T","1/32"},1);
+    arpClock_.addItemList(juce::StringArray{"INTERNAL","HOST","MIDI CLOCK"},1);
     arpMode_.setTitle("Arpeggiator mode");arpOctaves_.setTitle("Arpeggiator octaves");arpDivision_.setTitle("Arpeggiator clock division");
+    arpClock_.setTitle("Arpeggiator clock source");arpSync_.setTooltip("Beat Sync: quantize arpeggiator start to the clock grid.");
     for(auto* s:{&arpRhythm_,&arpMotion_}){s->setLookAndFeel(&look_);s->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);s->setTextBoxStyle(juce::Slider::TextBoxBelow,false,60,17);addAndMakeVisible(s);}
     arpRhythm_.setTitle("Arp Rhythm");arpMotion_.setTitle("Arp Motion");
+    arpBpm_.setLookAndFeel(&look_);arpBpm_.setSliderStyle(juce::Slider::LinearHorizontal);
+    arpBpm_.setTextBoxStyle(juce::Slider::TextBoxRight,false,50,20);arpBpm_.setTitle("Arpeggiator BPM");addAndMakeVisible(arpBpm_);
     arpRhythm_.setTooltip("Number of evenly spaced pulses; the step buttons can mute individual pulses.");
     arpMotion_.setTooltip("Amount of evolving velocity variation.");
     arpOnBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,hardwareID(160),arpOn_);
@@ -240,6 +244,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     arpModeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(161),arpMode_);
     arpOctaveBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(162),arpOctaves_);
     arpDivisionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(163),arpDivision_);
+    arpClockBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,"wrapper_clock_source",arpClock_);
+    arpBpmBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,hardwareID(167),arpBpm_);
     arpRhythmBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,p6plugin::kArpCharacterRhythmID,arpRhythm_);
     arpMotionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,p6plugin::kArpCharacterMotionID,arpMotion_);
     for(std::size_t i=0;i<arpSteps_.size();++i){
@@ -612,7 +618,7 @@ void P6PluginEditor::refreshVisibility()
     collapse_.setButtonText(collapsed_?"SHOW":"HIDE");
     arpPanelSwitch_.setButtonText(arpOpen_?"HIDE":"SHOW");
     arpPanelSwitch_.setVisible(!studioView_);arpOn_.setVisible(!studioView_);
-    for(auto* c:std::array<juce::Component*,9>{&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_,&arpMode_,&arpOctaves_,&arpDivision_,&arpRhythm_,&arpMotion_})
+    for(auto* c:std::array<juce::Component*,11>{&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_,&arpMode_,&arpOctaves_,&arpDivision_,&arpClock_,&arpRhythm_,&arpMotion_,&arpBpm_})
         c->setVisible(!studioView_&&arpOpen_);
     for(auto& b:arpSteps_)b.setVisible(!studioView_&&arpOpen_);
     const bool expanded=!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_;
@@ -657,6 +663,7 @@ void P6PluginEditor::resized()
     arpHold_.setBounds(rect(340,646,95,25));arpMode_.setBounds(rect(90,705,150,28));
     arpOctaves_.setBounds(rect(275,705,75,28));arpDivision_.setBounds(rect(380,705,100,28));
     arpSync_.setBounds(rect(495,705,80,28));arpCharEnabled_.setBounds(rect(610,646,90,25));
+    arpBpm_.setBounds(rect(85,746,160,24));arpClock_.setBounds(rect(340,746,170,24));
     arpRhythm_.setBounds(rect(640,701,70,70));arpMotion_.setBounds(rect(730,701,70,70));
     arpFreeze_.setBounds(rect(815,705,100,26));
     for(std::size_t i=0;i<arpSteps_.size();++i)arpSteps_[i].setBounds(rect(950.f+55.f*static_cast<float>(i),704,48,50));
@@ -902,6 +909,8 @@ void P6PluginEditor::paint(juce::Graphics& g)
                 g.drawText(label.first,static_cast<int>(label.second*sx),680,static_cast<int>(85*sx),16,juce::Justification::centredLeft);
             for(int i=0;i<8;++i)
                 g.drawText(juce::String(i+1),static_cast<int>((950.f+55.f*i)*sx),682,static_cast<int>(48*sx),16,juce::Justification::centred);
+            g.drawText("BPM",static_cast<int>(50*sx),750,static_cast<int>(35*sx),16,juce::Justification::centredLeft);
+            g.drawText("CLOCK",static_cast<int>(280*sx),750,static_cast<int>(60*sx),16,juce::Justification::centredLeft);
         }
     }
     g.saveState();g.addTransform(juce::AffineTransform::translation(0.f,static_cast<float>(arpOffset())));

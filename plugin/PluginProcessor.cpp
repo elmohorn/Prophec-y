@@ -507,6 +507,12 @@ void P6AudioProcessor::applyRuntimeControls (bool force)
     scheduler_.setArpCharacterMotion(arpCharacterMotion_->load(std::memory_order_relaxed));
     scheduler_.setArpCharacterRhythm(static_cast<int>(arpCharacterRhythm_->load(std::memory_order_relaxed)));
     scheduler_.setArpCharacterFreeze(arpCharacterFreeze_->load(std::memory_order_relaxed)>=.5f);
+    const auto revision=arpRestoreRevision_.load(std::memory_order_acquire);
+    if(revision!=appliedArpRestoreRevision_) {
+        if(arpCharacterFreeze_->load(std::memory_order_relaxed)>=.5f)
+            scheduler_.restoreArpVariationSeed(arpRestoreSeed_.load(std::memory_order_relaxed));
+        appliedArpRestoreRevision_=revision;
+    }
     std::uint8_t mask=0;
     for(std::size_t i=0;i<arpSteps_.size();++i)
         if(arpSteps_[i]->load(std::memory_order_relaxed)>=.5f)mask=static_cast<std::uint8_t>(mask|(1u<<i));
@@ -727,6 +733,7 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     }
     const auto readings=output_.readings();
     arpPlaybackStep_.store(scheduler_.arpCharacterStep(),std::memory_order_relaxed);
+    arpVariationSeed_.store(scheduler_.arpVariationSeed(),std::memory_order_relaxed);
     for(std::size_t c=0;c<2;++c) {
         auto retainMax=[](std::atomic<float>& slot,float value){auto old=slot.load(std::memory_order_relaxed);while(old<value&&!slot.compare_exchange_weak(old,value,std::memory_order_relaxed)){};};
         retainMax(outputPeak_[c],readings.peak[c]);retainMax(preMasterPeak_[c],readings.prePeak[c]);
@@ -827,6 +834,7 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.arpCharacterEnabled=arpCharacterEnabled_->load()>=.5f;
     state.arpCharacterFreeze=arpCharacterFreeze_->load()>=.5f;
     state.arpCharacterMotion=arpCharacterMotion_->load();
+    state.arpVariationSeed=state.arpCharacterFreeze?arpVariationSeed_.load(std::memory_order_relaxed):0x735a2d97u;
     state.arpCharacterRhythm=static_cast<std::uint8_t>(arpCharacterRhythm_->load());
     state.arpCharacterMask=0;
     for(std::size_t i=0;i<arpSteps_.size();++i)
@@ -872,6 +880,9 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual(p6plugin::kMidiInputChannelID,state.midiInputChannel);
     setActual(p6plugin::kPlasmaModeID,state.character.plasmaMode);
     setActual(p6plugin::kArpCharacterEnabledID,state.arpCharacterEnabled);
+    arpRestoreSeed_.store(state.arpVariationSeed,std::memory_order_relaxed);
+    arpVariationSeed_.store(state.arpVariationSeed,std::memory_order_relaxed);
+    arpRestoreRevision_.fetch_add(1,std::memory_order_release);
     setActual(p6plugin::kArpCharacterFreezeID,state.arpCharacterFreeze);
     setActual(p6plugin::kArpCharacterRhythmID,state.arpCharacterRhythm);
     if(auto* p=apvts_.getParameter(p6plugin::kArpCharacterMotionID))p->setValueNotifyingHost(p->convertTo0to1(state.arpCharacterMotion));
@@ -919,6 +930,7 @@ void P6AudioProcessor::loadMusicalPreset(const p6plugin::WrapperState& source,co
     auto current=presetSnapshot();current.patch=source.patch;current.sequenceControls=source.sequenceControls;current.character=source.character;
     current.arpCharacterEnabled=source.arpCharacterEnabled;current.arpCharacterFreeze=source.arpCharacterFreeze;
     current.arpCharacterMask=source.arpCharacterMask;current.arpCharacterRhythm=source.arpCharacterRhythm;current.arpCharacterMotion=source.arpCharacterMotion;
+    current.arpVariationSeed=source.arpVariationSeed;
     const auto bytes=p6plugin::encodeState(current);setStateInformation(bytes.data(),static_cast<int>(bytes.size()));adoptPreset(id,name,&source);
 }
 

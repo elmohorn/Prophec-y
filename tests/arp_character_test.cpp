@@ -21,5 +21,23 @@ int main() {
  for(int n=0;n<8000;n++){auto s=c.next();assert(s.play==((s.index%2)==0));if(n<8)reference[s.index]=s.velocityScale;else assert(reference[s.index]==s.velocityScale);}
  tracking=false;assert(allocations==0);
  c.setFreeze(false);bool changed=false;for(int i=0;i<16;i++){auto s=c.next();if(s.velocityScale!=reference[s.index])changed=true;}assert(changed);
+ const auto savedSeed=c.variationSeed();
+ p6::P6ArpCharacter restored;restored.reset();restored.setEnabled(true);restored.setMotion(1.0);restored.setFreeze(true);restored.restoreVariationSeed(savedSeed);
+ c.setFreeze(true);
+ for(int i=0;i<8;i++){const auto a=c.next(),b=restored.next();assert(a.index==b.index&&a.velocityScale==b.velocityScale);}
  c.setMotion(NAN);for(int i=0;i<8;i++)assert(c.next().velocityScale==1.0);
+ p6::P6Engine engine;engine.prepare(48000,1);
+ p6::VoiceParams p;p.osc1.level=.7;p.ampAttack=.001;p.ampRelease=.001;p.ampSustain=1.;engine.setVoiceParams(p);
+ p6::P6PerformanceScheduler scheduler(engine);scheduler.prepare(48000);
+ scheduler.setClockBpm(120);scheduler.setClockDivision(p6::ClockDivision::Sixteenth);
+ scheduler.setArpCharacterEnabled(true);scheduler.setArpCharacterMask(0);
+ scheduler.setArpeggiatorEnabled(true);scheduler.noteOn(60,.8);
+ tracking=true;
+ for(int i=0;i<7000;i++)(void)scheduler.process();
+ tracking=false;assert(engine.activeVoiceCount()==0&&allocations==0);
+ scheduler.setArpCharacterMask(255);
+ for(int i=0;i<7000;i++)(void)scheduler.process();
+ assert(engine.activeVoiceCount()>0);
+ scheduler.noteOff(60);for(int i=0;i<7000;i++)(void)scheduler.process();
+ assert(engine.activeVoiceCount()==0);
 }
