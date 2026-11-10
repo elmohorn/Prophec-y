@@ -66,6 +66,11 @@ std::vector<std::uint8_t> encodeState(const WrapperState& state)
     out.push_back(static_cast<std::uint8_t>(std::clamp(state.character.type<2?state.character.type:state.character.legacyType,0,1)));
     out.push_back(static_cast<std::uint8_t>(std::min<int>(state.midiInputChannel,16)));
     out.push_back(static_cast<std::uint8_t>(std::clamp(state.character.plasmaMode,0,1)));
+    out.push_back(static_cast<std::uint8_t>(state.arpCharacterEnabled));
+    out.push_back(static_cast<std::uint8_t>(state.arpCharacterFreeze));
+    out.push_back(state.arpCharacterMask);
+    out.push_back(std::min<std::uint8_t>(state.arpCharacterRhythm,8));
+    putU16(out,static_cast<std::uint16_t>(std::lround(1000.f*(std::isfinite(state.arpCharacterMotion)?std::clamp(state.arpCharacterMotion,0.f,1.f):0.f))));
     return out;
 }
 
@@ -77,7 +82,7 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
 
     std::size_t offset = kStateMagic.size();
     const auto version=getU16(bytes, offset);
-    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kV3StateBytes) || (version==4 && bytes.size()<kV4StateBytes) || (version==5 && bytes.size()<kV5StateBytes) || (version==6 && bytes.size()<kEncodedStateBytes))
+    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kV3StateBytes) || (version==4 && bytes.size()<kV4StateBytes) || (version==5 && bytes.size()<kV5StateBytes) || (version==6 && bytes.size()<kV6StateBytes) || (version==7 && bytes.size()<kEncodedStateBytes))
         return false;
 
     WrapperState decoded;
@@ -126,6 +131,14 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
     if(version>=4){const auto legacy=bytes[offset++];if(legacy>1)return false;decoded.character.legacyType=legacy;}
     if(version>=5){decoded.midiInputChannel=bytes[offset++];if(decoded.midiInputChannel>16)return false;}
     if(version>=6){decoded.character.plasmaMode=bytes[offset++];if(decoded.character.plasmaMode>1)return false;}
+    if(version>=7) {
+        const auto enabled=bytes[offset++],freeze=bytes[offset++];
+        decoded.arpCharacterMask=bytes[offset++];decoded.arpCharacterRhythm=bytes[offset++];
+        const auto motion=getU16(bytes,offset);
+        if(enabled>1||freeze>1||decoded.arpCharacterRhythm>8||motion>1000)return false;
+        decoded.arpCharacterEnabled=enabled!=0;decoded.arpCharacterFreeze=freeze!=0;
+        decoded.arpCharacterMotion=static_cast<float>(motion)/1000.f;
+    }
     state = std::move(decoded);
     return true;
 }

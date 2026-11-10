@@ -12,6 +12,7 @@ public:
     struct Step { bool play; double velocityScale; std::uint8_t index; };
     void setEnabled(bool enabled) noexcept { enabled_ = enabled; }
     void setMask(std::uint8_t mask) noexcept { mask_ = mask; }
+    void setRhythm(int pulses) noexcept { rhythm_ = std::clamp(pulses, 0, 8); }
     void setMotion(double motion) noexcept {
         motion_ = std::isfinite(motion) ? std::clamp(motion, 0.0, 1.0) : 0.0;
     }
@@ -22,7 +23,7 @@ public:
         if (index == 0 && step_ != 0 && !freeze_) fillVariations();
         ++step_;
         if (!enabled_) return {true, 1.0, index};
-        return {(mask_ & (1u << index)) != 0,
+        return {((mask_ & rhythmMask(rhythm_)) & (1u << index)) != 0,
                 1.0 + motion_ * variations_[index] * 0.25, index};
     }
     [[nodiscard]] static std::uint8_t rhythmMask(int pulses) noexcept {
@@ -42,6 +43,7 @@ private:
     }
     bool enabled_{false}, freeze_{false};
     std::uint8_t mask_{0xffu};
+    int rhythm_{8};
     double motion_{};
     std::uint32_t rng_{0x735a2d97u}, step_{};
     std::array<double,8> variations_{};

@@ -48,6 +48,7 @@ public:
     void setArpBeatSync(bool enabled) noexcept { arpBeatSync_ = enabled; }
     void setArpCharacterEnabled(bool enabled) noexcept { arpCharacter_.setEnabled(enabled); }
     void setArpCharacterMask(std::uint8_t mask) noexcept { arpCharacter_.setMask(mask); }
+    void setArpCharacterRhythm(int pulses) noexcept { arpCharacter_.setRhythm(pulses); }
     void setArpCharacterMotion(double amount) noexcept { arpCharacter_.setMotion(amount); }
     void setArpCharacterFreeze(bool freeze) noexcept { arpCharacter_.setFreeze(freeze); }
 
@@ -83,7 +84,9 @@ public:
     [[nodiscard]] bool arpeggiatorEnabled() const noexcept { return arpEnabled_; }
     [[nodiscard]] bool sequencePlaying() const noexcept { return sequencePlaying_; }
     [[nodiscard]] bool arpBeatSync() const noexcept { return arpBeatSync_; }
-    [[nodiscard]] int arpCharacterStep() const noexcept { return arpCharacterStep_; }
+    [[nodiscard]] int arpCharacterStep() const noexcept {
+        return arpEnabled_ && !sequencePlaying_ && !arpeggiator_.empty() ? arpCharacterStep_ : -1;
+    }
     [[nodiscard]] bool swingTimingIsOpaque() const noexcept { return clock_.swingTimingIsOpaque(); }
     [[nodiscard]] bool sequenceHasOpaqueHighBits() const noexcept { return sequencer_.hasOpaqueHighBits(); }
     [[nodiscard]] std::size_t sequenceLength() const noexcept { return sequencer_.length(); }

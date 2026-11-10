@@ -12,6 +12,7 @@
 #include "RealtimeSnapshotMailbox.h"
 #include "ui/display/LiveSpectrum.h"
 #include "OutputStage.h"
+#include "ArpCharacterParameters.h"
 #include "PresetBankCodec.h"
 #include "ui/ParameterPresentation.h"
 
@@ -97,6 +98,7 @@ public:
     p6plugin::OutputReadings consumeOutputReadings() noexcept;
     void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
     unsigned outputRevision() const noexcept { return outputRevision_.load(std::memory_order_relaxed); }
+    int arpPlaybackStep() const noexcept { return arpPlaybackStep_.load(std::memory_order_relaxed); }
     std::array<p6::MidiMonitorEvent,2> recentMidiEvents() const noexcept { return midiRouter_.recentMidiEvents(); }
     int midiPitchBendRaw14() const noexcept { return midiRouter_.pitchBendRaw14(); }
     unsigned midiPitchBendRevision() const noexcept { return midiRouter_.pitchBendRevision(); }
@@ -150,6 +152,12 @@ private:
     std::atomic<float>* masterDb_{};
     std::atomic<float>* midiInputChannel_{};
     std::atomic<float>* plasmaMode_{};
+    std::atomic<float>* arpCharacterEnabled_{};
+    std::atomic<float>* arpCharacterMotion_{};
+    std::atomic<float>* arpCharacterRhythm_{};
+    std::atomic<float>* arpCharacterFreeze_{};
+    std::array<std::atomic<float>*,8> arpSteps_{};
+    std::atomic<int> arpPlaybackStep_{-1};
     std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
     std::atomic<unsigned> outputClips_{},outputRevision_{};
     std::atomic<float> characterExcitation_{};
