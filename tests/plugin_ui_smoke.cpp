@@ -886,6 +886,8 @@ int main(int argc,char** argv)
         }
         CHECK(visibleSteps==8&&firstStep!=nullptr);
         CHECK(secondOctave!=nullptr&&secondOctave->isVisible()&&rate!=nullptr&&rate->isVisible());
+        const auto originalOctaves=p.parameters().getRawParameterValue("nrpn_0162")->load();
+        const auto originalDivision=p.parameters().getRawParameterValue("nrpn_0163")->load();
         secondOctave->onClick();
         CHECK(p.parameters().getRawParameterValue("nrpn_0162")->load()==1.f);
         rate->setValue(7,juce::sendNotificationSync);
@@ -894,6 +896,8 @@ int main(int argc,char** argv)
         CHECK(p.parameters().getRawParameterValue(p6plugin::kArpStepIDs[0])->load()<.5f);
         firstStep->setToggleState(true,juce::sendNotificationSync);
         if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(*editor,folder.getChildFile("module_arpeggiator.png")));}
+        set(p,"nrpn_0162",originalOctaves);
+        set(p,"nrpn_0163",originalDivision);
         panelSwitch->onClick();
         CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
         characterSwitch->setToggleState(false,juce::sendNotificationSync);
