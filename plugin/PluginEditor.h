@@ -28,13 +28,14 @@ private:
     };
     struct ArpStepButton final : juce::TextButton {
         bool playing{};
+        bool rhythmGate{true};
         void paint(juce::Graphics& g) override {
             auto bounds=getLocalBounds().toFloat();
             auto indicator=bounds.removeFromTop(8.f);
             auto r=bounds.reduced(2.f);
             g.setColour(juce::Colour{0xff111212});g.fillRoundedRectangle(r,4.f);
             g.setColour(juce::Colour{0xff656663});g.drawRoundedRectangle(r,4.f,1.f);
-            g.setColour(getToggleState()?juce::Colour{0xffe74235}:juce::Colour{0xff41302e});
+            g.setColour(getToggleState()&&rhythmGate?juce::Colour{0xffe74235}:juce::Colour{0xff41302e});
             g.fillEllipse(r.getCentreX()-3.f,r.getCentreY()-3.f,6.f,6.f);
             if(playing){g.setColour(juce::Colour{0xffff6354});g.fillEllipse(indicator.getCentreX()-3.f,indicator.getY()+1.f,6.f,6.f);}
         }

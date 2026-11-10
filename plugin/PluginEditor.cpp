@@ -418,9 +418,14 @@ void P6PluginEditor::setType(int value)
 void P6PluginEditor::timerCallback()
 {
     const int arpStep=processor_.arpPlaybackStep();
+    const auto rhythm=p6::P6ArpCharacter::rhythmMask(static_cast<int>(arpRhythm_.getValue()));
+    const bool characterEnabled=arpCharEnabled_.getToggleState();
     for(std::size_t i=0;i<arpSteps_.size();++i){
         const bool playing=arpStep==static_cast<int>(i);
-        if(arpSteps_[i].playing!=playing){arpSteps_[i].playing=playing;arpSteps_[i].repaint();}
+        const bool gate=!characterEnabled||(rhythm&(1u<<i))!=0;
+        if(arpSteps_[i].playing!=playing||arpSteps_[i].rhythmGate!=gate){
+            arpSteps_[i].playing=playing;arpSteps_[i].rhythmGate=gate;arpSteps_[i].repaint();
+        }
     }
     // A timer configured at 30Hz does NOT guarantee 33.3ms delivery in a DAW.
     // No iterative catch-up loop: LFO phase advances modulo 2pi, and
