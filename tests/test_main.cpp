@@ -1429,6 +1429,63 @@ static void testClockDivisionAndSampleTiming()
     }
     assert(hostBoundary == 3000);
 
+    // The DAW supplies PPQ only at block boundaries. Fractional sample grid
+    // edges must be emitted at the first available sample even when they
+    // fall immediately before the next block begins.
+    for (double rate : {44100.0, 48000.0, 96000.0})
+        for (double tempo : {73.0, 120.0, 187.0})
+            for (int block : {32, 64, 127, 512}) {
+                P6Clock host;
+                host.prepare(rate);
+                host.setDivision(ClockDivision::Sixteenth);
+                host.setSyncMode(ClockSyncMode::HostPpq);
+                const int total = static_cast<int>(rate * 2.0);
+                const double stepSamples = rate * 60.0 / tempo * 0.25;
+                double ppq = 0.0;
+                std::vector<int> edges;
+                for (int start = 0; start < total; start += block) {
+                    const int n = std::min(block, total - start);
+                    host.alignToHostPpq(ppq, tempo, true);
+                    for (int i = 0; i < n; ++i)
+                        if (host.tick()) edges.push_back(start + i);
+                    ppq += n * tempo / (60.0 * rate);
+                }
+                const int expected = static_cast<int>(std::floor((total - 1) / stepSamples)) + 1;
+                assert(static_cast<int>(edges.size()) == expected);
+                for (int i = 0; i < expected; ++i)
+                    assert(std::abs(edges[static_cast<std::size_t>(i)]
+                                    - std::ceil(i * stepSamples - 1.0e-8)) <= 1.0);
+            }
+
+    // Tempo automation at host block boundaries must not invent or lose grid
+    // edges as the number of samples per sixteenth changes.
+    for (double rate : {44100.0, 48000.0, 96000.0})
+        for (int block : {32, 64, 128, 512}) {
+            P6Clock host;
+            host.prepare(rate);
+            host.setDivision(ClockDivision::Sixteenth);
+            host.setSyncMode(ClockSyncMode::HostPpq);
+            double ppq = 0.0;
+            int sample = 0, lastGrid = -1;
+            std::vector<int> actual, expected;
+            for (int chunk = 0; chunk < 240; ++chunk) {
+                const double tempos[] = {79.0, 126.0, 201.0};
+                const double tempo = tempos[(chunk / 7) % 3];
+                host.alignToHostPpq(ppq, tempo, true);
+                for (int i = 0; i < block; ++i) {
+                    const double position = ppq + i * tempo / (60.0 * rate);
+                    const int grid = static_cast<int>(std::floor(position / 0.25 + 1.0e-10));
+                    if (grid > lastGrid) { expected.push_back(sample + i); lastGrid = grid; }
+                    if (host.tick()) actual.push_back(sample + i);
+                }
+                sample += block;
+                ppq += block * tempo / (60.0 * rate);
+            }
+            assert(actual.size() == expected.size());
+            for (std::size_t i = 0; i < actual.size(); ++i)
+                assert(std::abs(actual[i] - expected[i]) <= 1);
+        }
+
     // MIDI Timing Clock is 24 PPQN. A 16th is therefore exactly six F8 pulses.
     clock.setSyncMode(ClockSyncMode::MidiClock);
     clock.setDivision(ClockDivision::Sixteenth);

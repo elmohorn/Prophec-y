@@ -123,8 +123,12 @@ void P6Clock::alignToHostPpq(double ppq, double bpm, bool playing)
     double phase = std::fmod(ppq, stepQn);
     if (phase < 0.0)
         phase += stepQn;
-    const double eps = 1.0e-9;
-    if (phase < eps || stepQn - phase < eps) {
+    // A boundary can fall between the final sample of one host block and the
+    // first sample of the next. The host PPQ at that next block is already
+    // slightly past the grid; snap that sub-sample overshoot to its first
+    // playable sample instead of silently skipping the entire step.
+    const double quarterNotesPerSample = bpm_ / (60.0 * sampleRate_);
+    if (phase < quarterNotesPerSample || stepQn - phase < 1.0e-9) {
         samplesUntilNext_ = 0.0;
     } else {
         const double samplesPerQn = sampleRate_ * 60.0 / bpm_;
