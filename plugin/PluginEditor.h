@@ -45,10 +45,12 @@ private:
             g.setColour(juce::Colour{0xff252827});g.setFont(9.f);
             g.drawText(getButtonText(),r.removeFromLeft(r.getWidth()*.52f),juce::Justification::centred);
             auto well=r.reduced(3.f,2.f);
-            g.setColour(juce::Colour{0xff2d302f});g.fillRoundedRectangle(well,4.f);
-            const float knobX=getButtonText()=="HIDE"?well.getX()+3.f:well.getRight()-14.f;
-            g.setGradientFill(juce::ColourGradient(juce::Colour{0xffe6e7e2},knobX,well.getY(),juce::Colour{0xff72756f},knobX+10.f,well.getBottom(),false));
-            g.fillRoundedRectangle(knobX,well.getY()+2.f,10.f,well.getHeight()-4.f,2.f);
+            const float cx=well.getCentreX(),cy=well.getCentreY();
+            g.setColour(juce::Colour{0xff303231});g.fillEllipse(cx-7.f,cy-7.f,14.f,14.f);
+            g.setColour(juce::Colour{0xffa7aaa4});g.drawEllipse(cx-6.f,cy-6.f,12.f,12.f,1.f);
+            const float tip=getButtonText()=="HIDE"?-5.f:5.f;
+            g.setColour(juce::Colours::black.withAlpha(.4f));g.drawLine(cx+1.f,cy+1.f,cx+tip+1.f,cy-5.f,4.f);
+            g.setColour(juce::Colour{0xffd4d5ce});g.drawLine(cx,cy,cx+tip,cy-6.f,2.f);
         }
     };
     struct MetalLook final : juce::LookAndFeel_V4 {

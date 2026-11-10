@@ -513,6 +513,29 @@ int main(int argc,char** argv)
         CHECK(probe.readLiveOutput(captured,revision) && revision==lastRevision);
         probe.releaseResources();baseline.releaseResources();
     }
+    {
+        P6AudioProcessor synth;synth.prepareToPlay(48000,128);
+        set(synth,"wrapper_clock_source",0.f);
+        set(synth,"nrpn_0160",1.f);
+        set(synth,p6plugin::kArpCharacterEnabledID,1.f);
+        set(synth,p6plugin::kArpCharacterFreezeID,1.f);
+        set(synth,p6plugin::kArpCharacterMotionID,.4f);
+        set(synth,p6plugin::kArpStepIDs[2],0.f);
+        juce::AudioBuffer<float> audio(2,128);juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1,60,juce::uint8{100}),0);
+        synth.processBlock(audio,midi);midi.clear();
+        CHECK(synth.arpPlaybackStep()>=0&&synth.arpPlaybackStep()<8);
+        juce::MemoryBlock state;synth.getStateInformation(state);
+        P6AudioProcessor reopened;reopened.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+        CHECK(reopened.parameters().getRawParameterValue(p6plugin::kArpCharacterEnabledID)->load()>=.5f);
+        CHECK(reopened.parameters().getRawParameterValue(p6plugin::kArpCharacterFreezeID)->load()>=.5f);
+        CHECK(reopened.parameters().getRawParameterValue(p6plugin::kArpStepIDs[2])->load()<.5f);
+        CHECK(std::abs(reopened.parameters().getRawParameterValue(p6plugin::kArpCharacterMotionID)->load()-.4f)<.002f);
+        const auto sysex=synth.exportEditBuffer();juce::String error;
+        CHECK(synth.loadSysex(sysex,error));
+        CHECK(synth.parameters().getRawParameterValue(p6plugin::kArpCharacterEnabledID)->load()<.5f);
+        synth.releaseResources();
+    }
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
     CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);

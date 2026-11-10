@@ -903,12 +903,20 @@ void P6PluginEditor::paint(juce::Graphics& g)
         g.setColour(juce::Colour{0xff343833});g.fillRoundedRectangle(arpPanel.expanded(2),7);
         g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd1d2d3},arpPanel.getX(),arpPanel.getY(),juce::Colour{0xffadafb1},arpPanel.getRight(),arpPanel.getBottom(),false));
         g.fillRoundedRectangle(arpPanel,6);
+        g.setColour(juce::Colours::white.withAlpha(.6f));g.drawRoundedRectangle(arpPanel.reduced(1),5,1);
+        for(const float x:{44.f*sx,static_cast<float>(getWidth())-44.f*sx}) {
+            g.setColour(juce::Colour{0xff777a74});g.fillEllipse(x-4.f,646.f,8.f,8.f);
+            g.setColour(juce::Colour{0xffe1e2dd});g.drawLine(x-2.f,650.f,x+2.f,648.f,1.f);
+        }
         g.setColour(ink);g.setFont(juce::Font(13.f).boldened());g.drawText("ARPEGGIATOR",static_cast<int>(55*sx),646,static_cast<int>(190*sx),24,juce::Justification::centredLeft);
         if(arpOpen_) {
             g.setFont(juce::Font(10.f).boldened());
             g.drawText("CLASSIC",static_cast<int>(455*sx),649,static_cast<int>(115*sx),18,juce::Justification::centredLeft);
             g.drawText("PROPHEC-Y CHARACTER",static_cast<int>(710*sx),649,static_cast<int>(220*sx),18,juce::Justification::centredLeft);
-            g.setFont(10.f);
+            g.setColour(muted.withAlpha(.3f));
+            g.drawLine(600.f*sx,679.f,600.f*sx,777.f,1.f);
+            g.drawLine(930.f*sx,679.f,930.f*sx,777.f,1.f);
+            g.setColour(ink);g.setFont(11.f);
             for(const auto& label:std::array<std::pair<const char*,float>,5>{{{"MODE",90},{"OCTAVES",275},{"DIVISION",380},{"RHYTHM",640},{"MOTION",730}}})
                 g.drawText(label.first,static_cast<int>(label.second*sx),680,static_cast<int>(85*sx),16,juce::Justification::centredLeft);
             for(int i=0;i<8;++i)
