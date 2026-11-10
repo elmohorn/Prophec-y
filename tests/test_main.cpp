@@ -1697,6 +1697,47 @@ static void testSchedulerMidiClockGlobalPolicies()
     assert(s2.clock().running());
 }
 
+static void testArpGridAndLastKeyRelease()
+{
+    P6Arpeggiator arp;
+    arp.noteOn(60, 1.0);
+    assert(arp.next()->note == 60);
+    arp.noteOn(64, 1.0);
+    arp.setMode(ArpMode::Up);       // an unrelated patch update is a no-op
+    arp.setOctaves(1);
+    assert(arp.next()->note == 64);
+
+    P6Engine engine;
+    engine.prepare(48000.0);
+    auto params = performanceTestVoiceParams();
+    params.ampRelease = 0.0001;
+    engine.setVoiceParams(params);
+    P6PerformanceScheduler scheduler(engine);
+    scheduler.prepare(48000.0);
+    scheduler.setClockSyncMode(ClockSyncMode::MidiClock);
+    scheduler.setArpBeatSync(false);
+    scheduler.setArpeggiatorEnabled(true);
+    scheduler.midiClockStart();
+    for (int pulse = 0; pulse < 3; ++pulse) {
+        scheduler.midiTimingClock();
+        (void)scheduler.process();
+    }
+    scheduler.noteOn(60, 1.0);
+    assert(scheduler.clock().stepIndex() == 1);
+    for (int pulse = 3; pulse < 6; ++pulse) {
+        scheduler.midiTimingClock();
+        (void)scheduler.process();
+    }
+    scheduler.midiTimingClock();
+    (void)scheduler.process();
+    assert(scheduler.clock().stepIndex() == 2);
+
+    scheduler.setArpBeatSync(true);
+    scheduler.noteOff(60);
+    for (int i = 0; i < 100; ++i) (void)scheduler.process();
+    assert(engine.activeVoiceCount() == 0);
+}
+
 
 static void testNrpnSelectionIncrementAndMidiRouter()
 {
@@ -1911,6 +1952,7 @@ int main()
     testOwnedGeneratedNotesDoNotKillLiveNotes();
     testPerformanceSchedulerTimingAndPriority();
     testSchedulerMidiClockGlobalPolicies();
+    testArpGridAndLastKeyRelease();
     testMappedClockArpAndSequenceControls();
     testParameterMapper();
     testPatchToEnginePath();

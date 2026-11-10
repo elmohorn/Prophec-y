@@ -871,13 +871,25 @@ int main(int argc,char** argv)
         CHECK(editor->getHeight()==P6PluginEditor::expandedHeight+104);
         int visibleSteps=0;
         juce::Button* firstStep=nullptr;
+        juce::Button* secondOctave=nullptr;
+        juce::Slider* rate=nullptr;
         for(auto* child:editor->getChildren())
+        {
+            if(child->getTitle()=="Arp octave")
+                if(auto* button=dynamic_cast<juce::Button*>(child);button&&button->getButtonText()=="2")secondOctave=button;
+            if(child->getTitle()=="Arpeggiator rate")rate=dynamic_cast<juce::Slider*>(child);
             if(child->getTitle().startsWith("Arpeggiator step ")) {
                 CHECK(child->isVisible());
                 ++visibleSteps;
                 if(child->getTitle()=="Arpeggiator step 1")firstStep=dynamic_cast<juce::Button*>(child);
             }
+        }
         CHECK(visibleSteps==8&&firstStep!=nullptr);
+        CHECK(secondOctave!=nullptr&&secondOctave->isVisible()&&rate!=nullptr&&rate->isVisible());
+        secondOctave->onClick();
+        CHECK(p.parameters().getRawParameterValue("nrpn_0162")->load()==1.f);
+        rate->setValue(7,juce::sendNotificationSync);
+        CHECK(p.parameters().getRawParameterValue("nrpn_0163")->load()==6.f);
         firstStep->setToggleState(false,juce::sendNotificationSync);
         CHECK(p.parameters().getRawParameterValue(p6plugin::kArpStepIDs[0])->load()<.5f);
         firstStep->setToggleState(true,juce::sendNotificationSync);

@@ -55,7 +55,10 @@ void P6Arpeggiator::appendKey(std::array<Key, kMaxKeys>& keys, std::size_t& coun
 void P6Arpeggiator::setMode(ArpMode mode)
 {
     const auto raw = static_cast<unsigned>(mode);
-    mode_ = raw <= static_cast<unsigned>(ArpMode::Assign) ? mode : ArpMode::Up;
+    const auto next = raw <= static_cast<unsigned>(ArpMode::Assign) ? mode : ArpMode::Up;
+    if (mode_ == next)
+        return;
+    mode_ = next;
     if (mode_ == ArpMode::Assign && assignCount_ == 0)
         rebuildAssignFromArpKeys();
     resetStep();
@@ -63,7 +66,10 @@ void P6Arpeggiator::setMode(ArpMode mode)
 
 void P6Arpeggiator::setOctaves(std::uint8_t octaves)
 {
-    octaves_ = std::clamp<std::uint8_t>(octaves, 1, 3);
+    const auto next = std::clamp<std::uint8_t>(octaves, 1, 3);
+    if (octaves_ == next)
+        return;
+    octaves_ = next;
     resetStep();
 }
 

@@ -148,7 +148,11 @@ void P6PerformanceScheduler::noteOn(int midiNote, double velocity01)
             || (clock_.syncMode() == ClockSyncMode::MidiClock && clock_.running() && clock_.midiClockSeen());
         if (externalReady) {
             fireArpStep();
-            clock_.restart(false);
+            // Only the free-running clock starts a fresh interval at key-on.
+            // Restarting MIDI clock also resets its pulse index and shifts the
+            // grid whenever a note is played between F8 messages.
+            if (clock_.syncMode() == ClockSyncMode::Internal)
+                clock_.restart(false);
         }
     }
 }
@@ -157,6 +161,11 @@ void P6PerformanceScheduler::noteOff(int midiNote)
 {
     midiNote = std::clamp(midiNote, 0, 127);
     arpeggiator_.noteOff(midiNote);
+
+    // A beat-synced note may otherwise remain held forever after the final
+    // key-up if the external transport stops before another clock edge.
+    if (arpEnabled_ && arpeggiator_.empty())
+        releaseArpNote();
 
     if (sequencePlaying_) {
         engine_.noteOffOwned(midiNote, 0);
@@ -176,7 +185,8 @@ void P6PerformanceScheduler::noteOff(int midiNote)
             releaseArpNote();
         } else if (externalReady) {
             fireArpStep();
-            clock_.restart(false);
+            if (clock_.syncMode() == ClockSyncMode::Internal)
+                clock_.restart(false);
         }
     }
 }
