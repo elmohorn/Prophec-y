@@ -162,7 +162,8 @@ int main(int argc,char** argv)
     juce::ScopedJuceInitialiser_GUI gui;
     {
         PresetNameDisplay name;
-        name.setSize(240,38);
+        constexpr int narrowDisplayWidth=260;
+        name.setSize(narrowDisplayWidth,38);
         name.setName("INIT P6 CORE");
         for(int i=0;i<180;++i)name.tick();
         CHECK(name.scrollOffset()==0.f);
@@ -172,7 +173,7 @@ int main(int argc,char** argv)
         name.setSize(1200,38);
         for(int i=0;i<75;++i)name.tick();
         CHECK(name.scrollOffset()==0.f);
-        name.setSize(240,38);
+        name.setSize(narrowDisplayWidth,38);
         for(int i=0;i<75;++i)name.tick();
         CHECK(name.scrollOffset()>0.f);
         name.setName("BASS");
