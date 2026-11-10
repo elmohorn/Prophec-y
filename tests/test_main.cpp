@@ -1644,6 +1644,38 @@ static void testSchedulerMidiClockGlobalPolicies()
     s.midiTimingClock();
     (void)s.process();
     assert(engine.activeVoiceCount() != 0);
+    s.setArpBeatSync(true);
+    s.midiClockStop();
+    s.noteOff(60);
+    for (int i = 0; i < 48000; ++i)
+        (void)s.process();
+    assert(engine.activeVoiceCount() == 0);
+
+    // Stop silences generated notes without erasing the HOLD latch.
+    auto engineHold = configure();
+    P6PerformanceScheduler held(engineHold);
+    held.prepare(48000.0);
+    held.setClockSyncMode(ClockSyncMode::MidiClock);
+    held.setMidiStartStopEnabled(true);
+    held.setArpBeatSync(true);
+    held.setArpHold(true);
+    held.setArpeggiatorEnabled(true);
+    held.noteOn(64, 1.0);
+    held.midiClockStart();
+    held.midiTimingClock();
+    (void)held.process();
+    held.midiClockStop();
+    held.noteOff(64);
+    for (int i = 0; i < 48000; ++i)
+        (void)held.process();
+    assert(engineHold.activeVoiceCount() == 0);
+    assert(!held.arpeggiator().empty());
+    held.midiClockContinue();
+    for (int i = 0; i < 6; ++i) {
+        held.midiTimingClock();
+        (void)held.process();
+    }
+    assert(engineHold.activeVoiceCount() != 0);
 
     // "In, No Start/Stop": F8 is sufficient; FA/FC are intentionally ignored.
     auto engine2 = configure();

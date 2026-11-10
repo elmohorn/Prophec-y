@@ -29,29 +29,46 @@ private:
     struct ArpStepButton final : juce::TextButton {
         bool playing{};
         bool rhythmGate{true};
+        bool characterEnabled{};
         void paint(juce::Graphics& g) override {
-            auto bounds=getLocalBounds().toFloat();
-            auto indicator=bounds.removeFromTop(8.f);
-            auto r=bounds.reduced(2.f);
-            g.setColour(juce::Colour{0xff111212});g.fillRoundedRectangle(r,4.f);
-            g.setColour(juce::Colour{0xff656663});g.drawRoundedRectangle(r,4.f,1.f);
-            g.setColour(getToggleState()&&rhythmGate?juce::Colour{0xffe74235}:juce::Colour{0xff41302e});
-            g.fillEllipse(r.getCentreX()-3.f,r.getCentreY()-3.f,6.f,6.f);
-            if(playing){g.setColour(juce::Colour{0xffff6354});g.fillEllipse(indicator.getCentreX()-3.f,indicator.getY()+1.f,6.f,6.f);}
+            auto r=getLocalBounds().toFloat().reduced(2.f);
+            g.setColour(juce::Colours::black.withAlpha(.28f));
+            g.fillRoundedRectangle(r.translated(0.f,2.f),5.f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour{0xffa5a6a1},r.getX(),r.getY(),
+                                                   juce::Colour{0xff555754},r.getX(),r.getBottom(),false));
+            g.fillRoundedRectangle(r,5.f);
+            auto cap=r.reduced(2.f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour{0xff444543},cap.getX(),cap.getY(),
+                                                   juce::Colour{0xff101111},cap.getX(),cap.getBottom(),false));
+            g.fillRoundedRectangle(cap,3.5f);
+            const bool enabled=characterEnabled && getToggleState() && rhythmGate;
+            if(enabled) {
+                const auto c=cap.getCentre();
+                const auto intensity=playing?.95f:.45f;
+                g.setGradientFill(juce::ColourGradient(juce::Colour{0xffff493a}.withAlpha(intensity),c.x,c.y,
+                    juce::Colour{0xffbb211b}.withAlpha(0.f),c.x+cap.getWidth()*.54f,c.y,true));
+                g.fillRoundedRectangle(cap.reduced(1.f),3.f);
+                g.setColour(juce::Colour{0xffffb1a1}.withAlpha(playing?.95f:.6f));
+                g.fillEllipse(c.x-2.f,c.y-2.f,4.f,4.f);
+            }
+            g.setColour(juce::Colours::white.withAlpha(.17f));
+            g.drawLine(cap.getX()+3.f,cap.getY()+2.f,cap.getRight()-3.f,cap.getY()+2.f,1.f);
         }
     };
-    struct ArpPanelSwitch final : juce::TextButton {
+    struct PanelSwitch final : juce::TextButton {
         void paint(juce::Graphics& g) override {
             auto r=getLocalBounds().toFloat();
-            g.setColour(juce::Colour{0xff252827});g.setFont(9.f);
-            g.drawText(getButtonText(),r.removeFromLeft(r.getWidth()*.52f),juce::Justification::centred);
-            auto well=r.reduced(3.f,2.f);
-            const float cx=well.getCentreX(),cy=well.getCentreY();
-            g.setColour(juce::Colour{0xff303231});g.fillEllipse(cx-7.f,cy-7.f,14.f,14.f);
-            g.setColour(juce::Colour{0xffa7aaa4});g.drawEllipse(cx-6.f,cy-6.f,12.f,12.f,1.f);
-            const float tip=getButtonText()=="HIDE"?-5.f:5.f;
-            g.setColour(juce::Colours::black.withAlpha(.4f));g.drawLine(cx+1.f,cy+1.f,cx+tip+1.f,cy-5.f,4.f);
-            g.setColour(juce::Colour{0xffd4d5ce});g.drawLine(cx,cy,cx+tip,cy-6.f,2.f);
+            const bool open=getButtonText()=="HIDE";
+            auto track=r.removeFromRight(48.f).reduced(2.f,4.f);
+            g.setColour(juce::Colour{0xff292b2a});g.fillRoundedRectangle(track,4.f);
+            g.setColour(juce::Colour{0xff777a75});g.drawRoundedRectangle(track,4.f,1.f);
+            auto rocker=track.reduced(2.f);rocker.setWidth(rocker.getWidth()*.53f);
+            if(open) rocker.setX(track.getRight()-rocker.getWidth()-2.f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour{0xffc2c4be},rocker.getX(),rocker.getY(),
+                                                   juce::Colour{0xff777a75},rocker.getX(),rocker.getBottom(),false));
+            g.fillRoundedRectangle(rocker,2.f);
+            g.setColour(juce::Colour{0xff303330});g.setFont(10.f);
+            g.drawText(open?"HIDE":"SHOW",r,juce::Justification::centred);
         }
     };
     struct MetalLook final : juce::LookAndFeel_V4 {
@@ -92,7 +109,8 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> masterBinding_;
     unsigned lastOutputRevision_{};
     int staleOutputTicks_{};
-    juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"},collapse_{"HIDE"};
+    juce::TextButton module_{"MODULE"},studio_{"STUDIO"},previous_{"<"},next_{">"};
+    PanelSwitch collapse_;
     juce::TextButton opticalPreview_{"OPTO PREVIEW"};
     juce::ToggleButton bypass_{"BYPASS"},motion_{"MOTION"};
     juce::ComboBox type_,position_,keyTrack_,fxAType_,fxBType_,midiInputChannel_,plasmaMode_;
@@ -119,7 +137,7 @@ private:
     bool studioView_{},collapsed_{},showTube_{},opticalPreviewActive_{};
     bool arpOpen_{};
     int arpOffset() const noexcept { return arpOpen_ ? 160 : 56; }
-    ArpPanelSwitch arpPanelSwitch_;
+    PanelSwitch arpPanelSwitch_;
     juce::ToggleButton arpOn_{"ON"},arpHold_{"HOLD"},arpSync_{"SYNC"},arpCharEnabled_{"CHAR"},arpFreeze_{"FREEZE"};
     juce::ComboBox arpMode_,arpOctaves_,arpDivision_,arpClock_;
     juce::Slider arpRhythm_,arpMotion_,arpBpm_;

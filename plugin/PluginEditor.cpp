@@ -296,6 +296,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
         const juce::Component::SafePointer<P6PluginEditor> safe(this);
         menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&headerMenu_),[safe](int id){if(!safe)return;if(id==1&&safe->module_.onClick)safe->module_.onClick();else if(id==2&&safe->studio_.onClick)safe->studio_.onClick();else if(id==3&&safe->clearClips_.onClick)safe->clearClips_.onClick();else if(id>=101&&id<=117)safe->midiInputChannel_.setSelectedId(id-100,juce::sendNotificationSync);});
     };
+    collapse_.setTitle("Character panel");
     collapse_.onClick=[this]{collapsed_=!collapsed_;refreshVisibility();};motion_.setToggleState(true,juce::dontSendNotification);
     motion_.setTooltip("Pause the light animation; audio continues.");collapse_.setTooltip("Hide the device, keeping its audio active.");
     opticalPreview_.setLookAndFeel(&look_);
@@ -423,8 +424,9 @@ void P6PluginEditor::timerCallback()
     for(std::size_t i=0;i<arpSteps_.size();++i){
         const bool playing=arpStep==static_cast<int>(i);
         const bool gate=!characterEnabled||(rhythm&(1u<<i))!=0;
-        if(arpSteps_[i].playing!=playing||arpSteps_[i].rhythmGate!=gate){
-            arpSteps_[i].playing=playing;arpSteps_[i].rhythmGate=gate;arpSteps_[i].repaint();
+        if(arpSteps_[i].playing!=playing||arpSteps_[i].rhythmGate!=gate||arpSteps_[i].characterEnabled!=characterEnabled){
+            arpSteps_[i].playing=playing;arpSteps_[i].rhythmGate=gate;
+            arpSteps_[i].characterEnabled=characterEnabled;arpSteps_[i].repaint();
         }
     }
     // A timer configured at 30Hz does NOT guarantee 33.3ms delivery in a DAW.
@@ -626,7 +628,11 @@ void P6PluginEditor::refreshVisibility()
     arpPanelSwitch_.setVisible(!studioView_);arpOn_.setVisible(!studioView_);
     for(auto* c:std::array<juce::Component*,11>{&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_,&arpMode_,&arpOctaves_,&arpDivision_,&arpClock_,&arpRhythm_,&arpMotion_,&arpBpm_})
         c->setVisible(!studioView_&&arpOpen_);
-    for(auto& b:arpSteps_)b.setVisible(!studioView_&&arpOpen_);
+    for(auto& b:arpSteps_) {
+        b.characterEnabled=arpCharEnabled_.getToggleState();
+        b.setVisible(!studioView_&&arpOpen_);
+        b.repaint();
+    }
     const bool expanded=!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_;
     const int base=expanded?expandedHeight:compactHeight;
     const int needed=base+(studioView_?0:arpOffset()-56);
@@ -665,7 +671,7 @@ void P6PluginEditor::resized()
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
     fxAType_.setBounds(rect(923,582,171,20));fxBType_.setBounds(rect(923,607,171,20));
     keyTrack_.setBounds(rect(587,446,132,24));
-    arpPanelSwitch_.setBounds(rect(1290,646,90,25));arpOn_.setBounds(rect(260,646,75,25));
+    arpPanelSwitch_.setBounds(rect(1260,644,120,29));arpOn_.setBounds(rect(260,646,75,25));
     arpHold_.setBounds(rect(340,646,95,25));arpMode_.setBounds(rect(90,705,150,28));
     arpOctaves_.setBounds(rect(275,705,75,28));arpDivision_.setBounds(rect(380,705,100,28));
     arpSync_.setBounds(rect(495,705,80,28));arpCharEnabled_.setBounds(rect(610,646,90,25));
@@ -676,7 +682,7 @@ void P6PluginEditor::resized()
     opticalPreview_.setBounds(characterRect(306,652,177,25));
     previous_.setBounds(characterRect(306,652,31,25));type_.setBounds(characterRect(343,652,260,25));next_.setBounds(characterRect(609,652,31,25));
     position_.setBounds(characterRect(660,652,195,25));bypass_.setBounds(characterRect(875,652,110,25));
-    plasmaMode_.setBounds(characterRect(1000,652,140,25));motion_.setBounds(characterRect(1150,652,100,25));collapse_.setBounds(characterRect(1275,652,110,25));
+    plasmaMode_.setBounds(characterRect(1000,652,140,25));motion_.setBounds(characterRect(1150,652,100,25));collapse_.setBounds(characterRect(1265,650,120,29));
     displayArea_=rect(522,103,306,141);
     display_.setBounds(displayArea_);
     tubeArea_={32,637+arpOffset(),getWidth()-64,std::max(51,getHeight()-660-arpOffset())};
