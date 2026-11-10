@@ -44,7 +44,7 @@ private:
             const bool enabled=characterEnabled && getToggleState() && rhythmGate;
             if(enabled) {
                 const auto c=cap.getCentre();
-                const auto intensity=playing?.95f:.32f;
+                const auto intensity=playing?.95f:.06f;
                 // The active lamp illuminates the recess around the key, not
                 // just its painted surface. Inactive steps stay nearly dark.
                 if(playing) {
@@ -55,8 +55,10 @@ private:
                 g.setGradientFill(juce::ColourGradient(juce::Colour{0xffff493a}.withAlpha(intensity),c.x,c.y,
                     juce::Colour{0xffbb211b}.withAlpha(0.f),c.x+cap.getWidth()*.54f,c.y,true));
                 g.fillRoundedRectangle(cap.reduced(1.f),3.f);
-                g.setColour(juce::Colour{0xffffb1a1}.withAlpha(playing?.95f:.6f));
-                g.fillEllipse(c.x-2.f,c.y-2.f,4.f,4.f);
+                if(playing) {
+                    g.setColour(juce::Colour{0xffffb1a1}.withAlpha(.95f));
+                    g.fillEllipse(c.x-2.f,c.y-2.f,4.f,4.f);
+                }
             }
             g.setColour(juce::Colours::white.withAlpha(.17f));
             g.drawLine(cap.getX()+3.f,cap.getY()+2.f,cap.getRight()-3.f,cap.getY()+2.f,1.f);

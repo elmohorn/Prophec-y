@@ -711,9 +711,9 @@ void P6PluginEditor::resized()
     arpHold_.setBounds(rect(340,646,95,25));arpMode_.setBounds(rect(90,705,150,28));
     arpOctaves_.setBounds(rect(275,705,75,28));arpDivision_.setBounds(rect(380,705,100,28));
     for(std::size_t i=0;i<arpOctaveButtons_.size();++i)arpOctaveButtons_[i].setBounds(rect(275.f+33.f*static_cast<float>(i),707,30,30));
-    arpRate_.setBounds(rect(380,696,88,73));
-    arpSync_.setBounds(rect(495,705,80,28));arpCharEnabled_.setBounds(rect(610,646,90,25));
-    arpBpm_.setBounds(rect(85,746,160,24));arpClock_.setBounds(rect(340,746,170,24));
+    arpRate_.setBounds(rect(425,696,88,73));
+    arpSync_.setBounds(rect(520,705,80,28));arpCharEnabled_.setBounds(rect(610,646,90,25));
+    arpBpm_.setBounds(rect(85,746,160,24));arpClock_.setBounds(rect(305,746,100,24));
     arpRhythm_.setBounds(rect(640,701,70,70));arpMotion_.setBounds(rect(730,701,70,70));
     arpFreeze_.setBounds(rect(815,705,100,26));
     for(std::size_t i=0;i<arpSteps_.size();++i)arpSteps_[i].setBounds(rect(950.f+55.f*static_cast<float>(i),704,48,50));
@@ -966,12 +966,12 @@ void P6PluginEditor::paint(juce::Graphics& g)
             g.drawLine(600.f*sx,679.f,600.f*sx,777.f,1.f);
             g.drawLine(930.f*sx,679.f,930.f*sx,777.f,1.f);
             g.setColour(ink);g.setFont(11.f);
-            for(const auto& label:std::array<std::pair<const char*,float>,5>{{{"MODE",90},{"OCTAVES",275},{"DIVISION",380},{"RHYTHM",640},{"MOTION",730}}})
+            for(const auto& label:std::array<std::pair<const char*,float>,5>{{{"MODE",90},{"OCTAVES",275},{"RATE",425},{"RHYTHM",640},{"MOTION",730}}})
                 g.drawText(label.first,static_cast<int>(label.second*sx),680,static_cast<int>(85*sx),16,juce::Justification::centredLeft);
             for(int i=0;i<8;++i)
                 g.drawText(juce::String(i+1),static_cast<int>((950.f+55.f*i)*sx),682,static_cast<int>(48*sx),16,juce::Justification::centred);
             g.drawText("BPM",static_cast<int>(50*sx),750,static_cast<int>(35*sx),16,juce::Justification::centredLeft);
-            g.drawText("CLOCK",static_cast<int>(280*sx),750,static_cast<int>(60*sx),16,juce::Justification::centredLeft);
+            g.drawText("CLOCK",static_cast<int>(255*sx),750,static_cast<int>(50*sx),16,juce::Justification::centredLeft);
         }
     }
     g.saveState();g.addTransform(juce::AffineTransform::translation(0.f,static_cast<float>(arpOffset())));
