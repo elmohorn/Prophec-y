@@ -67,7 +67,7 @@ private:
             g.setGradientFill(juce::ColourGradient(juce::Colour{0xffc2c4be},rocker.getX(),rocker.getY(),
                                                    juce::Colour{0xff777a75},rocker.getX(),rocker.getBottom(),false));
             g.fillRoundedRectangle(rocker,2.f);
-            g.setColour(juce::Colour{0xff303330});g.setFont(juce::FontOptions(10.f));
+            g.setColour(juce::Colour{0xff303330});g.setFont(10.f);
             g.drawText(open?"HIDE":"SHOW",r,juce::Justification::centred);
         }
     };

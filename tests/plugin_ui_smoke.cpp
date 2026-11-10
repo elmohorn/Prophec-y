@@ -856,9 +856,17 @@ int main(int argc,char** argv)
     editor.reset(p.createEditor());
     {
         juce::Button* panelSwitch=nullptr;
+        juce::Button* characterSwitch=nullptr;
+        juce::Button* effectPanelSwitch=nullptr;
         for(auto* child:editor->getChildren())
+        {
             if(child->getTitle()=="Arpeggiator panel")panelSwitch=dynamic_cast<juce::Button*>(child);
-        CHECK(panelSwitch!=nullptr);
+            if(child->getTitle()=="Character panel")effectPanelSwitch=dynamic_cast<juce::Button*>(child);
+            if(auto* button=dynamic_cast<juce::Button*>(child);button&&button->getButtonText()=="CHAR")characterSwitch=button;
+        }
+        CHECK(panelSwitch!=nullptr&&effectPanelSwitch!=nullptr&&characterSwitch!=nullptr);
+        CHECK(panelSwitch->getWidth()>=100&&effectPanelSwitch->getWidth()>=100);
+        characterSwitch->setToggleState(true,juce::sendNotificationSync);
         panelSwitch->onClick();
         CHECK(editor->getHeight()==P6PluginEditor::expandedHeight+104);
         int visibleSteps=0;
@@ -876,6 +884,7 @@ int main(int argc,char** argv)
         if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(*editor,folder.getChildFile("module_arpeggiator.png")));}
         panelSwitch->onClick();
         CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+        characterSwitch->setToggleState(false,juce::sendNotificationSync);
     }
     // The Spring checks recreate the editor, so reacquire every pointer before
     // testing layout. The previous editor and its components no longer exist.

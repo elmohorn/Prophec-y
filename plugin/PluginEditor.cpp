@@ -296,6 +296,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
         const juce::Component::SafePointer<P6PluginEditor> safe(this);
         menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&headerMenu_),[safe](int id){if(!safe)return;if(id==1&&safe->module_.onClick)safe->module_.onClick();else if(id==2&&safe->studio_.onClick)safe->studio_.onClick();else if(id==3&&safe->clearClips_.onClick)safe->clearClips_.onClick();else if(id>=101&&id<=117)safe->midiInputChannel_.setSelectedId(id-100,juce::sendNotificationSync);});
     };
+    collapse_.setTitle("Character panel");
     collapse_.onClick=[this]{collapsed_=!collapsed_;refreshVisibility();};motion_.setToggleState(true,juce::dontSendNotification);
     motion_.setTooltip("Pause the light animation; audio continues.");collapse_.setTooltip("Hide the device, keeping its audio active.");
     opticalPreview_.setLookAndFeel(&look_);
@@ -627,7 +628,11 @@ void P6PluginEditor::refreshVisibility()
     arpPanelSwitch_.setVisible(!studioView_);arpOn_.setVisible(!studioView_);
     for(auto* c:std::array<juce::Component*,11>{&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_,&arpMode_,&arpOctaves_,&arpDivision_,&arpClock_,&arpRhythm_,&arpMotion_,&arpBpm_})
         c->setVisible(!studioView_&&arpOpen_);
-    for(auto& b:arpSteps_)b.setVisible(!studioView_&&arpOpen_);
+    for(auto& b:arpSteps_) {
+        b.characterEnabled=arpCharEnabled_.getToggleState();
+        b.setVisible(!studioView_&&arpOpen_);
+        b.repaint();
+    }
     const bool expanded=!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_;
     const int base=expanded?expandedHeight:compactHeight;
     const int needed=base+(studioView_?0:arpOffset()-56);
