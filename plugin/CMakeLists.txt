@@ -138,6 +138,9 @@ add_custom_command(TARGET P6CorePlugin_VST3 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
         "${P6_VST3_BUNDLE}/Contents/Resources/THIRD_PARTY_NOTICES.md"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/third_party/GenerativeMIDI-LICENSE.txt"
+        "${P6_VST3_BUNDLE}/Contents/Resources/GenerativeMIDI-LICENSE.txt"
     VERBATIM)
 
 option(P6_BUILD_UI_SMOKE "Build the native editor/state smoke executable" OFF)

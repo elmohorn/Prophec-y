@@ -34,6 +34,8 @@ public:
         return {((mask_ & rhythmMask(rhythm_)) & (1u << index)) != 0,
                 1.0 + motion_ * variations_[index] * 0.25, index};
     }
+    // Remainder pattern based on GenerativeMIDI EuclideanEngine (MIT);
+    // see third_party/GenerativeMIDI-LICENSE.txt.
     [[nodiscard]] static std::uint8_t rhythmMask(int pulses) noexcept {
         pulses = std::clamp(pulses, 0, 8);
         std::uint8_t mask = 0;
