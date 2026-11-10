@@ -229,6 +229,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     arpDivision_.addItemList(juce::StringArray{"1/2","1/4","1/8","1/8 D","1/8 S","1/8 T","1/16","1/16 S","1/16 T","1/32"},1);
     arpClock_.addItemList(juce::StringArray{"INTERNAL","HOST","MIDI CLOCK"},1);
     arpMode_.setTitle("Arpeggiator mode");arpOctaves_.setTitle("Arpeggiator octaves");arpDivision_.setTitle("Arpeggiator clock division");
+    arpDivision_.setTooltip("Clock divisions follow the Prophet-6 mapping. Swing divisions currently use straight timing pending hardware measurement.");
     arpClock_.setTitle("Arpeggiator clock source");arpSync_.setTooltip("Beat Sync: quantize arpeggiator start to the clock grid.");
     for(auto* s:{&arpRhythm_,&arpMotion_}){s->setLookAndFeel(&look_);s->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);s->setTextBoxStyle(juce::Slider::TextBoxBelow,false,60,17);addAndMakeVisible(s);}
     arpRhythm_.setTitle("Arp Rhythm");arpMotion_.setTitle("Arp Motion");
@@ -904,6 +905,9 @@ void P6PluginEditor::paint(juce::Graphics& g)
         g.fillRoundedRectangle(arpPanel,6);
         g.setColour(ink);g.setFont(juce::Font(13.f).boldened());g.drawText("ARPEGGIATOR",static_cast<int>(55*sx),646,static_cast<int>(190*sx),24,juce::Justification::centredLeft);
         if(arpOpen_) {
+            g.setFont(juce::Font(10.f).boldened());
+            g.drawText("CLASSIC",static_cast<int>(455*sx),649,static_cast<int>(115*sx),18,juce::Justification::centredLeft);
+            g.drawText("PROPHEC-Y CHARACTER",static_cast<int>(710*sx),649,static_cast<int>(220*sx),18,juce::Justification::centredLeft);
             g.setFont(10.f);
             for(const auto& label:std::array<std::pair<const char*,float>,5>{{{"MODE",90},{"OCTAVES",275},{"DIVISION",380},{"RHYTHM",640},{"MOTION",730}}})
                 g.drawText(label.first,static_cast<int>(label.second*sx),680,static_cast<int>(85*sx),16,juce::Justification::centredLeft);

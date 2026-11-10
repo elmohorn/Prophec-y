@@ -958,6 +958,10 @@ bool P6AudioProcessor::loadSysex (std::span<const std::uint8_t> bytes, juce::Str
         hostSnapshot = patch_;
     }
     syncHostParametersFromPatch (hostSnapshot);
+    // Prophet SysEx has no Prophec-Y arpeggiator extension. Imported programs
+    // start in the compatible mode even if the previous program used it.
+    if(auto* parameter=apvts_.getParameter(p6plugin::kArpCharacterEnabledID))
+        parameter->setValueNotifyingHost(0.f);
     fullPatchLoadPending_.store (true, std::memory_order_release);
     error.clear();
     return true;
