@@ -1,6 +1,17 @@
 #include "ProphecyParameterControl.h"
 #include <utility>
 
+std::optional<float> ProphecyParameterControl::ledNeutralProportion()
+{
+    if (!parameter_ || !context_) return {};
+    const auto context = context_();
+    const double low = p6plugin::ui::parameterValue(nrpn_, getMinimum(), context).value;
+    const double high = p6plugin::ui::parameterValue(nrpn_, getMaximum(), context).value;
+    if (low >= 0.0 || high <= 0.0) return {};
+    const double rawZero = getMinimum() + (getMaximum() - getMinimum()) * -low / (high - low);
+    return static_cast<float>(valueToProportionOfLength(rawZero));
+}
+
 void ProphecyParameterControl::configure(juce::RangedAudioParameter& parameter,int nrpn,ContextProvider context)
 {
     parameter_=&parameter;nrpn_=nrpn;context_=std::move(context);

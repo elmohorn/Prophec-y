@@ -45,9 +45,9 @@ else()
 endif()
 
 enable_testing()
-add_executable(p6_live_spectrum_tests tests/live_spectrum_test.cpp)
-target_include_directories(p6_live_spectrum_tests PRIVATE plugin)
-add_test(NAME p6_live_spectrum_tests COMMAND p6_live_spectrum_tests)
+add_executable(p6_led_ring_tests tests/led_ring_test.cpp)
+target_include_directories(p6_led_ring_tests PRIVATE plugin)
+add_test(NAME p6_led_ring_tests COMMAND p6_led_ring_tests)
 add_library(p6character plugin/CharacterFx.cpp plugin/CustomCharacter.cpp
     third_party/DaisySP/Source/Effects/wavefolder.cpp
     third_party/DaisySP/Source/Filters/svf.cpp
@@ -171,7 +171,7 @@ add_executable(p6_dsp_fingerprint tools/dsp_fingerprint.cpp)
 target_link_libraries(p6_dsp_fingerprint PRIVATE p6core)
 
 # Parameter presentation remains independent of JUCE and audio-thread state.
-add_library(p6presentation plugin/ui/ParameterPresentation.cpp plugin/ui/ContextPreview.cpp)
+add_library(p6presentation plugin/ui/ParameterPresentation.cpp)
 target_include_directories(p6presentation PUBLIC plugin)
 target_link_libraries(p6presentation PUBLIC p6core)
 set_target_properties(p6presentation PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -183,10 +183,6 @@ target_include_directories(p6_state_compatibility_tests PRIVATE plugin)
 target_link_libraries(p6_state_compatibility_tests PRIVATE p6core)
 target_compile_definitions(p6_state_compatibility_tests PRIVATE P6_STATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/state_versions")
 add_test(NAME p6_state_compatibility_tests COMMAND p6_state_compatibility_tests)
-
-add_executable(p6_context_preview_tests tests/context_preview_test.cpp)
-target_link_libraries(p6_context_preview_tests PRIVATE p6presentation)
-add_test(NAME p6_context_preview_tests COMMAND p6_context_preview_tests)
 
 add_executable(p6_output_stage_tests tests/output_stage_test.cpp plugin/PluginStateCodec.cpp)
 target_include_directories(p6_output_stage_tests PRIVATE plugin)

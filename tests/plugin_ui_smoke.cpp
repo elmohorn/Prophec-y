@@ -20,8 +20,14 @@ struct GestureProbe : juce::AudioProcessorParameter::Listener {
 };
 static bool screenshot(juce::Component& c,const juce::File& file)
 {
-    juce::Image image(juce::Image::ARGB,c.getWidth(),c.getHeight(),true);
-    juce::Graphics g(image);c.paintEntireComponent(g,true);
+    juce::Image image(juce::Image::ARGB,c.getWidth(),c.getHeight(),true,juce::SoftwareImageType{});
+    { juce::Graphics graphics(image);c.paintEntireComponent(graphics,true); }
+    bool varied=false;
+    const auto first=image.getPixelAt(0,0);
+    for(int y=0;y<image.getHeight();y+=3)
+        for(int x=0;x<image.getWidth();x+=3)
+            varied=varied||image.getPixelAt(x,y)!=first;
+    if(!varied)return false;
     juce::MemoryOutputStream stream;
     if(!juce::PNGImageFormat().writeImageToStream(image,stream))return false;
     return file.replaceWithData(stream.getData(),stream.getDataSize());
@@ -147,7 +153,7 @@ static int presetLibraryChecks(const juce::File& captureFolder)
         search->setText({},false);search->onTextChange();CHECK(list->getModel()->getNumRows()==774);
         for(int width:{1240,1460,1780}){
             gallery.setSize(width,P6PluginEditor::expandedHeight);
-            CHECK(browser->getY()==88);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));
+            CHECK(browser->getY()==P6PluginEditor::headerHeight-5);CHECK(gallery.getLocalBounds().contains(browser->getBounds()));
             for(auto* child:browser->getChildren())if(child->isVisible())CHECK(browser->getLocalBounds().contains(child->getBounds()));
             CHECK((list->getHeight()-2)%list->getRowHeight()==0);
             CHECK(screenshot(gallery,captureFolder.getChildFile("module_browser_"+juce::String(width)+".png")));
@@ -161,31 +167,24 @@ int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
     {
-        ContextDisplay live;live.setSize(322,145);
-        p6plugin::ui::LiveAudioFrame tone{},silence{};
-        for(std::size_t i=0;i<tone.left.size();++i) {
-            tone.left[i]=std::sin(2.f*std::numbers::pi_v<float>*32.f*static_cast<float>(i)/static_cast<float>(tone.left.size()));
-            tone.right[i]=-tone.left[i];
-        }
-        live.setLiveFrame(silence);
-        const auto quiet=live.createComponentSnapshot(live.getLocalBounds());
-        live.setLiveFrame(tone);
-        const auto active=live.createComponentSnapshot(live.getLocalBounds());
-        bool different=false;
-        for(int y=58;y<125;++y)for(int x=17;x<305;++x)different|=quiet.getPixelAt(x,y)!=active.getPixelAt(x,y);
-        CHECK(different);
-        CHECK(live.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)));
-        const auto waveform=live.createComponentSnapshot(live.getLocalBounds());
-        different=false;
-        for(int y=58;y<125;++y)for(int x=17;x<305;++x)different|=waveform.getPixelAt(x,y)!=active.getPixelAt(x,y);
-        CHECK(different);
-        if(argc>1) {
-            const juce::File folder{juce::String(argv[1])};folder.createDirectory();
-            CHECK(screenshot(live,folder.getChildFile("display_live_waveform.png")));
-            CHECK(live.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)));
-            CHECK(live.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)));
-            CHECK(screenshot(live,folder.getChildFile("display_live_spectrum.png")));
-        }
+        PresetNameDisplay name;
+        constexpr int narrowDisplayWidth=260;
+        name.setSize(narrowDisplayWidth,38);
+        name.setName("INIT P6 CORE");
+        for(int i=0;i<180;++i)name.tick();
+        CHECK(name.scrollOffset()==0.f);
+        name.setName("A LONG PROPHET SIX PRESET NAME THAT MUST SCROLL");
+        for(int i=0;i<75;++i)name.tick();
+        CHECK(name.scrollOffset()>0.f);
+        name.setSize(1200,38);
+        for(int i=0;i<75;++i)name.tick();
+        CHECK(name.scrollOffset()==0.f);
+        name.setSize(narrowDisplayWidth,38);
+        for(int i=0;i<75;++i)name.tick();
+        CHECK(name.scrollOffset()>0.f);
+        name.setName("BASS");
+        CHECK(name.scrollOffset()==0.f&&name.getTooltip()=="BASS");
+        if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(name,folder.getChildFile("display_preset_matrix.png")));}
     }
     // Motion pauses the current heater frame; bypass extinguishes it.
     TubeChamber motionTestChamber;motionTestChamber.setSize(320,184);motionTestChamber.setIllumination(true,true,.8f,.5f);
@@ -490,30 +489,6 @@ int main(int argc,char** argv)
 
     CHECK(presetLibraryChecks(argc>1?juce::File(juce::String(argv[1])):juce::File{})==0);
     {
-        P6AudioProcessor probe,baseline;probe.prepareToPlay(48000,128);baseline.prepareToPlay(48000,128);
-        p6plugin::ui::LiveAudioFrame captured{};std::uint32_t revision{};
-        CHECK(!probe.readLiveOutput(captured,revision));
-        probe.attachLiveDisplay();
-        std::array<float,p6plugin::ui::kLiveFrameSize> expectedL{},expectedR{};
-        juce::AudioBuffer<float> b(2,128),reference(2,128);juce::MidiBuffer events;
-        events.addEvent(juce::MidiMessage::noteOn(1,60,juce::uint8{100}),0);
-        for(int block=0;block<8;++block) {
-            probe.processBlock(b,events);baseline.processBlock(reference,events);events.clear();
-            for(int i=0;i<128;++i) {
-                CHECK(b.getSample(0,i)==reference.getSample(0,i));
-                CHECK(b.getSample(1,i)==reference.getSample(1,i));
-                expectedL[static_cast<std::size_t>(block*128+i)]=b.getSample(0,i);
-                expectedR[static_cast<std::size_t>(block*128+i)]=b.getSample(1,i);
-            }
-        }
-        CHECK(probe.readLiveOutput(captured,revision));CHECK(captured.sampleRate==48000.);
-        CHECK(captured.left==expectedL && captured.right==expectedR);
-        const auto lastRevision=revision;probe.detachLiveDisplay();
-        for(int i=0;i<8;++i)probe.processBlock(b,events);
-        CHECK(probe.readLiveOutput(captured,revision) && revision==lastRevision);
-        probe.releaseResources();baseline.releaseResources();
-    }
-    {
         P6AudioProcessor synth;synth.prepareToPlay(48000,128);
         set(synth,"wrapper_clock_source",0.f);
         set(synth,"nrpn_0160",1.f);
@@ -597,6 +572,19 @@ int main(int argc,char** argv)
             for(auto* text:slider->getChildren())
                 if(auto* label=dynamic_cast<juce::Label*>(text);label&&label->getText().contains("dB"))driveDisplayFormatted=true;
     CHECK(driveDisplayFormatted);
+    if(argc>1) {
+        const juce::File folder{juce::String(argv[1])};
+        for(auto* child:editor->getChildren()) {
+            auto* dial=dynamic_cast<ProphecyParameterControl*>(child);
+            if(!dial||!dial->hasDescriptor()||(dial->parameterNrpn()!=45&&dial->parameterNrpn()!=77))continue;
+            const double saved=dial->getValue();
+            for(int position=0;position<3;++position) {
+                dial->setValue(dial->getMinimum()+(dial->getMaximum()-dial->getMinimum())*position*.5,juce::sendNotificationSync);
+                CHECK(screenshot(*dial,folder.getChildFile("dial_"+juce::String(dial->parameterNrpn())+"_"+juce::String(position)+".png")));
+            }
+            dial->setValue(saved,juce::sendNotificationSync);
+        }
+    }
     CHECK(p.exportEditBuffer()==sysex);
     // The single cutoff knob retains its raw/host parameter and common control
     // contract. Invalid text must not produce an edit or a host gesture.
@@ -639,7 +627,7 @@ int main(int argc,char** argv)
     CHECK(p.exportEditBuffer()==sysex);
     // Every visible control must remain inside the resized physical surface.
 
-    // The screwed-on header is a separate surface: its controls must not
+    // The panoramic glass header is a separate surface: its controls must not
     // collide with each other or with Master at any supported editor width.
     TubeChamber* chamber=nullptr;
     juce::TextButton* fold=nullptr;
@@ -947,32 +935,37 @@ int main(int argc,char** argv)
             CHECK(child->getBottom()<=editor->getHeight()-28);
         }
         const float sx=static_cast<float>(width)/1460.f;
+        constexpr int bodyOffset=P6PluginEditor::bodyOffset;
         // First envelope knob aligns with the first Poly Mod knob; the first
         // LFO knob shares that center as well.
         juce::Slider *polyFirst=nullptr,*lfoFirst=nullptr,*envFirst=nullptr;
         for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()) {
-            if(slider->getTitle()=="FILTER ENV"&&slider->getY()<200)polyFirst=slider;
-            if(slider->getTitle()=="RATE"&&slider->getY()>200&&slider->getY()<300)lfoFirst=slider;
-            if(slider->getTitle()=="ATTACK"&&slider->getY()>300&&slider->getY()<400)envFirst=slider;
+            if(slider->getTitle()=="FILTER ENV"&&slider->getY()<200+bodyOffset)polyFirst=slider;
+            if(slider->getTitle()=="RATE"&&slider->getY()>200+bodyOffset&&slider->getY()<300+bodyOffset)lfoFirst=slider;
+            if(slider->getTitle()=="ATTACK"&&slider->getY()>300+bodyOffset&&slider->getY()<400+bodyOffset)envFirst=slider;
         }
         CHECK(polyFirst&&lfoFirst&&envFirst);
         CHECK(std::abs(polyFirst->getBounds().getCentreX()-envFirst->getBounds().getCentreX())<=2);
         CHECK(std::abs(polyFirst->getBounds().getCentreX()-lfoFirst->getBounds().getCentreX())<=2);
         // The column separator must not run through any visible control.
         // Its lower end stops before the standard FX section spans columns.
-        const juce::Rectangle<int> divider(juce::roundToInt(996.f*sx),107,1,403);
+        const juce::Rectangle<int> divider(juce::roundToInt(996.f*sx),107+bodyOffset,1,403);
         for(auto* child:editor->getChildren())
             if(child->isVisible())CHECK(!divider.intersects(child->getBounds()));
-        const juce::Rectangle<int> screen(juce::roundToInt(40.f*sx),14,juce::roundToInt(1380.f*sx),71);
+        const juce::Rectangle<int> screen(juce::roundToInt(40.f*sx),14,juce::roundToInt(1380.f*sx),176);
         juce::Component* menu=nullptr;juce::Component* presetTitle=nullptr;
-        for(auto* child:editor->getChildren()){if(child->getTitle()=="Header settings")menu=child;if(child->getTitle()=="Current preset")presetTitle=child;}
+        for(auto* child:editor->getChildren())if(child->getTitle()=="Header settings")menu=child;
+        for(auto* child:presets->getChildren())if(child->getTitle()=="Current preset")presetTitle=child;
         CHECK(menu&&presetTitle&&menu->isVisible()&&presetTitle->isVisible());
         int lowPassKnobs=0;for(auto* child:editor->getChildren())if(auto* slider=dynamic_cast<juce::Slider*>(child);slider&&slider->isVisible()&&slider->getTitle()=="LOW PASS")++lowPassKnobs;
         CHECK(lowPassKnobs==1);
         CHECK(!midiReadout->isVisible()&&!midiChannel->isVisible()&&!resetClip->isVisible()&&!moduleButton->isVisible()&&!studioButton->isVisible());
-        const std::array<juce::Component*,4> headerControls{presets,meter,menu,presetTitle};
-        const juce::Rectangle<int> lowerGlass(juce::roundToInt(501.f*sx),73,juce::roundToInt(477.f*sx),180);
-        CHECK(lowerGlass.contains(master->getBounds())&&lowerGlass.contains(masterLabel->getBounds()));
+        const std::array<juce::Component*,5> headerControls{presets,meter,menu,master,masterLabel};
+        CHECK(presetTitle->getParentComponent()==presets);
+        CHECK(presets->getLocalBounds().contains(presetTitle->getBounds()));
+        bool interceptSelf=true,interceptChildren=true;
+        presetTitle->getInterceptsMouseClicks(interceptSelf,interceptChildren);
+        CHECK(!interceptSelf&&!interceptChildren);
         CHECK(!master->getBounds().intersects(masterLabel->getBounds()));
         if(width==1460){
             studioButton->onClick();CHECK(master->isVisible());
@@ -985,7 +978,7 @@ int main(int argc,char** argv)
             for(std::size_t j=i+1;j<headerControls.size();++j)
                 CHECK(!headerControls[i]->getBounds().intersects(headerControls[j]->getBounds()));
         // Two FX rows and their controls fit in the shared synthesizer panel.
-        const juce::Rectangle<int> fxBay(juce::roundToInt(906.f*sx),528,juce::roundToInt(496.f*sx),104);
+        const juce::Rectangle<int> fxBay(juce::roundToInt(906.f*sx),528+bodyOffset,juce::roundToInt(496.f*sx),104);
         for(auto* fx:std::array<juce::Component*,6>{fxA,fxB,fxOn,mixA,mixB,programVol})
             CHECK(fxBay.contains(fx->getBounds()));
         CHECK(fxA->getWidth()>=juce::roundToInt(165.f*sx));
@@ -1070,19 +1063,16 @@ int main(int argc,char** argv)
         const auto oldR=p.parameters().getRawParameterValue("nrpn_0070")->load();
         set(p,"nrpn_0067",80);set(p,"nrpn_0068",60);set(p,"nrpn_0069",80);set(p,"nrpn_0070",70);
         juce::MemoryBlock selectionBefore;p.getStateInformation(selectionBefore);
-        ContextDisplay* display=nullptr;
-        for(auto* child:editor->getChildren())if(auto* candidate=dynamic_cast<ContextDisplay*>(child))display=candidate;
-        CHECK(display!=nullptr);
+        juce::Label* readout=nullptr;
+        for(auto* child:editor->getChildren())if(child->getTitle()=="Parameter value")readout=dynamic_cast<juce::Label*>(child);
+        CHECK(readout!=nullptr);
         for(int nrpn:{3,67,78,45}) {
             bool selected=false;
             for(auto* child:editor->getChildren())
                 if(auto* control=dynamic_cast<ProphecyParameterControl*>(child);control&&control->hasDescriptor()&&control->parameterNrpn()==nrpn) {
                     CHECK(static_cast<bool>(control->onSelected));control->onSelected();selected=true;break;
                 }
-            CHECK(selected);
-            CHECK(display->content().spec.kind==(nrpn==3?p6plugin::ui::PreviewKind::Oscillator:nrpn==45?p6plugin::ui::PreviewKind::Position:p6plugin::ui::PreviewKind::Envelope));
-            if(nrpn!=45)CHECK(display->curve().valid&&!display->curve().points.empty());
-            CHECK(screenshot(*display,folder.getChildFile("display_"+juce::String(nrpn)+".png")));
+            CHECK(selected&&!readout->getText().isEmpty());
             if(nrpn==67)CHECK(screenshot(*editor,folder.getChildFile("module_contextual.png")));
         }
         juce::MemoryBlock selectionAfter;p.getStateInformation(selectionAfter);CHECK(selectionAfter==selectionBefore);

@@ -1,30 +1,47 @@
 #include "OutputMeter.h"
+#include <algorithm>
+#include <cmath>
+
 namespace {
-float db(float x){return 20.f*std::log10(std::max(x,.000001f));}
-juce::String level(float x){return x<.000001f?juce::String("-inf"):juce::String(db(x),1);}
+float db(float value) { return 20.f*std::log10(std::max(value,.000001f)); }
+juce::String level(float value) { return value<.000001f ? juce::String("-inf") : juce::String(db(value),1); }
+}
+void OutputMeter::update(p6plugin::OutputReadings readings)
+{
+    readings_=readings;
+    juce::String detail;
+    for(std::size_t channel=0;channel<2;++channel) {
+        detail += channel==0 ? "L" : "\nR";
+        detail += " peak " + level(readings_.peak[channel]) + " dBFS, RMS "
+               + level(readings_.rms[channel]) + " dBFS";
+    }
+    detail += (readings_.clips & 12u) ? "\nPre-master exceeded 0 dBFS" : "\nPre-master below 0 dBFS";
+    setTooltip(detail);setDescription(detail);repaint();
 }
 void OutputMeter::paint(juce::Graphics& g)
 {
-    // The meter is part of the approved single continuous header screen.
-    // Paint transparently over the parent OLED instead of a separate box.
-    const float width=static_cast<float>(getWidth());
-    g.setFont(10.f);g.setColour(juce::Colour{0xffd4cec3});
-    g.drawText("OUTPUT / SAMPLE PEAK + RMS",8,2,getWidth()-100,13,juce::Justification::centredLeft);
-    const bool hot=readings_.clips&12u;
-    g.setColour(hot?juce::Colour{0xffffbc72}:juce::Colour{0xffaaa49a});
-    g.drawText(hot?"PRE > 0 dBFS":"PRE OK",getWidth()-100,2,93,13,juce::Justification::centredRight);
-    for(std::size_t c=0;c<2;++c) {
-        const float y=20.f+static_cast<float>(c)*20.f;
-        const bool clip=readings_.clips&(1u<<c);
-        g.setColour(juce::Colour{0xffe0d9ce});g.drawText(c==0?"L":"R",6,static_cast<int>(y)-2,14,13,juce::Justification::centredLeft);
-        const float rail=width-152;
-        g.setColour(juce::Colour{0xff35332f});g.fillRect(22.f,y,rail,7.f);
-        auto proportion=[](float x){return std::clamp((db(x)+60.f)/60.f,0.f,1.f);};
-        g.setColour(juce::Colour{0xffe4b879});g.fillRect(22.f,y,rail*proportion(readings_.rms[c]),7.f);
-        const float px=22+rail*proportion(readings_.peak[c]);
-        g.setColour(clip?juce::Colour{0xffff735e}:juce::Colour{0xfff0bf7d});g.drawLine(px,y-2,px,y+9,1.5f);
-        g.drawText(clip?"CLIP":"",static_cast<int>(width)-36,static_cast<int>(y)-2,33,14,juce::Justification::centredRight);
-        g.setColour(juce::Colour{0xffe0d9ce});g.drawText(level(readings_.peak[c])+" / "+level(readings_.rms[c]),static_cast<int>(width)-124,static_cast<int>(y)-2,84,14,juce::Justification::centredRight);
+    g.setFont(9.f);g.setColour(juce::Colour{0xffa39f9a});
+    g.drawText("OUTPUT",18,0,getWidth()-18,15,juce::Justification::centredLeft);
+    constexpr int segments=24;
+    const float railWidth=static_cast<float>(getWidth()-22);
+    const float step=railWidth/static_cast<float>(segments);
+    for(std::size_t channel=0;channel<2;++channel) {
+        const float y=24.f+static_cast<float>(channel)*20.f;
+        g.setFont(10.f);g.setColour(juce::Colour{0xffb7b4b0});
+        g.drawText(channel==0?"L":"R",0,static_cast<int>(y)-3,14,14,juce::Justification::centredLeft);
+        const auto position=[](float value){return std::clamp((db(value)+60.f)/60.f,0.f,1.f);};
+        const float rms=position(readings_.rms[channel]);
+        const int peak=static_cast<int>(std::ceil(position(readings_.peak[channel])*segments))-1;
+        for(int index=0;index<segments;++index) {
+            const bool lit=static_cast<float>(index)<rms*segments || (index==peak&&peak>=0);
+            const auto colour=index>=22?juce::Colour{0xffdd4d3f}
+                             :index>=18?juce::Colour{0xffbc985f}:juce::Colour{0xffada89c};
+            g.setColour(lit?colour:juce::Colour{0xff343536});
+            g.fillRect(18.f+static_cast<float>(index)*step,y,std::max(1.f,step-1.2f),7.f);
+        }
+    }
+    if(readings_.clips!=0) {
+        g.setColour(juce::Colour{0xffef6c59});g.setFont(9.f);
+        g.drawText((readings_.clips&3u)?"CLIP":"PRE > 0",18,59,getWidth()-18,12,juce::Justification::centredRight);
     }
 }
-

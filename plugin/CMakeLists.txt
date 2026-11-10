@@ -20,7 +20,7 @@ juce_add_plugin(P6CorePlugin
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE)
 
-set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg
+set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg assets/fonts/michroma.ttf
     assets/presets/sequential_factory.syx assets/presets/sequential_omom.syx)
 # Optional camera atlas uses native Tube frame; builds without asset retain fallback.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/character_cameras_atlas.jpg")
@@ -89,9 +89,8 @@ target_sources(P6CorePlugin PRIVATE
     ui/fx/TubeChamber.h
     ui/display/OutputMeter.cpp
     ui/display/OutputMeter.h
-    ui/display/ContextDisplay.cpp
-    ui/display/ContextDisplay.h
-    ui/display/LiveSpectrum.h
+    ui/display/PresetNameDisplay.h
+    ui/controls/SegmentedLedRing.h
     PluginStateCodec.cpp
     PluginStateCodec.h)
 
@@ -141,6 +140,9 @@ add_custom_command(TARGET P6CorePlugin_VST3 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/third_party/GenerativeMIDI-LICENSE.txt"
         "${P6_VST3_BUNDLE}/Contents/Resources/GenerativeMIDI-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Michroma.txt"
+        "${P6_VST3_BUNDLE}/Contents/Resources/OFL-Michroma.txt"
     VERBATIM)
 
 option(P6_BUILD_UI_SMOKE "Build the native editor/state smoke executable" OFF)

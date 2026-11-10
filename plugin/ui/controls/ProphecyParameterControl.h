@@ -15,6 +15,7 @@ public:
     void resetToInit();
     int parameterNrpn() const noexcept { return nrpn_; }
     bool hasDescriptor() const noexcept { return parameter_!=nullptr; }
+    std::optional<float> ledNeutralProportion();
     void mouseDown(const juce::MouseEvent&) override;
     bool keyPressed(const juce::KeyPress&) override;
     void paint(juce::Graphics&) override;

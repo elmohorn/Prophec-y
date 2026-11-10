@@ -1,17 +1,18 @@
 #pragma once
 #include "PluginProcessor.h"
 #include "ui/controls/ProphecyParameterControl.h"
-#include "ui/display/ContextDisplay.h"
 #include "ui/fx/TubeChamber.h"
 #include "ui/fx/CharacterDeviceView.h"
 #include "ui/fx/CharacterHardwareWindow.h"
 #include "ui/display/OutputMeter.h"
+#include "ui/display/PresetNameDisplay.h"
 #include "ui/preset/PresetBrowser.h"
 #include <memory>
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
-    static constexpr int compactHeight=756, expandedHeight=986;
+    static constexpr int headerHeight=200, bodyOffset=120;
+    static constexpr int compactHeight=876, expandedHeight=1106;
     explicit P6PluginEditor(P6AudioProcessor&,juce::File presetRoot=p6plugin::PresetLibrary::defaultRoot());
     ~P6PluginEditor() override;
     void paint(juce::Graphics&) override;
@@ -87,6 +88,7 @@ private:
     };
     struct MetalLook final : juce::LookAndFeel_V4 {
         void drawButtonBackground(juce::Graphics&,juce::Button&,const juce::Colour&,bool,bool) override;
+        void drawButtonText(juce::Graphics&,juce::TextButton&,bool,bool) override;
         void drawRotarySlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider&) override;
         void drawLinearSlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider::SliderStyle,juce::Slider&) override;
         void drawToggleButton(juce::Graphics&,juce::ToggleButton&,bool,bool) override;
@@ -107,11 +109,12 @@ private:
     P6AudioProcessor& processor_;
     std::unique_ptr<PresetBrowser> browser_;
     juce::TextButton browserButton_{"PRESETS"};
-    juce::TextButton headerMenu_{"..."};
-    juce::Label headerPreset_;
+    juce::TextButton headerMenu_{""};
+    PresetNameDisplay headerPreset_;
     unsigned browserRefreshTicks_{};
     bool presetIsDirty_{};
-    ContextDisplay display_;
+    juce::Label focusReadout_;
+    juce::TooltipWindow tooltips_{this,700};
     TubeChamber chamber_;
     CharacterDeviceView device_;
     CharacterHardwareWindow hardware_;
@@ -141,12 +144,11 @@ private:
     juce::Image grain_;
     juce::String focusName_{"LOW PASS"},focusValue_{"100 %"},presetName_;
     int focusNrpn_{45};
-    float focusPosition_{1.f},glow_{},characterGlow_{};
+    float glow_{},characterGlow_{};
+    int focusTicks_{};
     p6plugin::CharacterTelemetry visual_{};
     p6plugin::CharacterTelemetry lastCoherentTelemetry_{};
     unsigned lastVisualRevision_{},lastPitchBendRevision_{};
-    std::uint32_t lastLiveOutputRevision_{};
-    int staleLiveOutputTicks_{};
     int staleVisualTicks_{},pitchDisplayTicks_{},pitchBendRaw14_{8192};
     bool studioView_{},collapsed_{},showTube_{},opticalPreviewActive_{};
     bool arpOpen_{};

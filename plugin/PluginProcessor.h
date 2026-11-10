@@ -10,7 +10,6 @@
 #include "p6/VersionedEditMailbox.h"
 #include "CharacterFx.h"
 #include "RealtimeSnapshotMailbox.h"
-#include "ui/display/LiveSpectrum.h"
 #include "OutputStage.h"
 #include "ArpCharacterParameters.h"
 #include "PresetBankCodec.h"
@@ -91,10 +90,6 @@ public:
     int selectedCharacterType() const noexcept;
     void selectCharacterType(int);
     unsigned characterTelemetryRevision() const noexcept { return characterTelemetryMailbox_.revision(); }
-    void attachLiveDisplay() noexcept { liveDisplayCount_.fetch_add(1,std::memory_order_relaxed); }
-    void detachLiveDisplay() noexcept { liveDisplayCount_.fetch_sub(1,std::memory_order_relaxed); }
-    [[nodiscard]] bool readLiveOutput(p6plugin::ui::LiveAudioFrame& frame,std::uint32_t& revision) const noexcept
-    { return liveOutputMailbox_.tryRead(frame,revision); }
     p6plugin::OutputReadings consumeOutputReadings() noexcept;
     void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
     unsigned outputRevision() const noexcept { return outputRevision_.load(std::memory_order_relaxed); }
@@ -168,10 +163,6 @@ private:
     p6plugin::RealtimeSnapshotMailbox<p6plugin::CharacterTelemetry>
         characterTelemetryMailbox_{};
     static_assert(std::atomic<unsigned>::is_always_lock_free);
-    std::atomic<unsigned> liveDisplayCount_{0};
-    p6plugin::RealtimeSnapshotMailbox<p6plugin::ui::LiveAudioFrame> liveOutputMailbox_{};
-    p6plugin::ui::LiveAudioFrame liveOutputFrame_{};
-    std::size_t liveOutputCount_{};
     std::atomic<float>* customType_{};
     std::array<std::array<std::atomic<float>*,7>,4> customParameters_{};
     std::array<std::atomic<float>*, 7> tubeParameters_{};
