@@ -55,7 +55,7 @@ int main()
     const auto v6=p6plugin::encodeState(plasma);CHECK(p6plugin::decodeState(v6,decoded));CHECK(decoded.character.plasmaMode==1);
     auto v5=v6;v5[4]=5;v5.resize(p6plugin::kV5StateBytes);CHECK(p6plugin::decodeState(v5,decoded));CHECK(decoded.character.type==2&&decoded.character.plasmaMode==0);
     const auto migrated=p6plugin::encodeState(decoded);p6plugin::WrapperState reopened;CHECK(p6plugin::decodeState(migrated,reopened));CHECK(reopened.character.plasmaMode==0);
-    auto invalid=v6;invalid.back()=2;CHECK(!p6plugin::decodeState(invalid,reopened));CHECK(reopened.character.plasmaMode==0);
+    auto invalid=v6;invalid[p6plugin::kV5StateBytes]=2;CHECK(!p6plugin::decodeState(invalid,reopened));CHECK(reopened.character.plasmaMode==0);
     // Independent fixture emitted by the unchanged codec v5 implementation.
     std::ifstream v5file(std::string(P6_STATE_FIXTURE_DIR)+"/v020_codec5_plasma.state",std::ios::binary);CHECK(v5file.good());
     const std::vector<std::uint8_t> oldPlasma{std::istreambuf_iterator<char>(v5file),std::istreambuf_iterator<char>()};

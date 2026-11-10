@@ -21,9 +21,9 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON -DP6_BUILD_UI_SMOKE=ON
       - name: Build
-        run: cmake --build build --config Release --target P6UiSmoke P6CorePlugin_VST3 p6_arp_character_tests p6_arp_state_tests p6core_tests p6_plugin_state_tests p6_realtime_contract_tests --parallel 2
+        run: cmake --build build --config Release --target P6UiSmoke P6CorePlugin_VST3 p6_arp_character_tests p6_arp_state_tests p6core_tests p6_plugin_state_tests p6_realtime_contract_tests p6_state_compatibility_tests p6_output_stage_tests --parallel 2
       - name: Core and state tests
-        run: ctest --test-dir build -C Release --output-on-failure -R "^(p6_arp_character_tests|p6_arp_state_tests|p6core_tests|p6_plugin_state_tests|p6_realtime_contract_tests)$"
+        run: ctest --test-dir build -C Release --output-on-failure -R "^(p6_arp_character_tests|p6_arp_state_tests|p6core_tests|p6_plugin_state_tests|p6_realtime_contract_tests|p6_state_compatibility_tests|p6_output_stage_tests)$"
       - name: Capture Linux
         if: runner.os == 'Linux'
         run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
