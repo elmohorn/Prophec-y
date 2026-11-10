@@ -63,12 +63,6 @@ void PresetBrowser::paint(juce::Graphics& g)
     g.setColour(juce::Colours::white.withAlpha(.075f));
     g.drawVerticalLine(4,0.f,static_cast<float>(getHeight()-9));
     g.drawVerticalLine(getWidth()-5,0.f,static_cast<float>(getHeight()-9));
-    for(const float x:{9.f,static_cast<float>(getWidth()-9)}) {
-        const float y=static_cast<float>(getHeight()-10);
-        g.setColour(juce::Colour{0xff090909});g.fillEllipse(x-4.f,y-4.f,8.f,8.f);
-        g.setColour(juce::Colour{0xff9c9c9c});g.fillEllipse(x-2.f,y-2.f,4.f,4.f);
-        g.setColour(juce::Colour{0xff303030});g.drawLine(x-1.5f,y+.5f,x+1.5f,y-.5f,1.f);
-    }
     g.setColour(juce::Colour{0xff555555});g.drawHorizontalLine(65,18.f,static_cast<float>(getWidth()-18));
     g.setFont(10.f);g.setColour(juce::Colour{0xffc6aa87});const int columns=getWidth()-36;
     g.drawText("NAME",26,112,columns*36/100-12,18,juce::Justification::centredLeft);

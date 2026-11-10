@@ -475,6 +475,8 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     browserButton_.setColour(juce::TextButton::buttonOnColourId,juce::Colour{0xff59452f});
     browserButton_.setColour(juce::TextButton::textColourOffId,juce::Colour{0xffe8e8e6});
     browserButton_.setColour(juce::TextButton::textColourOnId,juce::Colour{0xffffd399});
+    browserButton_.setTooltip(processor_.activePresetName()+" — open preset library");
+    browserButton_.setDescription("Browse presets. Current preset: "+processor_.activePresetName());
     addAndMakeVisible(browserButton_);
     browserButton_.onClick=[this]{const bool open=!browser_->isVisible();browser_->setVisible(open);browserButton_.setToggleState(open,juce::dontSendNotification);if(open){browser_->refreshLibrary();browser_->toFront(true);}repaint();};
     browser_->onClose=[this]{browser_->setVisible(false);browserButton_.setToggleState(false,juce::dontSendNotification);browserButton_.grabKeyboardFocus();repaint();};
@@ -545,7 +547,15 @@ void P6PluginEditor::timerCallback()
     outputMeter_.update(readings);
     if(processor_.selectedCharacterType()!=boundType_)refreshVisibility();
     if(++browserRefreshTicks_%6==0){presetIsDirty_=browser_->refreshCurrent();browserButton_.setButtonText(juce::String("PRESETS  ")+juce::String::charToString(0x25be));}
-    const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");headerPreset_.setName(name);headerPreset_.tick();if(name!=presetName_){presetName_=name;refreshDisplay();}
+    const auto name=processor_.activePresetName()+(presetIsDirty_?" *":"");
+    headerPreset_.setName(name);
+    if(!browserButton_.isMouseOverOrDragging()&&!browserButton_.hasKeyboardFocus(true))headerPreset_.tick();
+    if(name!=presetName_) {
+        presetName_=name;
+        browserButton_.setTooltip(name+" — open preset library");
+        browserButton_.setDescription("Browse presets. Current preset: "+name);
+        refreshDisplay();
+    }
     if(focusNrpn_>=0) {
         const auto* raw=processor_.parameters().getRawParameterValue(hardwareID(focusNrpn_));
         if(raw) {

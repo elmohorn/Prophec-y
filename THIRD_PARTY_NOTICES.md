@@ -97,3 +97,10 @@ copied; these are original effects inspired by physical visual metaphors.
 ## Prophet-6 preset collections
 
 The bundled Prophet-6 factory programs (v1.01) and Old Men of MIDI sounds originate from Sequential. Names and SysEx bytes are preserved. These preset data are not covered by the Prophec-y source code license. Original downloads: https://sequential.com/support/download/prophet-6-sounds/ .
+
+## Michroma
+
+The panoramic header embeds Michroma Regular by Vernon Adams, from
+https://github.com/google/fonts/tree/main/ofl/michroma, under the SIL Open Font
+License 1.1. The full license is in `plugin/assets/fonts/OFL-Michroma.txt` and is
+also included in the VST3 bundle's Resources directory.
