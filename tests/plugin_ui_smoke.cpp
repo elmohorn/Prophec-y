@@ -161,6 +161,19 @@ int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
     {
+        PresetNameDisplay name;
+        name.setSize(240,38);
+        name.setName("INIT P6 CORE");
+        for(int i=0;i<180;++i)name.tick();
+        CHECK(name.scrollOffset()==0.f);
+        name.setName("A LONG PROPHET SIX PRESET NAME THAT MUST SCROLL");
+        for(int i=0;i<75;++i)name.tick();
+        CHECK(name.scrollOffset()>0.f);
+        name.setName("BASS");
+        CHECK(name.scrollOffset()==0.f&&name.getTooltip()=="BASS");
+        if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(name,folder.getChildFile("display_preset_matrix.png")));}
+    }
+    {
         ContextDisplay live;live.setSize(322,145);
         p6plugin::ui::LiveAudioFrame tone{},silence{};
         for(std::size_t i=0;i<tone.left.size();++i) {

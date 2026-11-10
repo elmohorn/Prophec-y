@@ -6,6 +6,7 @@
 #include "ui/fx/CharacterDeviceView.h"
 #include "ui/fx/CharacterHardwareWindow.h"
 #include "ui/display/OutputMeter.h"
+#include "ui/display/PresetNameDisplay.h"
 #include "ui/preset/PresetBrowser.h"
 #include <memory>
 
@@ -87,6 +88,7 @@ private:
     };
     struct MetalLook final : juce::LookAndFeel_V4 {
         void drawButtonBackground(juce::Graphics&,juce::Button&,const juce::Colour&,bool,bool) override;
+        void drawButtonText(juce::Graphics&,juce::TextButton&,bool,bool) override;
         void drawRotarySlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider&) override;
         void drawLinearSlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider::SliderStyle,juce::Slider&) override;
         void drawToggleButton(juce::Graphics&,juce::ToggleButton&,bool,bool) override;
@@ -107,8 +109,8 @@ private:
     P6AudioProcessor& processor_;
     std::unique_ptr<PresetBrowser> browser_;
     juce::TextButton browserButton_{"PRESETS"};
-    juce::TextButton headerMenu_{"..."};
-    juce::Label headerPreset_;
+    juce::TextButton headerMenu_{""};
+    PresetNameDisplay headerPreset_;
     unsigned browserRefreshTicks_{};
     bool presetIsDirty_{};
     ContextDisplay display_;
