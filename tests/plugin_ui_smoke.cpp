@@ -169,6 +169,12 @@ int main(int argc,char** argv)
         name.setName("A LONG PROPHET SIX PRESET NAME THAT MUST SCROLL");
         for(int i=0;i<75;++i)name.tick();
         CHECK(name.scrollOffset()>0.f);
+        name.setSize(1200,38);
+        for(int i=0;i<75;++i)name.tick();
+        CHECK(name.scrollOffset()==0.f);
+        name.setSize(240,38);
+        for(int i=0;i<75;++i)name.tick();
+        CHECK(name.scrollOffset()>0.f);
         name.setName("BASS");
         CHECK(name.scrollOffset()==0.f&&name.getTooltip()=="BASS");
         if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(name,folder.getChildFile("display_preset_matrix.png")));}

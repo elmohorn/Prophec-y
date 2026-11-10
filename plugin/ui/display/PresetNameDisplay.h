@@ -35,6 +35,10 @@ public:
         }
         repaint();
     }
+    void resized() override {
+        offset_ = 0.f;
+        dwell_ = 45;
+    }
     void mouseEnter(const juce::MouseEvent&) override { hovering_ = true; }
     void mouseExit(const juce::MouseEvent&) override { hovering_ = false; }
     void paint(juce::Graphics& g) override {
