@@ -97,6 +97,10 @@ void P6PerformanceScheduler::midiClockStop()
         return;
     midiTransportRunning_ = false;
     clock_.midiStop();
+    // A stopped clock has no next boundary to release the generated notes.
+    // Preserve the held keys/latch so Continue can resume the performance.
+    releaseArpNote();
+    releaseSequenceNotes();
 }
 
 void P6PerformanceScheduler::stopDirectPhysicalKeys()
