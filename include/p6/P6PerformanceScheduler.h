@@ -1,6 +1,7 @@
 #pragma once
 
 #include "p6/P6Arpeggiator.h"
+#include "p6/P6ArpCharacter.h"
 #include "p6/P6Clock.h"
 #include "p6/P6Engine.h"
 #include "p6/P6SequencerPlayer.h"
@@ -45,6 +46,13 @@ public:
     void setArpOctaves(std::uint8_t octaves);
     void setArpHold(bool enabled);
     void setArpBeatSync(bool enabled) noexcept { arpBeatSync_ = enabled; }
+    void setArpCharacterEnabled(bool enabled) noexcept { arpCharacter_.setEnabled(enabled); }
+    void setArpCharacterMask(std::uint8_t mask) noexcept { arpCharacter_.setMask(mask); }
+    void setArpCharacterRhythm(int pulses) noexcept { arpCharacter_.setRhythm(pulses); }
+    void setArpCharacterMotion(double amount) noexcept { arpCharacter_.setMotion(amount); }
+    void setArpCharacterFreeze(bool freeze) noexcept { arpCharacter_.setFreeze(freeze); }
+    void restoreArpVariationSeed(std::uint32_t seed) noexcept { arpCharacter_.restoreVariationSeed(seed); }
+    [[nodiscard]] std::uint32_t arpVariationSeed() const noexcept { return arpCharacter_.variationSeed(); }
 
     void setClockBpm(double bpm)
     {
@@ -78,6 +86,9 @@ public:
     [[nodiscard]] bool arpeggiatorEnabled() const noexcept { return arpEnabled_; }
     [[nodiscard]] bool sequencePlaying() const noexcept { return sequencePlaying_; }
     [[nodiscard]] bool arpBeatSync() const noexcept { return arpBeatSync_; }
+    [[nodiscard]] int arpCharacterStep() const noexcept {
+        return arpEnabled_ && !sequencePlaying_ && !arpeggiator_.empty() ? arpCharacterStep_ : -1;
+    }
     [[nodiscard]] bool swingTimingIsOpaque() const noexcept { return clock_.swingTimingIsOpaque(); }
     [[nodiscard]] bool sequenceHasOpaqueHighBits() const noexcept { return sequencer_.hasOpaqueHighBits(); }
     [[nodiscard]] std::size_t sequenceLength() const noexcept { return sequencer_.length(); }
@@ -101,6 +112,8 @@ private:
     P6Engine& engine_;
     P6Clock clock_{};
     P6Arpeggiator arpeggiator_{};
+    P6ArpCharacter arpCharacter_{};
+    int arpCharacterStep_{-1};
     P6SequencerPlayer sequencer_{};
     bool arpEnabled_{};
     bool arpBeatSync_{};

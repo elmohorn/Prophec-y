@@ -194,6 +194,8 @@ void P6PerformanceScheduler::setArpeggiatorEnabled(bool enabled)
         stopDirectPhysicalKeys();
         releaseArpNote();
         arpeggiator_.resetStep();
+        arpCharacter_.reset();
+        arpCharacterStep_ = -1;
         arpEnabled_ = true;
         const bool externalReady = clock_.syncMode() == ClockSyncMode::Internal
             || (clock_.syncMode() == ClockSyncMode::HostPpq && clock_.running() && clock_.hostAnchorSeen())
@@ -204,6 +206,7 @@ void P6PerformanceScheduler::setArpeggiatorEnabled(bool enabled)
         clock_.restart(!fireNow);
     } else {
         releaseArpNote();
+        arpCharacterStep_ = -1;
         arpEnabled_ = false;
         if (!sequencePlaying_)
             restoreDirectPhysicalKeys();
@@ -245,8 +248,12 @@ void P6PerformanceScheduler::fireArpStep()
     if (!next)
         return;
 
+    const auto character = arpCharacter_.next();
+    arpCharacterStep_ = character.index;
+    if (!character.play)
+        return;
     activeArpNote_ = next->note;
-    engine_.noteOnOwned(next->note, next->velocity, kArpOwner);
+    engine_.noteOnOwned(next->note, std::clamp(next->velocity * character.velocityScale, 0.0, 1.0), kArpOwner);
 }
 
 void P6PerformanceScheduler::releaseSequenceNotes()

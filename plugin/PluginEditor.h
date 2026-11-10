@@ -11,7 +11,7 @@
 
 class P6PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
-    static constexpr int compactHeight=700, expandedHeight=930;
+    static constexpr int compactHeight=756, expandedHeight=986;
     explicit P6PluginEditor(P6AudioProcessor&,juce::File presetRoot=p6plugin::PresetLibrary::defaultRoot());
     ~P6PluginEditor() override;
     void paint(juce::Graphics&) override;
@@ -25,6 +25,34 @@ private:
     struct Switch {
         juce::ToggleButton button;
         std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> attachment;
+    };
+    struct ArpStepButton final : juce::TextButton {
+        bool playing{};
+        bool rhythmGate{true};
+        void paint(juce::Graphics& g) override {
+            auto bounds=getLocalBounds().toFloat();
+            auto indicator=bounds.removeFromTop(8.f);
+            auto r=bounds.reduced(2.f);
+            g.setColour(juce::Colour{0xff111212});g.fillRoundedRectangle(r,4.f);
+            g.setColour(juce::Colour{0xff656663});g.drawRoundedRectangle(r,4.f,1.f);
+            g.setColour(getToggleState()&&rhythmGate?juce::Colour{0xffe74235}:juce::Colour{0xff41302e});
+            g.fillEllipse(r.getCentreX()-3.f,r.getCentreY()-3.f,6.f,6.f);
+            if(playing){g.setColour(juce::Colour{0xffff6354});g.fillEllipse(indicator.getCentreX()-3.f,indicator.getY()+1.f,6.f,6.f);}
+        }
+    };
+    struct ArpPanelSwitch final : juce::TextButton {
+        void paint(juce::Graphics& g) override {
+            auto r=getLocalBounds().toFloat();
+            g.setColour(juce::Colour{0xff252827});g.setFont(9.f);
+            g.drawText(getButtonText(),r.removeFromLeft(r.getWidth()*.52f),juce::Justification::centred);
+            auto well=r.reduced(3.f,2.f);
+            const float cx=well.getCentreX(),cy=well.getCentreY();
+            g.setColour(juce::Colour{0xff303231});g.fillEllipse(cx-7.f,cy-7.f,14.f,14.f);
+            g.setColour(juce::Colour{0xffa7aaa4});g.drawEllipse(cx-6.f,cy-6.f,12.f,12.f,1.f);
+            const float tip=getButtonText()=="HIDE"?-5.f:5.f;
+            g.setColour(juce::Colours::black.withAlpha(.4f));g.drawLine(cx+1.f,cy+1.f,cx+tip+1.f,cy-5.f,4.f);
+            g.setColour(juce::Colour{0xffd4d5ce});g.drawLine(cx,cy,cx+tip,cy-6.f,2.f);
+        }
     };
     struct MetalLook final : juce::LookAndFeel_V4 {
         void drawButtonBackground(juce::Graphics&,juce::Button&,const juce::Colour&,bool,bool) override;
@@ -89,6 +117,17 @@ private:
     int staleLiveOutputTicks_{};
     int staleVisualTicks_{},pitchDisplayTicks_{},pitchBendRaw14_{8192};
     bool studioView_{},collapsed_{},showTube_{},opticalPreviewActive_{};
+    bool arpOpen_{};
+    int arpOffset() const noexcept { return arpOpen_ ? 160 : 56; }
+    ArpPanelSwitch arpPanelSwitch_;
+    juce::ToggleButton arpOn_{"ON"},arpHold_{"HOLD"},arpSync_{"SYNC"},arpCharEnabled_{"CHAR"},arpFreeze_{"FREEZE"};
+    juce::ComboBox arpMode_,arpOctaves_,arpDivision_,arpClock_;
+    juce::Slider arpRhythm_,arpMotion_,arpBpm_;
+    std::array<ArpStepButton,8> arpSteps_;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>,8> arpStepBindings_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> arpOnBinding_,arpHoldBinding_,arpSyncBinding_,arpCharacterBinding_,arpFreezeBinding_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> arpModeBinding_,arpOctaveBinding_,arpDivisionBinding_,arpClockBinding_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> arpRhythmBinding_,arpMotionBinding_,arpBpmBinding_;
     float previewLfoPhase_{},previewAudioLevel_{};
     double lastUiFrameTimeMs_{};
     juce::Rectangle<int> tubeArea_,displayArea_;

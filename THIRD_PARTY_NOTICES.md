@@ -69,6 +69,14 @@ header notices remain intact. TubePreamp uses this selection; custom Character d
 2x High and 4x Medium oversampling configurations.
 
 
+## GenerativeMIDI — arpeggiator rhythm pattern
+
+The eight-step remainder-based Euclidean rhythm pattern is adapted from
+GenerativeMIDI EuclideanEngine (MIT), commit
+`1a8c353e6d1128818ed24837da65a1686b0585dc`,
+copyright 2025 GenerativeMIDI Contributors. The full license is retained in
+`third_party/GenerativeMIDI-LICENSE.txt` and packaged in the VST3 resources.
+
 ## DaisySP — v0.20 custom Character devices
 
 Wavefolder, SVF and DCBlock are vendored from Electrosmith DaisySP commit

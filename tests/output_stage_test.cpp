@@ -30,7 +30,7 @@ int main()
         auto legacy=bytes;legacy[4]=static_cast<std::uint8_t>(version);legacy.resize(version==1?kV1StateBytes:kV2StateBytes);
         decoded.masterOutputDb=-60;CHECK(decodeState(legacy,decoded));CHECK(decoded.masterOutputDb==0);
     }
-    auto invalid=bytes;invalid.back()=127;CHECK(!decodeState(invalid,decoded));CHECK(decoded.masterOutputDb==0);
+    auto invalid=bytes;invalid[kV5StateBytes]=127;CHECK(!decodeState(invalid,decoded));CHECK(decoded.masterOutputDb==0);
     invalid=bytes;invalid[kV2StateBytes]=1;invalid[kV2StateBytes+1]=0;CHECK(!decodeState(invalid,decoded));
     for(int channel=0;channel<=16;++channel){state.midiInputChannel=static_cast<std::uint8_t>(channel);const auto encoded=encodeState(state);CHECK(decodeState(encoded,decoded));CHECK(decoded.midiInputChannel==channel);}
 

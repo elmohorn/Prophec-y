@@ -513,6 +513,29 @@ int main(int argc,char** argv)
         CHECK(probe.readLiveOutput(captured,revision) && revision==lastRevision);
         probe.releaseResources();baseline.releaseResources();
     }
+    {
+        P6AudioProcessor synth;synth.prepareToPlay(48000,128);
+        set(synth,"wrapper_clock_source",0.f);
+        set(synth,"nrpn_0160",1.f);
+        set(synth,p6plugin::kArpCharacterEnabledID,1.f);
+        set(synth,p6plugin::kArpCharacterFreezeID,1.f);
+        set(synth,p6plugin::kArpCharacterMotionID,.4f);
+        set(synth,p6plugin::kArpStepIDs[2],0.f);
+        juce::AudioBuffer<float> audio(2,128);juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::noteOn(1,60,juce::uint8{100}),0);
+        synth.processBlock(audio,midi);midi.clear();
+        CHECK(synth.arpPlaybackStep()>=0&&synth.arpPlaybackStep()<8);
+        juce::MemoryBlock state;synth.getStateInformation(state);
+        P6AudioProcessor reopened;reopened.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+        CHECK(reopened.parameters().getRawParameterValue(p6plugin::kArpCharacterEnabledID)->load()>=.5f);
+        CHECK(reopened.parameters().getRawParameterValue(p6plugin::kArpCharacterFreezeID)->load()>=.5f);
+        CHECK(reopened.parameters().getRawParameterValue(p6plugin::kArpStepIDs[2])->load()<.5f);
+        CHECK(std::abs(reopened.parameters().getRawParameterValue(p6plugin::kArpCharacterMotionID)->load()-.4f)<.002f);
+        const auto sysex=synth.exportEditBuffer();juce::String error;
+        CHECK(synth.loadSysex(sysex,error));
+        CHECK(synth.parameters().getRawParameterValue(p6plugin::kArpCharacterEnabledID)->load()<.5f);
+        synth.releaseResources();
+    }
     P6AudioProcessor p;
     CHECK(p.parameters().getRawParameterValue(p6plugin::kMasterOutputID)->load()==p6plugin::kNewMasterDb);
     CHECK(p.parameters().getRawParameterValue(p6plugin::kPlasmaModeID)->load()==1.f);
@@ -831,6 +854,29 @@ int main(int argc,char** argv)
     }
     p.selectCharacterType(1);
     editor.reset(p.createEditor());
+    {
+        juce::Button* panelSwitch=nullptr;
+        for(auto* child:editor->getChildren())
+            if(child->getTitle()=="Arpeggiator panel")panelSwitch=dynamic_cast<juce::Button*>(child);
+        CHECK(panelSwitch!=nullptr);
+        panelSwitch->onClick();
+        CHECK(editor->getHeight()==P6PluginEditor::expandedHeight+104);
+        int visibleSteps=0;
+        juce::Button* firstStep=nullptr;
+        for(auto* child:editor->getChildren())
+            if(child->getTitle().startsWith("Arpeggiator step ")) {
+                CHECK(child->isVisible());
+                ++visibleSteps;
+                if(child->getTitle()=="Arpeggiator step 1")firstStep=dynamic_cast<juce::Button*>(child);
+            }
+        CHECK(visibleSteps==8&&firstStep!=nullptr);
+        firstStep->setToggleState(false,juce::sendNotificationSync);
+        CHECK(p.parameters().getRawParameterValue(p6plugin::kArpStepIDs[0])->load()<.5f);
+        firstStep->setToggleState(true,juce::sendNotificationSync);
+        if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(*editor,folder.getChildFile("module_arpeggiator.png")));}
+        panelSwitch->onClick();
+        CHECK(editor->getHeight()==P6PluginEditor::expandedHeight);
+    }
     // The Spring checks recreate the editor, so reacquire every pointer before
     // testing layout. The previous editor and its components no longer exist.
     presets=nullptr;midiReadout=nullptr;masterLabel=nullptr;master=nullptr;meter=nullptr;

@@ -6,7 +6,7 @@
 #include <cstdlib>
 
 namespace {
-const juce::Colour ink{0xff252827},muted{0xff636a68},amber{0xffe68c40},silver{0xffd7d6d0};
+const juce::Colour ink{0xff252827},muted{0xff636a68},amber{0xffd83b31},silver{0xffd7d6d0};
 juce::String hardwareID(int nrpn) { return "nrpn_"+juce::String(nrpn).paddedLeft('0',4); }
 constexpr float designWidth=1460.f;
 
@@ -44,6 +44,12 @@ int nrpnFromID(const juce::String& id)
 }
 void P6PluginEditor::MetalLook::drawButtonBackground(juce::Graphics& g,juce::Button& button,const juce::Colour& colour,bool highlighted,bool down)
 {
+    if(button.getTitle()=="Arpeggiator panel") {
+        const auto r=button.getLocalBounds().toFloat().reduced(2.f);
+        g.setColour(juce::Colour{0xff555752});g.fillRoundedRectangle(r,4.f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd7d8d1},r.getX(),r.getY(),juce::Colour{0xff777a74},r.getX(),r.getBottom(),false));
+        g.fillRoundedRectangle(r.reduced(2.f),3.f);return;
+    }
     const bool preset=button.getTitle()=="Preset browser";
     const bool menu=button.getTitle()=="Header settings";
     if(!preset&&!menu) {
@@ -56,7 +62,7 @@ void P6PluginEditor::MetalLook::drawButtonBackground(juce::Graphics& g,juce::But
     g.setColour(juce::Colour{0xff0b0c0c});g.fillRoundedRectangle(bounds,6.f);
     g.setGradientFill(juce::ColourGradient(juce::Colour{down?0xff29231d:0xff1b1a18},bounds.getX(),bounds.getY(),juce::Colour{0xff101110},bounds.getX(),bounds.getBottom(),false));
     g.fillRoundedRectangle(bounds.reduced(1.f),5.f);
-    const auto edge=juce::Colour{0xffffdfad};
+    const auto edge=preset?juce::Colour{0xffe25145}:juce::Colour{0xffffdfad};
     g.setColour(edge.withAlpha(highlighted||active?.95f:.70f));g.drawRoundedRectangle(bounds.reduced(.5f),5.f,1.2f);
     g.setColour(edge.withAlpha(.11f));g.drawRoundedRectangle(bounds.reduced(2.f),4.f,.8f);
 }
@@ -121,7 +127,7 @@ void P6PluginEditor::MetalLook::drawToggleButton(juce::Graphics& g,juce::ToggleB
     g.setColour(juce::Colours::white.withAlpha(.28f));g.drawRoundedRectangle(xx,yy,12,12,2.f,1.f);
     if(b.getToggleState()) {
         g.setGradientFill(juce::ColourGradient(amber.withAlpha(.65f),xx+6,yy+6,amber.withAlpha(0.f),xx+16,yy+6,true));
-        g.fillEllipse(xx-5,yy-5,22,22);g.setColour(juce::Colour{0xffffbe77});g.fillEllipse(xx+4,yy+4,4,4);
+        g.fillEllipse(xx-5,yy-5,22,22);g.setColour(juce::Colour{0xffff6255});g.fillEllipse(xx+4,yy+4,4,4);
     }
     g.setColour(b.isEnabled()?ink:muted);g.setFont(tile?9.5f:10.5f);
     g.drawText(b.getButtonText(),tile?0:20,tile?16:0,tile?b.getWidth():b.getWidth()-20,tile?14:b.getHeight(),tile?juce::Justification::centred:juce::Justification::centredLeft);
@@ -212,6 +218,42 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
     midiMonitor_.setTooltip("Recent pitch bend and CC input. * marks a message filtered by the selected MIDI channel.");
     midiMonitor_.setText("MIDI: awaiting input",juce::dontSendNotification);addAndMakeVisible(midiMonitor_);
     auto& params=p.parameters();
+    arpPanelSwitch_.setTitle("Arpeggiator panel");arpPanelSwitch_.setTooltip("Show or hide the arpeggiator panel");
+    addAndMakeVisible(arpPanelSwitch_);arpPanelSwitch_.onClick=[this]{arpOpen_=!arpOpen_;refreshVisibility();};
+    for(auto* b:{&arpOn_,&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_}){b->setLookAndFeel(&look_);addAndMakeVisible(b);}
+    arpCharEnabled_.setTooltip("Enable the Prophec-Y character layer; classic arpeggiator is unchanged when off.");
+    arpFreeze_.setTooltip("Freeze the current eight-step velocity variation.");
+    for(auto* b:{&arpMode_,&arpOctaves_,&arpDivision_,&arpClock_}){b->setLookAndFeel(&look_);addAndMakeVisible(b);}
+    arpMode_.addItemList(juce::StringArray{"UP","DOWN","UP / DOWN","RANDOM","ASSIGN"},1);
+    arpOctaves_.addItemList(juce::StringArray{"1","2","3"},1);
+    arpDivision_.addItemList(juce::StringArray{"1/2","1/4","1/8","1/8 D","1/8 S","1/8 T","1/16","1/16 S","1/16 T","1/32"},1);
+    arpClock_.addItemList(juce::StringArray{"INTERNAL","HOST","MIDI CLOCK"},1);
+    arpMode_.setTitle("Arpeggiator mode");arpOctaves_.setTitle("Arpeggiator octaves");arpDivision_.setTitle("Arpeggiator clock division");
+    arpDivision_.setTooltip("Clock divisions follow the Prophet-6 mapping. Swing divisions currently use straight timing pending hardware measurement.");
+    arpClock_.setTitle("Arpeggiator clock source");arpSync_.setTooltip("Beat Sync: quantize arpeggiator start to the clock grid.");
+    for(auto* s:{&arpRhythm_,&arpMotion_}){s->setLookAndFeel(&look_);s->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);s->setTextBoxStyle(juce::Slider::TextBoxBelow,false,60,17);addAndMakeVisible(s);}
+    arpRhythm_.setTitle("Arp Rhythm");arpMotion_.setTitle("Arp Motion");
+    arpBpm_.setLookAndFeel(&look_);arpBpm_.setSliderStyle(juce::Slider::LinearHorizontal);
+    arpBpm_.setTextBoxStyle(juce::Slider::TextBoxRight,false,50,20);arpBpm_.setTitle("Arpeggiator BPM");addAndMakeVisible(arpBpm_);
+    arpRhythm_.setTooltip("Number of evenly spaced pulses; the step buttons can mute individual pulses.");
+    arpMotion_.setTooltip("Amount of evolving velocity variation.");
+    arpOnBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,hardwareID(160),arpOn_);
+    arpHoldBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,"wrapper_arp_hold",arpHold_);
+    arpSyncBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,"wrapper_arp_beat_sync",arpSync_);
+    arpCharacterBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,p6plugin::kArpCharacterEnabledID,arpCharEnabled_);
+    arpFreezeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,p6plugin::kArpCharacterFreezeID,arpFreeze_);
+    arpModeBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(161),arpMode_);
+    arpOctaveBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(162),arpOctaves_);
+    arpDivisionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,hardwareID(163),arpDivision_);
+    arpClockBinding_=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(params,"wrapper_clock_source",arpClock_);
+    arpBpmBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,hardwareID(167),arpBpm_);
+    arpRhythmBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,p6plugin::kArpCharacterRhythmID,arpRhythm_);
+    arpMotionBinding_=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(params,p6plugin::kArpCharacterMotionID,arpMotion_);
+    for(std::size_t i=0;i<arpSteps_.size();++i){
+        auto& b=arpSteps_[i];b.setTitle("Arpeggiator step "+juce::String(static_cast<int>(i+1)));
+        b.setTooltip("Toggle this step between a note and a rest.");b.setClickingTogglesState(true);addAndMakeVisible(b);
+        arpStepBindings_[i]=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(params,p6plugin::kArpStepIDs[i],b);
+    }
     plasmaMode_.setLookAndFeel(&look_);plasmaMode_.setTitle("Plasma algorithm");
     plasmaMode_.setTooltip("Hybrid is the new Plasma sound. Legacy preserves the sound of older sessions.");
     plasmaMode_.addItem("LEGACY",1);plasmaMode_.addItem("HYBRID",2);addChildComponent(plasmaMode_);
@@ -375,6 +417,16 @@ void P6PluginEditor::setType(int value)
 }
 void P6PluginEditor::timerCallback()
 {
+    const int arpStep=processor_.arpPlaybackStep();
+    const auto rhythm=p6::P6ArpCharacter::rhythmMask(static_cast<int>(arpRhythm_.getValue()));
+    const bool characterEnabled=arpCharEnabled_.getToggleState();
+    for(std::size_t i=0;i<arpSteps_.size();++i){
+        const bool playing=arpStep==static_cast<int>(i);
+        const bool gate=!characterEnabled||(rhythm&(1u<<i))!=0;
+        if(arpSteps_[i].playing!=playing||arpSteps_[i].rhythmGate!=gate){
+            arpSteps_[i].playing=playing;arpSteps_[i].rhythmGate=gate;arpSteps_[i].repaint();
+        }
+    }
     // A timer configured at 30Hz does NOT guarantee 33.3ms delivery in a DAW.
     // No iterative catch-up loop: LFO phase advances modulo 2pi, and
     // physical envelopes integrate elapsed time analytically. Retaining the
@@ -570,14 +622,23 @@ void P6PluginEditor::refreshVisibility()
     position_.setEnabled(showTube_&&!opticalPreviewActive_);bypass_.setEnabled(showTube_&&!opticalPreviewActive_);previous_.setEnabled(selected>0);next_.setEnabled(selected<p6plugin::kCharacterTypes-1);
     module_.setToggleState(!studioView_,juce::dontSendNotification);studio_.setToggleState(studioView_,juce::dontSendNotification);
     collapse_.setButtonText(collapsed_?"SHOW":"HIDE");
+    arpPanelSwitch_.setButtonText(arpOpen_?"HIDE":"SHOW");
+    arpPanelSwitch_.setVisible(!studioView_);arpOn_.setVisible(!studioView_);
+    for(auto* c:std::array<juce::Component*,11>{&arpHold_,&arpSync_,&arpCharEnabled_,&arpFreeze_,&arpMode_,&arpOctaves_,&arpDivision_,&arpClock_,&arpRhythm_,&arpMotion_,&arpBpm_})
+        c->setVisible(!studioView_&&arpOpen_);
+    for(auto& b:arpSteps_)b.setVisible(!studioView_&&arpOpen_);
     const bool expanded=!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_;
-    setResizeLimits(1240,expanded?expandedHeight:compactHeight,1920,1200);
-    setSize(getWidth(),expanded?std::max(getHeight(),expandedHeight):compactHeight);resized();repaint();
+    const int base=expanded?expandedHeight:compactHeight;
+    const int needed=base+(studioView_?0:arpOffset()-56);
+    setResizeLimits(1240,needed,1920,1200);
+    setSize(getWidth(),needed);resized();repaint();
 }
 void P6PluginEditor::resized()
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
     auto rect=[sx](float x,float y,float w,float h){return juce::Rectangle<int>(juce::roundToInt(x*sx),juce::roundToInt(y),juce::roundToInt(w*sx),juce::roundToInt(h));};
+    const float arpY=static_cast<float>(arpOffset());
+    auto characterRect=[&](float x,float y,float w,float h){return rect(x,y+arpY,w,h);};
     browserButton_.setBounds(rect(280,31,130,37));
     headerPreset_.setBounds(rect(427,29,370,38));headerMenu_.setBounds(rect(1360,31,42,32));
     if(browser_)browser_->setBounds(rect(36,88,1388,450));
@@ -604,26 +665,34 @@ void P6PluginEditor::resized()
     for(std::size_t i=0;i<5;++i){switches_[8+i].button.setBounds(rect(1201+40.f*static_cast<float>(i),126,39,38));switches_[13+i].button.setBounds(rect(1240+32.f*static_cast<float>(i),231,32,38));}
     fxAType_.setBounds(rect(923,582,171,20));fxBType_.setBounds(rect(923,607,171,20));
     keyTrack_.setBounds(rect(587,446,132,24));
-    opticalPreview_.setBounds(rect(306,652,177,25));
-    previous_.setBounds(rect(306,652,31,25));type_.setBounds(rect(343,652,260,25));next_.setBounds(rect(609,652,31,25));
-    position_.setBounds(rect(660,652,195,25));bypass_.setBounds(rect(875,652,110,25));
-    plasmaMode_.setBounds(rect(1000,652,140,25));motion_.setBounds(rect(1150,652,100,25));collapse_.setBounds(rect(1275,652,110,25));
+    arpPanelSwitch_.setBounds(rect(1290,646,90,25));arpOn_.setBounds(rect(260,646,75,25));
+    arpHold_.setBounds(rect(340,646,95,25));arpMode_.setBounds(rect(90,705,150,28));
+    arpOctaves_.setBounds(rect(275,705,75,28));arpDivision_.setBounds(rect(380,705,100,28));
+    arpSync_.setBounds(rect(495,705,80,28));arpCharEnabled_.setBounds(rect(610,646,90,25));
+    arpBpm_.setBounds(rect(85,746,160,24));arpClock_.setBounds(rect(340,746,170,24));
+    arpRhythm_.setBounds(rect(640,701,70,70));arpMotion_.setBounds(rect(730,701,70,70));
+    arpFreeze_.setBounds(rect(815,705,100,26));
+    for(std::size_t i=0;i<arpSteps_.size();++i)arpSteps_[i].setBounds(rect(950.f+55.f*static_cast<float>(i),704,48,50));
+    opticalPreview_.setBounds(characterRect(306,652,177,25));
+    previous_.setBounds(characterRect(306,652,31,25));type_.setBounds(characterRect(343,652,260,25));next_.setBounds(characterRect(609,652,31,25));
+    position_.setBounds(characterRect(660,652,195,25));bypass_.setBounds(characterRect(875,652,110,25));
+    plasmaMode_.setBounds(characterRect(1000,652,140,25));motion_.setBounds(characterRect(1150,652,100,25));collapse_.setBounds(characterRect(1275,652,110,25));
     displayArea_=rect(522,103,306,141);
     display_.setBounds(displayArea_);
-    tubeArea_={32,637,getWidth()-64,std::max(51,getHeight()-660)};
-    hardware_.setBounds(rect(55,710,610,190));
+    tubeArea_={32,637+arpOffset(),getWidth()-64,std::max(51,getHeight()-660-arpOffset())};
+    hardware_.setBounds(characterRect(55,710,610,190));
     // Restore the exact original Tube camera proportions and placement.
-    chamber_.setBounds(rect(65,720,320,180));
+    chamber_.setBounds(characterRect(65,720,320,180));
     device_.setBounds(hardware_.getBounds());
     // Three actual local preview controls and an interactive waveform switch.
     // No drawn placeholder knobs and no hidden APVTS attachments.
     for(std::size_t i=0;i<opticalConcept_.size();++i)
     {
         const float x=720.f+160.f*static_cast<float>(i);
-        opticalConcept_[i].label.setBounds(rect(x,718,130,18));
-        opticalConcept_[i].slider.setBounds(rect(x,738,130,117));
+        opticalConcept_[i].label.setBounds(characterRect(x,718,130,18));
+        opticalConcept_[i].slider.setBounds(characterRect(x,738,130,117));
     }
-    opticalWave_.setBounds(rect(1220,760,151,30));
+    opticalWave_.setBounds(characterRect(1220,760,151,30));
     // Existing Tube: preserve original seven-knob single-row module.
     // Spring: keep the approved wider two-row physical-control arrangement.
     for(std::size_t i=0;i<tube_.size();++i)
@@ -631,8 +700,8 @@ void P6PluginEditor::resized()
         if(boundType_==1 && !opticalPreviewActive_)
         {
             const float x=421.f+114.f*static_cast<float>(i);
-            tube_[i].label.setBounds(rect(x,759,106,20));
-            tube_[i].slider.setBounds(rect(x,782,106,106));
+            tube_[i].label.setBounds(characterRect(x,759,106,20));
+            tube_[i].slider.setBounds(characterRect(x,782,106,106));
         }
         else
         {
@@ -640,8 +709,8 @@ void P6PluginEditor::resized()
             const float x=top?682.f+136.f*static_cast<float>(i)
                              :893.f+206.f*static_cast<float>(i-5);
             const float y=top?702.f:800.f;
-            tube_[i].label.setBounds(rect(x,y,110,18));
-            tube_[i].slider.setBounds(rect(x,y+17.f,110,81));
+            tube_[i].label.setBounds(characterRect(x,y,110,18));
+            tube_[i].slider.setBounds(characterRect(x,y+17.f,110,81));
         }
     }
 
@@ -705,7 +774,7 @@ void P6PluginEditor::refreshDisplay()
 void P6PluginEditor::paintCharacterPanel(juce::Graphics& g)
 {
     const float sx=static_cast<float>(getWidth())/designWidth;
-    const juce::Rectangle<float> panel(30*sx,638,getWidth()-60*sx,static_cast<float>(getHeight()-660));
+    const juce::Rectangle<float> panel(30*sx,638,getWidth()-60*sx,static_cast<float>(getHeight()-660-arpOffset()));
     g.setColour(juce::Colour{0xff343833});g.fillRoundedRectangle(panel.expanded(2),7);
     g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd1d2d3},panel.getX(),638,juce::Colour{0xffadafb1},panel.getRight(),panel.getBottom(),false));g.fillRoundedRectangle(panel,6);
     g.setTiledImageFill(grain_,0,638,.08f);g.fillRoundedRectangle(panel,6);
@@ -834,11 +903,40 @@ void P6PluginEditor::paint(juce::Graphics& g)
     g.drawLine(996*sx,107,996*sx,510,1.f);
 
     g.setColour(muted);g.setFont(10.f);g.drawText("KEY TRACK",static_cast<int>(491*sx),446,static_cast<int>(90*sx),24,juce::Justification::centredLeft);
+    {
+        const juce::Rectangle<float> arpPanel(30*sx,638.f,getWidth()-60*sx,static_cast<float>(arpOffset()-8));
+        g.setColour(juce::Colour{0xff343833});g.fillRoundedRectangle(arpPanel.expanded(2),7);
+        g.setGradientFill(juce::ColourGradient(juce::Colour{0xffd1d2d3},arpPanel.getX(),arpPanel.getY(),juce::Colour{0xffadafb1},arpPanel.getRight(),arpPanel.getBottom(),false));
+        g.fillRoundedRectangle(arpPanel,6);
+        g.setColour(juce::Colours::white.withAlpha(.6f));g.drawRoundedRectangle(arpPanel.reduced(1),5,1);
+        for(const float x:{44.f*sx,static_cast<float>(getWidth())-44.f*sx}) {
+            g.setColour(juce::Colour{0xff777a74});g.fillEllipse(x-4.f,646.f,8.f,8.f);
+            g.setColour(juce::Colour{0xffe1e2dd});g.drawLine(x-2.f,650.f,x+2.f,648.f,1.f);
+        }
+        g.setColour(ink);g.setFont(juce::Font(13.f).boldened());g.drawText("ARPEGGIATOR",static_cast<int>(55*sx),646,static_cast<int>(190*sx),24,juce::Justification::centredLeft);
+        if(arpOpen_) {
+            g.setFont(juce::Font(10.f).boldened());
+            g.drawText("CLASSIC",static_cast<int>(455*sx),649,static_cast<int>(115*sx),18,juce::Justification::centredLeft);
+            g.drawText("PROPHEC-Y CHARACTER",static_cast<int>(710*sx),649,static_cast<int>(220*sx),18,juce::Justification::centredLeft);
+            g.setColour(muted.withAlpha(.3f));
+            g.drawLine(600.f*sx,679.f,600.f*sx,777.f,1.f);
+            g.drawLine(930.f*sx,679.f,930.f*sx,777.f,1.f);
+            g.setColour(ink);g.setFont(11.f);
+            for(const auto& label:std::array<std::pair<const char*,float>,5>{{{"MODE",90},{"OCTAVES",275},{"DIVISION",380},{"RHYTHM",640},{"MOTION",730}}})
+                g.drawText(label.first,static_cast<int>(label.second*sx),680,static_cast<int>(85*sx),16,juce::Justification::centredLeft);
+            for(int i=0;i<8;++i)
+                g.drawText(juce::String(i+1),static_cast<int>((950.f+55.f*i)*sx),682,static_cast<int>(48*sx),16,juce::Justification::centred);
+            g.drawText("BPM",static_cast<int>(50*sx),750,static_cast<int>(35*sx),16,juce::Justification::centredLeft);
+            g.drawText("CLOCK",static_cast<int>(280*sx),750,static_cast<int>(60*sx),16,juce::Justification::centredLeft);
+        }
+    }
+    g.saveState();g.addTransform(juce::AffineTransform::translation(0.f,static_cast<float>(arpOffset())));
     paintCharacterPanel(g);
     g.setColour(ink);g.setFont(juce::Font(11.f).withExtraKerningFactor(.09f));
     g.drawText("PROPHEC-Y / CHARACTER",static_cast<int>(55*sx),651,
                static_cast<int>(240*sx),24,juce::Justification::centredLeft);
     if((showTube_||opticalPreviewActive_)&&!collapsed_)paintTube(g);
+    g.restoreState();
 }
 
 void P6PluginEditor::bindDevice(int type)

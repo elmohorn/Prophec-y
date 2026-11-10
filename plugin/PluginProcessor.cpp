@@ -103,6 +103,11 @@ P6AudioProcessor::P6AudioProcessor()
     masterDb_=apvts_.getRawParameterValue(p6plugin::kMasterOutputID);
     midiInputChannel_=apvts_.getRawParameterValue(p6plugin::kMidiInputChannelID);
     plasmaMode_=apvts_.getRawParameterValue(p6plugin::kPlasmaModeID);
+    arpCharacterEnabled_=apvts_.getRawParameterValue(p6plugin::kArpCharacterEnabledID);
+    arpCharacterMotion_=apvts_.getRawParameterValue(p6plugin::kArpCharacterMotionID);
+    arpCharacterRhythm_=apvts_.getRawParameterValue(p6plugin::kArpCharacterRhythmID);
+    arpCharacterFreeze_=apvts_.getRawParameterValue(p6plugin::kArpCharacterFreezeID);
+    for(std::size_t i=0;i<arpSteps_.size();++i)arpSteps_[i]=apvts_.getRawParameterValue(p6plugin::kArpStepIDs[i]);
     customType_=apvts_.getRawParameterValue(p6plugin::kCustomTypeID);
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)customParameters_[d][i]=apvts_.getRawParameterValue(p6plugin::kCustomIDs[d][i]);
     characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
@@ -281,6 +286,12 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
     juce::StringArray midiChannels{"Omni"};for(int channel=1;channel<=16;++channel)midiChannels.add(juce::String(channel));
     layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{p6plugin::kMidiInputChannelID,1},"MIDI Input Channel",midiChannels,0));
     layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{p6plugin::kPlasmaModeID,1},"Plasma Algorithm",juce::StringArray{"Legacy","Hybrid"},1));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{p6plugin::kArpCharacterEnabledID,1},"Arp Character",false));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{p6plugin::kArpCharacterMotionID,1},"Arp Motion",juce::NormalisableRange<float>{0.f,1.f,.001f},0.f));
+    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{p6plugin::kArpCharacterRhythmID,1},"Arp Rhythm",0,8,8));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{p6plugin::kArpCharacterFreezeID,1},"Arp Freeze",false));
+    for(std::size_t i=0;i<p6plugin::kArpStepIDs.size();++i)
+        layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{p6plugin::kArpStepIDs[i],1},"Arp Step "+juce::String(static_cast<int>(i+1)),true));
     return layout;
 }
 
@@ -492,6 +503,20 @@ void P6AudioProcessor::applyRuntimeControls (bool force)
     scheduler_.setMidiStartStopEnabled (midiStartStop_);
     scheduler_.setArpHold (arpHold_);
     scheduler_.setArpBeatSync (arpBeatSync_);
+    scheduler_.setArpCharacterEnabled(arpCharacterEnabled_->load(std::memory_order_relaxed)>=.5f);
+    scheduler_.setArpCharacterMotion(arpCharacterMotion_->load(std::memory_order_relaxed));
+    scheduler_.setArpCharacterRhythm(static_cast<int>(arpCharacterRhythm_->load(std::memory_order_relaxed)));
+    scheduler_.setArpCharacterFreeze(arpCharacterFreeze_->load(std::memory_order_relaxed)>=.5f);
+    const auto revision=arpRestoreRevision_.load(std::memory_order_acquire);
+    if(revision!=appliedArpRestoreRevision_) {
+        if(arpCharacterFreeze_->load(std::memory_order_relaxed)>=.5f)
+            scheduler_.restoreArpVariationSeed(arpRestoreSeed_.load(std::memory_order_relaxed));
+        appliedArpRestoreRevision_=revision;
+    }
+    std::uint8_t mask=0;
+    for(std::size_t i=0;i<arpSteps_.size();++i)
+        if(arpSteps_[i]->load(std::memory_order_relaxed)>=.5f)mask=static_cast<std::uint8_t>(mask|(1u<<i));
+    scheduler_.setArpCharacterMask(mask);
     if (applySequencePlay)
     {
         if (actualHostSequencePlayChanged)
@@ -707,6 +732,8 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         }
     }
     const auto readings=output_.readings();
+    arpPlaybackStep_.store(scheduler_.arpCharacterStep(),std::memory_order_relaxed);
+    arpVariationSeed_.store(scheduler_.arpVariationSeed(),std::memory_order_relaxed);
     for(std::size_t c=0;c<2;++c) {
         auto retainMax=[](std::atomic<float>& slot,float value){auto old=slot.load(std::memory_order_relaxed);while(old<value&&!slot.compare_exchange_weak(old,value,std::memory_order_relaxed)){};};
         retainMax(outputPeak_[c],readings.peak[c]);retainMax(preMasterPeak_[c],readings.prePeak[c]);
@@ -804,6 +831,14 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)state.character.custom[d][i]=customParameters_[d][i]->load();
     state.masterOutputDb=masterDb_->load(std::memory_order_relaxed);
     state.midiInputChannel=static_cast<std::uint8_t>(midiInputChannel_->load(std::memory_order_relaxed));
+    state.arpCharacterEnabled=arpCharacterEnabled_->load()>=.5f;
+    state.arpCharacterFreeze=arpCharacterFreeze_->load()>=.5f;
+    state.arpCharacterMotion=arpCharacterMotion_->load();
+    state.arpVariationSeed=state.arpCharacterFreeze?arpVariationSeed_.load(std::memory_order_relaxed):0x735a2d97u;
+    state.arpCharacterRhythm=static_cast<std::uint8_t>(arpCharacterRhythm_->load());
+    state.arpCharacterMask=0;
+    for(std::size_t i=0;i<arpSteps_.size();++i)
+        if(arpSteps_[i]->load()>=.5f)state.arpCharacterMask=static_cast<std::uint8_t>(state.arpCharacterMask|(1u<<i));
     const auto bytes = p6plugin::encodeState (state);
     destData.replaceAll (bytes.data(), bytes.size());
 }
@@ -844,6 +879,14 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     setActual (kSequencePlayID, state.extras[7] != 0);
     setActual(p6plugin::kMidiInputChannelID,state.midiInputChannel);
     setActual(p6plugin::kPlasmaModeID,state.character.plasmaMode);
+    setActual(p6plugin::kArpCharacterEnabledID,state.arpCharacterEnabled);
+    arpRestoreSeed_.store(state.arpVariationSeed,std::memory_order_relaxed);
+    arpVariationSeed_.store(state.arpVariationSeed,std::memory_order_relaxed);
+    arpRestoreRevision_.fetch_add(1,std::memory_order_release);
+    setActual(p6plugin::kArpCharacterFreezeID,state.arpCharacterFreeze);
+    setActual(p6plugin::kArpCharacterRhythmID,state.arpCharacterRhythm);
+    if(auto* p=apvts_.getParameter(p6plugin::kArpCharacterMotionID))p->setValueNotifyingHost(p->convertTo0to1(state.arpCharacterMotion));
+    for(std::size_t i=0;i<p6plugin::kArpStepIDs.size();++i)setActual(p6plugin::kArpStepIDs[i],(state.arpCharacterMask&(1u<<i))!=0);
     setActual(p6plugin::kCharacterTypeID,state.character.type<2?state.character.type:state.character.legacyType);
     setActual(p6plugin::kCustomTypeID,state.character.type>=2?state.character.type-1:0);
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)
@@ -885,6 +928,9 @@ juce::String P6AudioProcessor::activePresetName() const {const juce::ScopedLock 
 void P6AudioProcessor::loadMusicalPreset(const p6plugin::WrapperState& source,const juce::String& id,const juce::String& name)
 {
     auto current=presetSnapshot();current.patch=source.patch;current.sequenceControls=source.sequenceControls;current.character=source.character;
+    current.arpCharacterEnabled=source.arpCharacterEnabled;current.arpCharacterFreeze=source.arpCharacterFreeze;
+    current.arpCharacterMask=source.arpCharacterMask;current.arpCharacterRhythm=source.arpCharacterRhythm;current.arpCharacterMotion=source.arpCharacterMotion;
+    current.arpVariationSeed=source.arpVariationSeed;
     const auto bytes=p6plugin::encodeState(current);setStateInformation(bytes.data(),static_cast<int>(bytes.size()));adoptPreset(id,name,&source);
 }
 
@@ -912,6 +958,10 @@ bool P6AudioProcessor::loadSysex (std::span<const std::uint8_t> bytes, juce::Str
         hostSnapshot = patch_;
     }
     syncHostParametersFromPatch (hostSnapshot);
+    // Prophet SysEx has no Prophec-Y arpeggiator extension. Imported programs
+    // start in the compatible mode even if the previous program used it.
+    if(auto* parameter=apvts_.getParameter(p6plugin::kArpCharacterEnabledID))
+        parameter->setValueNotifyingHost(0.f);
     fullPatchLoadPending_.store (true, std::memory_order_release);
     error.clear();
     return true;
