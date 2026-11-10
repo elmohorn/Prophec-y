@@ -1,4 +1,4 @@
-name: Validate knobs on glass
+name: Validate arpeggiator
 on:
   push:
     branches: [work/arp-development-checkpoint]
@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install Linux dependencies
+      - name: Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -23,23 +23,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --target P6UiSmoke P6CorePlugin_VST3 p6_arp_character_tests p6_arp_state_tests p6core_tests p6_plugin_state_tests p6_realtime_contract_tests --parallel 2
       - name: Core and state tests
-        run: ctest --test-dir build -C Release --output-on-failure -R '^(p6_arp_character_tests|p6_arp_state_tests|p6core_tests|p6_plugin_state_tests|p6_realtime_contract_tests)
-        if: runner.os == 'Linux'
-        run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
-      - name: Capture Windows
-        if: runner.os == 'Windows'
-        run: ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke.exe ui-smoke
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: knobs-preview-${{ runner.os }}
-          path: ui-smoke/*.png
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: knobs-vst3-${{ runner.os }}
-          path: build/plugin/P6CorePlugin_artefacts/Release/VST3/
-
+        run: ctest --test-dir build -C Release --output-on-failure -R "^(p6_arp_character_tests|p6_arp_state_tests|p6core_tests|p6_plugin_state_tests|p6_realtime_contract_tests)$"
       - name: Capture Linux
         if: runner.os == 'Linux'
         run: xvfb-run -a ./build/plugin/P6UiSmoke_artefacts/Release/P6UiSmoke ui-smoke
@@ -49,10 +33,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: knobs-preview-${{ runner.os }}
+          name: arp-preview-${{ runner.os }}
           path: ui-smoke/*.png
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: knobs-vst3-${{ runner.os }}
+          name: arp-vst3-${{ runner.os }}
           path: build/plugin/P6CorePlugin_artefacts/Release/VST3/
