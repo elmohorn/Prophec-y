@@ -7,7 +7,7 @@
 
 // A small alphanumeric LED matrix, inspired by the Prophet-6's numeric
 // program display. All animation and drawing remain on the message thread.
-class PresetNameDisplay final : public juce::Component {
+class PresetNameDisplay final : public juce::Component, public juce::SettableTooltipClient {
 public:
     PresetNameDisplay() { setTitle("Current preset"); setDescription("Current preset name; long names scroll across the display."); }
 
@@ -24,7 +24,7 @@ public:
     [[nodiscard]] float scrollOffset() const noexcept { return offset_; }
     void tick() {
         const float overflow = std::max(0.f, rendered_.length() * kAdvance - (getWidth() - 16.f));
-        if (overflow <= 0.f || hovering_ || hasKeyboardFocus()) return;
+        if (overflow <= 0.f || hovering_ || hasKeyboardFocus(false)) return;
         if (dwell_ > 0) { --dwell_; return; }
         if (offset_ < overflow) {
             offset_ = std::min(overflow, offset_ + 35.f / 30.f);
@@ -83,7 +83,7 @@ private:
         case '.': return {0,0,0,0,0,12,12}; case '/': return {1,1,2,4,8,16,16};
         case '*': return {0,21,14,31,14,21,0}; case '&': return {12,18,20,8,21,18,13};
         case '+': return {0,4,4,31,4,4,0}; case '_': return {0,0,0,0,0,0,31};
-        case ''': return {4,4,8,0,0,0,0}; case ':': return {0,12,12,0,12,12,0};
+        case '\'': return {4,4,8,0,0,0,0}; case ':': return {0,12,12,0,12,12,0};
         default: return {14,17,1,2,4,0,4};
         }
     }
