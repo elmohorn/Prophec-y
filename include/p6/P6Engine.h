@@ -129,6 +129,10 @@ private:
     std::array<double, kVoiceCount> panGainRight_{};
     double programVolume_{1.0};
     double midiVolume_{1.0};
+    double midiVolumeCurrent_{1.0};
+    double midiVolumeStep_{};
+    int midiVolumeRampSamples_{};
+    int midiVolumeRemaining_{};
     double distortion_{};
     P6Effects effects_{};
     void* insertContext_{};

@@ -150,7 +150,7 @@ jobs:
             ./build/Release/p6_dsp_fingerprint.exe
           else
             ./build/p6_dsp_fingerprint | tee dsp-fingerprint.csv
-            python3 tools/check_dsp_fingerprint.py tests/reference/dsp_metrics_v020.csv dsp-fingerprint.csv
+            python3 tools/check_dsp_fingerprint.py tests/reference/dsp_metrics_v020.csv dsp-fingerprint.csv tests/reference/headroom_metrics_v020.csv
           fi
 
       - name: Hard-sync harmonic snapshot

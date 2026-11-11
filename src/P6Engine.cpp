@@ -34,6 +34,10 @@ void P6Engine::prepare(double sampleRate, int oversampleFactor)
     modWheel_ = 0.0;
     pitchBend_ = 0.0;
     midiVolume_ = 1.0;
+    midiVolumeCurrent_ = 1.0;
+    midiVolumeStep_ = 0.0;
+    midiVolumeRampSamples_ = std::max(1, static_cast<int>(std::lround(sampleRate_ * 0.005)));
+    midiVolumeRemaining_ = 0;
     sustainPedal_ = false;
     unisonSustainHeld_ = false;
     updatePanGains();
@@ -121,7 +125,12 @@ void P6Engine::setProgramVolume(double amount01)
 
 void P6Engine::setMidiVolume(double amount01)
 {
-    midiVolume_ = std::clamp(amount01, 0.0, 1.0);
+    const auto target = std::isfinite(amount01) ? std::clamp(amount01, 0.0, 1.0) : midiVolume_;
+    if (target == midiVolume_)
+        return;
+    midiVolume_ = target;
+    midiVolumeRemaining_ = std::max(1, midiVolumeRampSamples_);
+    midiVolumeStep_ = (midiVolume_ - midiVolumeCurrent_) / midiVolumeRemaining_;
 }
 
 void P6Engine::setDistortion(double amount01)
@@ -577,7 +586,12 @@ StereoSample P6Engine::process()
     out.left = removeDc(out.left, voiceDcL_);
     out.right = removeDc(out.right, voiceDcR_);
 
-    const double performanceGain = programVolume_ * midiVolume_;
+    if (midiVolumeRemaining_ > 0) {
+        midiVolumeCurrent_ += midiVolumeStep_;
+        if (--midiVolumeRemaining_ == 0)
+            midiVolumeCurrent_ = midiVolume_;
+    }
+    const double performanceGain = programVolume_ * midiVolumeCurrent_;
     out.left *= performanceGain;
     out.right *= performanceGain;
     if (insertCallback_ != nullptr && insertBeforeEffects_)

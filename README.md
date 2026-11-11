@@ -1,64 +1,26 @@
-# Prophec-y — estado y descargas
+# Prophec-Y — estado y descargas
 
-**Candidato en desarrollo:** esta rama añade Plasma Hybrid y codec v6; la descarga preview 282 indicada abajo sigue siendo la versión anterior. Las sesiones v1–v5 conservan Plasma Legacy al cargar; las versiones anteriores del plugin no pueden leer archivos guardados en v6. Consulta [Plasma Hybrid](docs/V0_20_PLASMA_HYBRID.md).
+Actualizado: 11 de noviembre de 2026. `main` contiene el instrumento v0.20 en desarrollo: motor, biblioteca local, arpegiador, efectos Character, cabecera panorámica y diales segmentados. Es un prototipo; siguen pendientes las pruebas musicales y de proyectos en DAW y con el Roland FA-08.
 
-Actualizado: 2 de noviembre de 2026.
+El [plan de trabajo actual](docs/PLAN_TRABAJO_ACTUAL.md) distingue el trabajo que puede automatizarse de la validación pendiente con el usuario. La comparación acústica con un Prophet-6 no está cerrada.
 
-## Descargar y probar
+## Descargar una compilación identificada
 
-| Versión | Estado | Windows x64 VST3 | Linux x64 VST3 |
-|---|---|---|---|
-| [v0.20 preview 282](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.282) | MIDI por canal + Neon 4× + restore | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.282/P6-Core-v0.20-prototype-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.20.0-preview.282/P6-Core-v0.20-prototype-Linux-VST3.zip) |
-| [v0.19.0](https://github.com/elmohorn/Prophec-y/releases/tag/v0.19.0) | Checkpoint de ingeniería y calibración provisional; editor de diagnóstico | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Windows-VST3.zip) | [Descargar ZIP](https://github.com/elmohorn/Prophec-y/releases/download/v0.19.0/P6-Core-v0.19-Linux-VST3.zip) |
+La última compilación de `main` que se había validado antes de esta actualización es el **commit `7facc5e`**, en [Actions, ejecución 42920536037](https://github.com/elmohorn/Prophec-y/actions/runs/42920536037). Allí se encuentran los artefactos VST3 de Windows y Linux, sujetos a la caducidad de Actions. La CI incluye pluginval 10, pruebas nativas y sanitizadores en Linux. Comprueba el commit y el resultado de cada ejecución antes de descargar un build posterior.
 
-**Para probar el avance actual, descarga v0.20 preview 282.** Añade los cuatro módulos Character: **Plasma, Optical Spring, Ferrofluid y Neon Wavefolder**, junto a Tube. Cada uno tiene DSP propio, siete controles independientes guardables, ventana nativa reactiva, Mix/Output, bypass e inserción Start/End. Son prototipos para audición; el acabado visual y las pruebas musicales manuales en DAW siguen pendientes.
+La [release preview 282](https://github.com/elmohorn/Prophec-y/releases/tag/v0.20.0-preview.282) es histórica y **no incluye necesariamente los cambios actuales de main**. La publicación automática todavía está vinculada a `v0.20-ui`; se documenta como trabajo pendiente, no como una release actual de `main`.
 
-Los binarios están publicados en Releases, junto con SHA256SUMS.txt. No necesitas compilar ni buscarlos entre los artefactos temporales de Actions. El repositorio es privado: debes iniciar sesión en GitHub con una cuenta que tenga acceso.
+En Windows copia la carpeta completa `P6 Core.vst3` a `C:\Program Files\Common Files\VST3\` y vuelve a escanear el plugin en el DAW. En Linux copia el bundle a `~/.vst3/`. La identidad del plugin es compartida por las previews: conserva fuera de la carpeta VST3 una copia de la versión anterior y de tus proyectos antes de reemplazarla.
 
-La base de edición añade el contrato común de edición en las 37 instancias de controles de síntesis (34 parámetros distintos): valor exacto/raw, reset a Init, ajuste fino y teclado. Corrige las lecturas de envolvente según el perfil activo e incorpora fixtures de compatibilidad emitidos por codificadores históricos. [Detalle del bloque](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PARAMETER_FOUNDATION.md). Se conserva la lectura de los estados anteriores y las huellas del motor. El estado actual usa codec v5 para guardar Character, Master y canal MIDI; lee v1–v4 y carga sesiones antiguas en Omni. Las versiones anteriores del plugin no pueden leer proyectos ni presets guardados en v5: conserva una copia de seguridad.
+## Estado funcional y límites
 
-La preview 282 corrige la discontinuidad de Neon con Bias/Symmetry, normaliza los tiempos de Plasma/Ferrofluid entre sample rates y separa la selección NRPN por canal. Añade un gate de métricas DSP en Linux, un benchmark preliminar de Character y una fixture independiente del estado v3. El selector MIDI Omni/1–16, el monitor de CC/pitch bend y la protección de restauración para los intercalados probados están implementados; faltan pruebas con FA-08 y DAW y estrés prolongado. [Auditoría y límites](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/AUDITORIA_GLOBAL_2026_11_02.md).
+- Presets oficiales, biblioteca local, búsqueda y filtros; las categorías `Auto /` se infieren de los nombres. La asociación con una entrada de biblioteca aún no persiste al reabrir la sesión.
+- Master nuevo a −18 dB; los estados anteriores conservan su ganancia. El margen de salida no evita distorsión en etapas anteriores. Los clics reportados siguen en investigación.
+- Arpegiador clásico y capa Character; Swing y algunas semánticas de hardware siguen por verificar. Los controles Character adicionales se guardan fuera del SysEx Prophet.
+- Cabecera de vidrio, logo, selector de preset, medidores y diales LED. El antiguo visor contextual y sus capturas de audio se conservan fuera de `main` en la rama `archive/waveform-context-display-2026-11-10`.
+- El estado actual usa codec v7 y carga versiones anteriores compatibles. Versiones antiguas del plugin pueden no leer estados nuevos.
 
-La preview 282 añade **selección de canal MIDI y monitor**; en Omni las notas iguales se agrupan hasta recibir el último Note Off. Cambiar de canal silencia notas y vacía las colas de FX estándar. Neon usa ahora 4× Medium: mejora el resultado en la comparación de alta tasa descrita en la auditoría, con mayor CPU y un sonido que puede cambiar frente a previews anteriores. Motion congela la válvula y las visualizaciones reflejan el canal de entrada dominante. [Detalles y límites](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_MIDI_NEON_STABILIZATION.md).
-
-La preview 282 incorpora los cuatro [módulos Character y su alcance](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CUSTOM_CHARACTER.md): Plasma con ignición/conducción; Optical Spring con tres captadores del tanque; Ferrofluid con filtro resonante sensible a la envolvente; Neon con wavefolding asimétrico. Reutiliza kernels MIT de DaisySP y el oversampler DSPark. Son diseños propios, sin afirmar emulación física verificada de pedales comerciales. El SysEx Prophet permanece intacto.
-
-La preview 282 conserva el **OLED contextual**: al seleccionar OSC 1/2 muestra su ciclo nominal de shape/PW; al seleccionar una envolvente muestra el ADSR del motor, con gate y escala de tiempo. Son previews del modelo, antes de modulación, no osciloscopio ni mediciones del hardware. Las vistas contextuales de filtro, LFO y FX siguen pendientes; los medidores de salida ya están implementados. [Alcance, captura y validación](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CONTEXT_DISPLAY.md).
-
-La preview 282 implementa el diseño Character aprobado: **panel de aluminio independiente y válvula hundida en una cavidad oscura**, con marco mecanizado, circuito interior y luz cálida por capas ligada a la señal. Conserva bypass, inserción Start/End, plegado y los siete controles Tube. [Captura del editor real y detalle](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_RECESSED_CHARACTER.md).
-
-La preview 282 añade **Master Output y medidores L/R de pico, RMS y CLIP**, después de toda la cadena. Instancias nuevas: **-18 dB**. Sesiones anteriores: **0 dB**, conservando su nivel; puedes bajar el Master para darles margen. El volumen Prophet se identifica ahora como PROGRAM VOL. Master introducido en codec v3; sesión actual v5 fuera del SysEx, rampa de 20 ms y aviso PRE antes del Master. No se añade limitador ni normalización de voces. [Detalle, migración y captura real](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_MASTER_OUTPUT.md).
-
-La preview 282 incorpora el **browser local de presets**: Factory Init / Imported / User, búsqueda y filtros, favoritos persistentes, Save/Save As, protección de cambios sin guardar e import/export de programa/banco `.syx`. Cargar un preset conserva los controles globales, incluido Master; los dumps importados conservan sus bytes y orden. Factory incluye nuestro Init, los 500 programas de fábrica de Sequential y 270 programas Old Men of MIDI, organizados en colecciones separadas. Tras reabrir un proyecto DAW se recupera el sonido, pero la asociación de biblioteca es transitoria: usa Save As hasta volver a seleccionar una entrada. [Uso, límites y captura nativa](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRESET_BROWSER.md).
-
-### Instalación en Windows
-
-1. Cierra tu DAW y descomprime el ZIP de Windows.
-2. Localiza la carpeta completa **P6 Core.vst3** dentro de las subcarpetas extraídas.
-3. Copia esa carpeta completa a `C:\Program Files\Common Files\VST3\`.
-4. Abre el DAW, vuelve a escanear plugins y carga **P6 Core** como instrumento VST3.
-
-En Linux, copia el bundle completo a `~/.vst3/` y vuelve a escanear. No se incluye aplicación standalone ni instalador. Ambas versiones usan la misma identidad de plugin: conserva una copia de la anterior fuera de la carpeta de plugins antes de reemplazarla. Los bancos Prophet-6 incluidos proceden de Sequential; los audios de referencia de terceros no se redistribuyen.
-
-### Qué contiene cada versión
-
-- **v0.19:** corrección de primera tecla Unison tras una cola Release, consistencia de dominios de parámetros y herramientas/comparaciones acústicas ampliadas. Default permanece congelado; no se declara paridad acústica completa con Prophet-6. [Cierre y límites](https://github.com/elmohorn/Prophec-y/blob/v0.19-sound-matching/docs/V0_19_CLOSEOUT.md).
-- **v0.20 preview 282:** panel nativo de aluminio, controles de síntesis con valores semánticos, selectores FX A/B, diagnóstico RAW14, browser local, Master Output y cinco dispositivos Character con posición y bypass. Latencia fija del wrapper: **71 muestras**, incluso con None. Studio personalizado, Compare/A-B/undo, acabado visual final y pruebas musicales manuales en DAW siguen pendientes. [Estado del prototipo](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_TUBE_PROTOTYPE.md).
-
-### Código y validación
-
-`main` conserva la base de código v0.18; esta portada muestra el estado global y las descargas posteriores. El desarrollo no está integrado automáticamente en `main`.
-
-| Código | Commit del binario publicado | Validación |
-|---|---|---|
-| [v0.19-sound-matching](https://github.com/elmohorn/Prophec-y/tree/v0.19-sound-matching) | `3e148b6c9d1002178ca294fc4613943fa7533ee6` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41268532229) |
-| [v0.20-ui](https://github.com/elmohorn/Prophec-y/tree/v0.20-ui) | `83f433eaa7a34ef463511119eb6ce195b1c194d6` | [CI aprobada](https://github.com/elmohorn/Prophec-y/actions/runs/41471540845) |
-
-Windows/Linux VST3, tests automatizados, pluginval strictness 10, sanitizers Linux y guards de análisis aprobados en las ejecuciones indicadas. v0.20 también incluye smoke nativo de editor/audio. Las releases reutilizan exactamente esos ZIP validados y verifican procedencia, checksums e integridad antes de publicarlos. La matriz de pruebas manuales en distintos DAW sigue pendiente.
-
-[Estado actual de v0.20](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_CURRENT_STATUS.md) · [Revisión de producto y próximos pasos](https://github.com/elmohorn/Prophec-y/blob/v0.20-ui/docs/V0_20_PRODUCT_REVIEW.md).
-
-La documentación técnica histórica de la base v0.18 continúa a continuación.
+La siguiente sección conserva información histórica de la base v0.18; no describe el estado completo del plugin actual.
 
 ---
 

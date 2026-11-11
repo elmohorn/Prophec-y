@@ -8,6 +8,7 @@ void p6MailboxTestHook(int stage, std::uint16_t value);
 #undef P6_MAILBOX_TEST_HOOK
 
 #include <array>
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
@@ -181,6 +182,54 @@ void testUnisonSustainReleasesAsOneStack()
     P6_CHECK(!engine.captureChordMemoryFromHeld());
     engine.setSustainPedal(false);
     P6_CHECK(engine.sustainedVoiceCount() == 0);
+}
+
+void testMidiVolumeTransitionsAreContinuous()
+{
+    for (const double rate : {44100.0, 48000.0, 96000.0}) {
+        p6::P6Engine reference, changed;
+        reference.prepare(rate, 1);
+        changed.prepare(rate, 1);
+        p6::P6PerformanceScheduler scheduler(changed);
+        p6::P6MidiRouter router;
+        p6::P6PatchState patch;
+        const auto sendVolume = [&](std::uint8_t value) {
+            const std::array<std::uint8_t, 3> message{0xB0, 7, value};
+            P6_CHECK(router.process(message, patch, scheduler).consumed);
+        };
+        reference.noteOn(60, 1.0);
+        changed.noteOn(60, 1.0);
+        for (int i = 0; i < static_cast<int>(rate * 0.1); ++i) {
+            reference.process();
+            changed.process();
+        }
+        const int length = static_cast<int>(std::lround(rate * 0.005));
+        sendVolume(0);
+        for (int i = 0; i < length + 10; ++i) {
+            const auto expected = reference.process();
+            const auto actual = changed.process();
+            const double gain = std::max(0.0, 1.0 - static_cast<double>(i + 1) / length);
+            P6_CHECK(std::abs(actual.left - expected.left * gain) < 1.0e-9);
+            P6_CHECK(std::abs(actual.right - expected.right * gain) < 1.0e-9);
+        }
+        sendVolume(127);
+        for (int i = 0; i < length / 2; ++i) {
+            reference.process();
+            changed.process();
+        }
+        // A new target starts at the current gain, without jumping to either
+        // endpoint. Repeated identical CCs must not restart the ramp.
+        sendVolume(0);
+        sendVolume(0);
+        const double halfway = static_cast<double>(length / 2) / length;
+        for (int i = 0; i < length + 2; ++i) {
+            const auto expected = reference.process();
+            const auto actual = changed.process();
+            const double gain = halfway * std::max(0.0, 1.0 - static_cast<double>(i + 1) / length);
+            P6_CHECK(std::abs(actual.left - expected.left * gain) < 1.0e-9);
+            P6_CHECK(std::abs(actual.right - expected.right * gain) < 1.0e-9);
+        }
+    }
 }
 
 void testMidiRouterPerformanceControllersStayOutOfPatch()
@@ -458,6 +507,7 @@ int main()
     testSustainSeparatesPhysicalKeysFromSoundingVoices();
     testSustainDoesNotExtendGeneratedNoteOwnership();
     testUnisonSustainReleasesAsOneStack();
+    testMidiVolumeTransitionsAreContinuous();
     testMidiRouterPerformanceControllersStayOutOfPatch();
     testPitchWheelUsesFull14BitTravelAndRecentersOnReset();
     testNrpnSelectionIsPerChannel();

@@ -1,5 +1,9 @@
 # v0.20 — Interfaz y flujo de presets
 
+> **Plan activo (11 noviembre 2026):** consultar [Plan de trabajo actual](PLAN_TRABAJO_ACTUAL.md).
+> Las secciones siguientes conservan decisiones y planificación históricas;
+> algunas describen versiones anteriores y no representan el estado de `main`.
+
 ## Actualización de prioridades — 5 de noviembre de 2026 (planificación, no implementación)
 
 **Auditoría técnica detallada:** [Tube + Optical Tremolo — hallazgos de código, alternativas y pruebas de aceptación](V0_20_TUBE_OPTICAL_TREMOLO_TECH_REVIEW.md). Separa hechos verificados, hipótesis de mejora y experimentos aún no ejecutados. El bloque siguiente resume las prioridades, pero no sustituye ese documento.

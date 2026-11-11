@@ -184,6 +184,21 @@ int main(int argc,char** argv)
         CHECK(name.scrollOffset()>0.f);
         name.setName("BASS");
         CHECK(name.scrollOffset()==0.f&&name.getTooltip()=="BASS");
+        // These characters occur in Sequential's bundled factory names.
+        // Compare rendered pixels, since unsupported characters used to be
+        // silently rendered as the question-mark fallback.
+        name.setName("?");
+        const auto fallback=name.createComponentSnapshot(name.getLocalBounds());
+        for(const auto* glyph : {"!", "(", ")"}) {
+            name.setName(glyph);
+            const auto actual=name.createComponentSnapshot(name.getLocalBounds());
+            bool different=false;
+            for(int y=0;y<actual.getHeight();++y)
+                for(int x=0;x<actual.getWidth();++x)
+                    different |= actual.getPixelAt(x,y)!=fallback.getPixelAt(x,y);
+            CHECK(different);
+        }
+        name.setName("BASS");
         if(argc>1){const juce::File folder{juce::String(argv[1])};folder.createDirectory();CHECK(screenshot(name,folder.getChildFile("display_preset_matrix.png")));}
     }
     // Motion pauses the current heater frame; bypass extinguishes it.
@@ -659,6 +674,8 @@ int main(int argc,char** argv)
     }
     CHECK(chamber!=nullptr&&chamber->isVisible()&&fold!=nullptr);
     CHECK(presets&&midiReadout&&masterLabel&&master&&meter&&resetClip&&moduleButton&&studioButton&&midiChannel);
+    // The meter must receive hover events for its numeric peak/RMS tooltip.
+    CHECK(meter->hitTest(meter->getWidth()/2,meter->getHeight()/2));
     // This test protects the cramped FX and Performance controls that were
     // previously intersecting at the bottom edge of the synth panel.
     juce::ComboBox* fxA=nullptr;
