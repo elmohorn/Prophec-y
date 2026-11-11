@@ -38,9 +38,14 @@ el instrumento y completar sus flujos antes de añadir grandes funciones.
    El DSP limita a 12; conservar el dominio bruto 0–24 para compatibilidad y
    aclarar la presentación, sin afirmar que 24 semitonos sea rango confirmado.
    [Manual Sequential, p. 57](https://www.sequential.com/wp-content/uploads/2021/02/Prophet-6-Operation-Manual-2.1.pdf).
-10. **Gates:** añadir casos pertinentes de nivel/transitorios y conexiones UI;
-    los fingerprints actuales excluyen la tabla de headroom y no prueban por
-    sí solos ausencia de clics ni equivalencia sonora con hardware.
+10. **Gates:** la tabla de headroom tiene ahora referencia de 12 casos del
+    `main` anterior y comprobación en CI. Añadir más casos pertinentes de
+    transitorios y conexiones UI; los fingerprints no prueban por sí solos
+    ausencia de clics ni equivalencia sonora con hardware.
+
+En este avance se añadió una prueba de CC7 a 44,1/48/96 kHz, se completaron
+signos de presets oficiales y se habilitó el hover del medidor. La validación
+automática y la escucha del usuario son etapas distintas.
 
 ## Pendiente de validación con el usuario
 
