@@ -47,6 +47,32 @@ En este avance se añadió una prueba de CC7 a 44,1/48/96 kHz, se completaron
 signos de presets oficiales y se habilitó el hover del medidor. La validación
 automática y la escucha del usuario son etapas distintas.
 
+### Hallazgos exploratorios de niveles — 11 noviembre 2026
+
+Se renderizaron 770 presets oficiales en el motor/scheduler a 48 kHz/2×,
+0,4 s por caso, una nota o acorde de tres notas y mod wheel en 0/1: 3.080
+casos, todos con muestras finitas. Sin wrapper, Character ni Master; los
+valores flotantes superiores a 1 no prueban recorte dentro del motor.
+Ocho casos de energía casi nula en la ventana corta sí generaron audio en
+repeticiones de 3 s. Se requieren pasajes más largos para sonidos lentos.
+
+Los presets OMOM Sweet 16 Arp SH, Deep 16 Arp SH y Steam Engine Arp SH
+presentaron picos de aproximadamente 10,95, 11,13 y 15,18 respectivamente,
+con una nota y mod wheel al máximo, antes de distorsión y FX, en 3 s.
+En Bat Cavern SH la misma prueba produjo pico 3,39 antes de distorsión/FX
+y 20,13 después de la cadena; en 10 s el máximo fue 27,18. Desactivar FX
+redujo el pico a 3,07 en 10 s; desactivar la distorsión con FX activos lo
+redujo a 6,57. Son escenarios específicos, no mediciones de hardware ni
+justificación para cambiar la ganancia de todos los presets. Prioridad:
+reproducir en el wrapper completo, localizar el aporte de cada etapa y probar
+soluciones con señales/presets comparables antes de alterar su sonido.
+
+El benchmark preliminar de motor + Character (6 voces, 48/96 kHz, buffers de
+32/64/128, 250 bloques por caso) pasó el presupuesto en p99 en los 36 casos
+de esta máquina; el máximo individual lo superó en 2. No incluye el wrapper,
+editor ni DAW y corre en un entorno compartido: no establece rendimiento en
+el PC del usuario ni sustituye una prueba de larga duración.
+
 ## Pendiente de validación con el usuario
 
 - En DAW: abrir/guardar/cerrar/reabrir, automatización, tempo y loops, distintos
