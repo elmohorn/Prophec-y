@@ -7,6 +7,11 @@ This branch contains **design prototypes only**. The native JUCE VST3 editor and
 - [Component Lab v1.2](component-lab-v1.2.html) — approved standalone component sandbox, with self-contained textures/assets.
 - [Component design specification](COMPONENT_LAB_SPEC_V1_2.md) — material, lighting, behavior, and JUCE parameter binding reference.
 - [Full Web Editor Alpha v1](prophec-y-full-editor-alpha-v1.html) — first standalone complete modular interface, reusing the component visual language and approved horizontal layout.
+- [Core Synth Alpha v2](prophec-y-core-synth-alpha-v2.html) — current design exploration: removes Character FX from the active UI, retains standard FX A/B, widens the mixer, and gives the core arpeggiator/sequencer more space. Alpha v1 remains archived for comparison.
+
+## Current design direction (Alpha v2)
+
+Character FX and its dedicated right-hand panel are deliberately excluded **from the v2 design only**, not deleted from the synthesizer engine, native plugin, or alpha v1 backup. The top toolbar no longer displays Character controls; Character-only arp buttons are removed from this v2. The editor is 1500 × 835 design pixels (247 px glass console + 1200 px synth field), a 310 px mixer and a 135 px arp/step section. Ordinary FX A/B remain present. This is a first spatial pass, not final user-tested geometry. The left-side synth and arp remain browser-demo-only; no DSP/API changes.
 
 ## Full editor alpha scope
 
