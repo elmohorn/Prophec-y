@@ -6,6 +6,20 @@ merged to `main`, and not yet visually approved from a compiled JUCE capture.
 Approved concept art is the design reference, **not a pixel-accurate texture
 atlas**. All geometry and drawing in these files are procedural and themeable.
 
+## Visual fidelity / approved references
+
+The **approved visual boards** are `Biblioteca UI Synth Industrial Prophec-Y v2.0.png`
+(base 18 pieces) and `Biblioteca de componentes PROPHEC‑Y v2.0.png` (extended set).
+The native review criteria, sizes, design tokens and per-family acceptance grid are
+in [VISUAL_FIDELITY_SPEC.md](VISUAL_FIDELITY_SPEC.md).
+
+The v2.1 corrections make dial **visible diameters** independent of oversized
+interaction boxes, enforce named fader **track lengths**, and distinguish HERO
+LED scales from engraved secondary-dial scales. The native VU face now has a
+graduated scale and separate needle/pivot. These are **source-code changes only**:
+the appearance has **not** passed comparison against a native JUCE screenshot.
+Do not mistake the separately rendered HTML gallery for a JUCE capture.
+
 ## What is implemented
 
 | Component family | JUCE class | Variants and behaviour |
