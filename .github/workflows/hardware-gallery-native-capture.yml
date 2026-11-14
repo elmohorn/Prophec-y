@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           openbox >/tmp/openbox.log 2>&1 &
           wm=$!
-          ./build/gallery/plugin/P6HardwareGallery_artefacts/Release/P6HardwareGallery &
+          "./build/gallery/plugin/P6HardwareGallery_artefacts/Release/Prophec-Y Hardware Gallery" &
           app=$!
           trap 'kill "$app" "$wm" 2>/dev/null || true' EXIT
           id=""
