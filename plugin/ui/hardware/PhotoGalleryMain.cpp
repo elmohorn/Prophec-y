@@ -18,7 +18,7 @@ public:
             auto dial=std::make_unique<Dial>(id_,2.f);
             dial->setValue(.5,juce::dontSendNotification);
             dial->setDoubleClickReturnValue(true,.5);
-            dial->setMouseWheelEnabled(true);
+            dial->setScrollWheelEnabled(true);
             control_=std::move(dial);
         } else if(isToggle) {
             auto button=std::make_unique<Toggle>(id_);
