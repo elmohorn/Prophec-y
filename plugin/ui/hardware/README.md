@@ -74,7 +74,7 @@ p6plugin::hardware::HardwareMeter stereoMeter{
 // Unchanged existing APVTS parameter IDs, domains and host gestures:
 auto cutoffBinding = std::make_unique<
     juce::AudioProcessorValueTreeState::SliderAttachment>(
-        processor.apvts, "EXISTING_PARAMETER_ID", cutoff);
+        processor.parameters(), "EXISTING_PARAMETER_ID", cutoff);
 
 // If desired, call cutoff.configure(...) exactly as for the project's
 // ProphecyParameterControl to preserve exact-text editing and help.
