@@ -1,0 +1,70 @@
+name: hardware-gallery-native-capture
+
+on:
+  push:
+    branches: [design/reusable-hardware-kit-v2]
+    paths:
+      - .github/workflows/hardware-gallery-native-capture.yml
+      - plugin/ui/hardware/**
+      - plugin/CMakeLists.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native JUCE and capture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libfontconfig1-dev libfreetype6-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxi-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev \
+            libgl1-mesa-dev libegl1-mesa-dev xvfb xdotool openbox imagemagick
+      - name: Configure standalone native hardware gallery
+        run: >
+          cmake -S . -B build/gallery -DCMAKE_BUILD_TYPE=Release
+          -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON
+          -DP6_BUILD_HARDWARE_GALLERY=ON
+      - name: Build gallery
+        run: cmake --build build/gallery --target P6HardwareGallery --parallel 2
+      - name: Screenshot actual JUCE native window with Xvfb
+        shell: bash
+        run: |
+          mkdir -p gallery-screenshots
+          cat > /tmp/capture-gallery.sh <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          openbox >/tmp/openbox.log 2>&1 &
+          wm=$!
+          "./build/gallery/plugin/P6HardwareGallery_artefacts/Release/Prophec-Y Hardware Gallery" &
+          app=$!
+          trap 'kill "$app" "$wm" 2>/dev/null || true' EXIT
+          id=""
+          for i in {1..35}; do
+            id="$(xdotool search --name 'Prophec-Y UI Component Library v2' 2>/dev/null | tail -n 1 || true)"
+            [[ -n "$id" ]] && break
+            sleep 1
+          done
+          if [[ -z "$id" ]]; then echo "Gallery window did not appear"; exit 2; fi
+          xdotool windowactivate --sync "$id"
+          xdotool windowsize --sync "$id" 1520 1530
+          xdotool windowmove "$id" 50 50
+          sleep 4
+          import -silent -window "$id" gallery-screenshots/native-hardware-gallery-full.png
+          identify gallery-screenshots/native-hardware-gallery-full.png
+          BASH
+          chmod +x /tmp/capture-gallery.sh
+          xvfb-run -a -s "-screen 0 1800x1750x24" /tmp/capture-gallery.sh
+      - name: Publish real gallery capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProphecY-JUCE-native-hardware-gallery
+          path: gallery-screenshots/*.png
+          if-no-files-found: warn

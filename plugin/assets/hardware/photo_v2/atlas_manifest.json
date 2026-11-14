@@ -1,0 +1,881 @@
+{
+  "schema": 1,
+  "sources": [
+    "a_detailed_high_quality_ui_design_spec_sheet_dar.png",
+    "a_highly_detailed_photoreal_ui_style_component_l.png",
+    "Biblioteca UI Prophec‑Y v2.1 Complementarios.png"
+  ],
+  "dial_atlas": "dials_atlas.png",
+  "module_atlas": "modules_atlas.png",
+  "dials": {
+    "xl-hero": {
+      "nominalDiameter": 64,
+      "cropRadius": 70,
+      "capRadius": 59,
+      "source": 1,
+      "full": [
+        2,
+        2,
+        140,
+        140
+      ],
+      "ring": [
+        145,
+        2,
+        140,
+        140
+      ],
+      "cap": [
+        288,
+        2,
+        140,
+        140
+      ]
+    },
+    "l-standard": {
+      "nominalDiameter": 48,
+      "cropRadius": 60,
+      "capRadius": 47,
+      "source": 1,
+      "full": [
+        1181,
+        2,
+        120,
+        120
+      ],
+      "ring": [
+        2,
+        145,
+        120,
+        120
+      ],
+      "cap": [
+        125,
+        145,
+        120,
+        120
+      ]
+    },
+    "m-compact": {
+      "nominalDiameter": 36,
+      "cropRadius": 47,
+      "capRadius": 35,
+      "source": 1,
+      "full": [
+        1235,
+        145,
+        94,
+        94
+      ],
+      "ring": [
+        2,
+        268,
+        94,
+        94
+      ],
+      "cap": [
+        99,
+        268,
+        94,
+        94
+      ]
+    },
+    "s-trim": {
+      "nominalDiameter": 24,
+      "cropRadius": 31,
+      "capRadius": 23,
+      "source": 1,
+      "full": [
+        1228,
+        268,
+        62,
+        62
+      ],
+      "ring": [
+        1293,
+        268,
+        62,
+        62
+      ],
+      "cap": [
+        2,
+        365,
+        62,
+        62
+      ]
+    },
+    "l-brushed-cap": {
+      "nominalDiameter": 48,
+      "cropRadius": 44,
+      "capRadius": 37,
+      "source": 1,
+      "full": [
+        196,
+        268,
+        88,
+        88
+      ],
+      "ring": [
+        287,
+        268,
+        88,
+        88
+      ],
+      "cap": [
+        378,
+        268,
+        88,
+        88
+      ]
+    },
+    "l-dark-cap": {
+      "nominalDiameter": 48,
+      "cropRadius": 41,
+      "capRadius": 36,
+      "source": 1,
+      "full": [
+        730,
+        268,
+        82,
+        82
+      ],
+      "ring": [
+        815,
+        268,
+        82,
+        82
+      ],
+      "cap": [
+        900,
+        268,
+        82,
+        82
+      ]
+    },
+    "m-knurled-cap": {
+      "nominalDiameter": 36,
+      "cropRadius": 42,
+      "capRadius": 35,
+      "source": 1,
+      "full": [
+        469,
+        268,
+        84,
+        84
+      ],
+      "ring": [
+        556,
+        268,
+        84,
+        84
+      ],
+      "cap": [
+        643,
+        268,
+        84,
+        84
+      ]
+    },
+    "m-scalloped-cap": {
+      "nominalDiameter": 36,
+      "cropRadius": 39,
+      "capRadius": 37,
+      "source": 1,
+      "full": [
+        985,
+        268,
+        78,
+        78
+      ],
+      "ring": [
+        1066,
+        268,
+        78,
+        78
+      ],
+      "cap": [
+        1147,
+        268,
+        78,
+        78
+      ]
+    },
+    "encoder-led": {
+      "nominalDiameter": 48,
+      "cropRadius": 48,
+      "capRadius": 40,
+      "source": 1,
+      "full": [
+        938,
+        145,
+        96,
+        96
+      ],
+      "ring": [
+        1037,
+        145,
+        96,
+        96
+      ],
+      "cap": [
+        1136,
+        145,
+        96,
+        96
+      ]
+    },
+    "macro-morph": {
+      "nominalDiameter": 64,
+      "cropRadius": 55,
+      "capRadius": 45,
+      "source": 1,
+      "full": [
+        599,
+        145,
+        110,
+        110
+      ],
+      "ring": [
+        712,
+        145,
+        110,
+        110
+      ],
+      "cap": [
+        825,
+        145,
+        110,
+        110
+      ]
+    },
+    "rotary-selector": {
+      "nominalDiameter": 48,
+      "cropRadius": 61,
+      "capRadius": 54,
+      "source": 1,
+      "full": [
+        431,
+        2,
+        122,
+        122
+      ],
+      "ring": [
+        556,
+        2,
+        122,
+        122
+      ],
+      "cap": [
+        681,
+        2,
+        122,
+        122
+      ]
+    },
+    "micro": {
+      "nominalDiameter": 18,
+      "cropRadius": 24,
+      "capRadius": 19,
+      "source": 1,
+      "full": [
+        67,
+        365,
+        48,
+        48
+      ],
+      "ring": [
+        118,
+        365,
+        48,
+        48
+      ],
+      "cap": [
+        169,
+        365,
+        48,
+        48
+      ]
+    },
+    "nano": {
+      "nominalDiameter": 14,
+      "cropRadius": 23,
+      "capRadius": 19,
+      "source": 1,
+      "full": [
+        220,
+        365,
+        46,
+        46
+      ],
+      "ring": [
+        269,
+        365,
+        46,
+        46
+      ],
+      "cap": [
+        318,
+        365,
+        46,
+        46
+      ]
+    },
+    "l-pointer-cap": {
+      "nominalDiameter": 48,
+      "cropRadius": 61,
+      "capRadius": 49,
+      "source": 2,
+      "full": [
+        806,
+        2,
+        122,
+        122
+      ],
+      "ring": [
+        931,
+        2,
+        122,
+        122
+      ],
+      "cap": [
+        1056,
+        2,
+        122,
+        122
+      ]
+    },
+    "detented-encoder": {
+      "nominalDiameter": 36,
+      "cropRadius": 57,
+      "capRadius": 47,
+      "source": 2,
+      "full": [
+        248,
+        145,
+        114,
+        114
+      ],
+      "ring": [
+        365,
+        145,
+        114,
+        114
+      ],
+      "cap": [
+        482,
+        145,
+        114,
+        114
+      ]
+    }
+  },
+  "modules": {
+    "fader-vertical-long": {
+      "size": [
+        63,
+        139
+      ],
+      "source": 1,
+      "rect": [
+        2,
+        2,
+        63,
+        139
+      ]
+    },
+    "fader-vertical-compact": {
+      "size": [
+        43,
+        113
+      ],
+      "source": 1,
+      "rect": [
+        68,
+        2,
+        43,
+        113
+      ]
+    },
+    "fader-vertical-mini": {
+      "size": [
+        42,
+        87
+      ],
+      "source": 1,
+      "rect": [
+        537,
+        2,
+        42,
+        87
+      ]
+    },
+    "slider-horizontal": {
+      "size": [
+        170,
+        38
+      ],
+      "source": 1,
+      "rect": [
+        349,
+        396,
+        170,
+        38
+      ]
+    },
+    "slider-horizontal-compact": {
+      "size": [
+        118,
+        33
+      ],
+      "source": 1,
+      "rect": [
+        522,
+        396,
+        118,
+        33
+      ]
+    },
+    "slider-horizontal-trim": {
+      "size": [
+        116,
+        22
+      ],
+      "source": 1,
+      "rect": [
+        864,
+        396,
+        116,
+        22
+      ]
+    },
+    "switch-low-profile-on": {
+      "size": [
+        90,
+        47
+      ],
+      "source": 1,
+      "rect": [
+        529,
+        342,
+        90,
+        47
+      ]
+    },
+    "toggle-mini": {
+      "size": [
+        58,
+        74
+      ],
+      "source": 1,
+      "rect": [
+        987,
+        2,
+        58,
+        74
+      ]
+    },
+    "switch-3-position": {
+      "size": [
+        82,
+        51
+      ],
+      "source": 1,
+      "rect": [
+        885,
+        280,
+        82,
+        51
+      ]
+    },
+    "toggle-pill": {
+      "size": [
+        73,
+        49
+      ],
+      "source": 1,
+      "rect": [
+        179,
+        342,
+        73,
+        49
+      ]
+    },
+    "button-square-on": {
+      "size": [
+        76,
+        68
+      ],
+      "source": 1,
+      "rect": [
+        2,
+        144,
+        76,
+        68
+      ]
+    },
+    "button-round-on": {
+      "size": [
+        54,
+        63
+      ],
+      "source": 1,
+      "rect": [
+        1081,
+        144,
+        54,
+        63
+      ]
+    },
+    "button-utility": {
+      "size": [
+        57,
+        60
+      ],
+      "source": 1,
+      "rect": [
+        1072,
+        215,
+        57,
+        60
+      ]
+    },
+    "button-icon": {
+      "size": [
+        49,
+        60
+      ],
+      "source": 1,
+      "rect": [
+        1132,
+        215,
+        49,
+        60
+      ]
+    },
+    "step-sequencer": {
+      "size": [
+        282,
+        62
+      ],
+      "source": 1,
+      "rect": [
+        2,
+        215,
+        282,
+        62
+      ]
+    },
+    "capacitive-preset": {
+      "size": [
+        247,
+        62
+      ],
+      "source": 1,
+      "rect": [
+        287,
+        215,
+        247,
+        62
+      ]
+    },
+    "dropdown-preview": {
+      "size": [
+        312,
+        61
+      ],
+      "source": 1,
+      "rect": [
+        757,
+        215,
+        312,
+        61
+      ]
+    },
+    "oled-preset-strip": {
+      "size": [
+        388,
+        59
+      ],
+      "source": 1,
+      "rect": [
+        2,
+        280,
+        388,
+        59
+      ]
+    },
+    "vu-analog": {
+      "size": [
+        180,
+        86
+      ],
+      "source": 1,
+      "rect": [
+        582,
+        2,
+        180,
+        86
+      ]
+    },
+    "meter-dual-led": {
+      "size": [
+        93,
+        89
+      ],
+      "source": 1,
+      "rect": [
+        148,
+        2,
+        93,
+        89
+      ]
+    },
+    "scope-spectrum": {
+      "size": [
+        166,
+        68
+      ],
+      "source": 1,
+      "rect": [
+        81,
+        144,
+        166,
+        68
+      ]
+    },
+    "scope-oscilloscope": {
+      "size": [
+        170,
+        68
+      ],
+      "source": 1,
+      "rect": [
+        250,
+        144,
+        170,
+        68
+      ]
+    },
+    "scope-morph": {
+      "size": [
+        176,
+        68
+      ],
+      "source": 1,
+      "rect": [
+        423,
+        144,
+        176,
+        68
+      ]
+    },
+    "xy-performance": {
+      "size": [
+        219,
+        86
+      ],
+      "source": 1,
+      "rect": [
+        765,
+        2,
+        219,
+        86
+      ]
+    },
+    "adsr-envelope": {
+      "size": [
+        303,
+        71
+      ],
+      "source": 1,
+      "rect": [
+        1048,
+        2,
+        303,
+        71
+      ]
+    },
+    "lfo-wave-selector": {
+      "size": [
+        308,
+        68
+      ],
+      "source": 1,
+      "rect": [
+        602,
+        144,
+        308,
+        68
+      ]
+    },
+    "modulation-matrix": {
+      "size": [
+        575,
+        44
+      ],
+      "source": 1,
+      "rect": [
+        622,
+        342,
+        575,
+        44
+      ]
+    },
+    "navigation-tabs": {
+      "size": [
+        344,
+        42
+      ],
+      "source": 1,
+      "rect": [
+        2,
+        396,
+        344,
+        42
+      ]
+    },
+    "progress-red": {
+      "size": [
+        218,
+        32
+      ],
+      "source": 1,
+      "rect": [
+        643,
+        396,
+        218,
+        32
+      ]
+    },
+    "rocker-2-pos": {
+      "size": [
+        165,
+        65
+      ],
+      "source": 2,
+      "rect": [
+        913,
+        144,
+        165,
+        65
+      ]
+    },
+    "toggle-3-pos": {
+      "size": [
+        68,
+        89
+      ],
+      "source": 2,
+      "rect": [
+        244,
+        2,
+        68,
+        89
+      ]
+    },
+    "vu-amber-compact": {
+      "size": [
+        219,
+        88
+      ],
+      "source": 2,
+      "rect": [
+        315,
+        2,
+        219,
+        88
+      ]
+    },
+    "status-oled-mini": {
+      "size": [
+        217,
+        62
+      ],
+      "source": 2,
+      "rect": [
+        537,
+        215,
+        217,
+        62
+      ]
+    },
+    "led-bar-vertical": {
+      "size": [
+        31,
+        108
+      ],
+      "source": 2,
+      "rect": [
+        114,
+        2,
+        31,
+        108
+      ]
+    },
+    "led-bar-horizontal": {
+      "size": [
+        271,
+        49
+      ],
+      "source": 2,
+      "rect": [
+        255,
+        342,
+        271,
+        49
+      ]
+    },
+    "value-chip": {
+      "size": [
+        205,
+        58
+      ],
+      "source": 2,
+      "rect": [
+        393,
+        280,
+        205,
+        58
+      ]
+    },
+    "module-header": {
+      "size": [
+        251,
+        51
+      ],
+      "source": 2,
+      "rect": [
+        970,
+        280,
+        251,
+        51
+      ]
+    },
+    "icon-button-set": {
+      "size": [
+        281,
+        56
+      ],
+      "source": 2,
+      "rect": [
+        601,
+        280,
+        281,
+        56
+      ]
+    },
+    "status-lamps": {
+      "size": [
+        174,
+        51
+      ],
+      "source": 2,
+      "rect": [
+        2,
+        342,
+        174,
+        51
+      ]
+    }
+  }
+}
