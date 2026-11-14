@@ -47,7 +47,8 @@ public:
             : Geometry::dialDiameter(DialSize::medium);
         const bool led = detail::property(slider, "p6.hardware.led") != "0";
         const bool prominent = nominal >= 48.f;
-        const float clearance = led ? std::max(4.f, nominal * .16f) : 2.f;
+        const float clearance = led ? std::max(4.f, nominal * .16f)
+                                    : (nominal >= 24.f ? std::max(3.f, nominal * .09f) : 2.f);
         const float diameter = std::min(nominal, std::max(4.f,
             std::min(static_cast<float>(width), static_cast<float>(height)) - 2.f * clearance));
         const float radius = diameter * .5f;
@@ -72,6 +73,21 @@ public:
                 g.drawLine(cx + dx * inner, cy + dy * inner,
                            cx + dx * outer, cy + dy * outer,
                            state.tip ? (prominent ? 2.0f : 1.2f) : (prominent ? 1.5f : .85f));
+            }
+        }
+
+        if (!led && nominal >= 24.f) {
+            // The reference L/M/S caps have discrete unlit scale marks, NOT an LED
+            // ring. This avoids decorating every control with the HERO halo.
+            const int marks = nominal >= 48.f ? 21 : 15;
+            const float inner = radius + 1.2f;
+            const float outer = radius + std::clamp(diameter * .075f, 1.5f, 3.4f);
+            for (int i = 0; i < marks; ++i) {
+                const float a = startAngle + (endAngle - startAngle) *
+                    static_cast<float>(i) / static_cast<float>(marks - 1);
+                g.setColour(Palette::colour(Palette::silver).withAlpha(.4f));
+                g.drawLine(cx + std::sin(a) * inner, cy - std::cos(a) * inner,
+                           cx + std::sin(a) * outer, cy - std::cos(a) * outer, .8f);
             }
         }
 
@@ -124,7 +140,7 @@ public:
         }
 
         // Engraved index remains legible on the four distinct cap finishes.
-        g.setColour(metallic ? Palette::colour(Palette::chassis) : silver);
+        g.setColour(metallic ? Palette::colour(Palette::chassis) : (led ? silver : red));
         g.drawLine(cx + std::sin(angle) * radius * .23f,
                    cy - std::cos(angle) * radius * .23f,
                    cx + std::sin(angle) * faceRadius * .78f,
@@ -276,7 +292,9 @@ public:
         setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
         setRange(0.,1.,.001);setValue(.5,juce::dontSendNotification);
         setLookAndFeel(&lookAndFeel());setSizeVariant(size);setCap(cap);
-        detail::put(*this,"p6.hardware.led",1);
+        // The approved concept lights the HERO and encoder; L/M/S and trims
+        // have engraved scales with a red index, not identical LED halos.
+        detail::put(*this,"p6.hardware.led",size == DialSize::hero ? 1 : 0);
         setWantsKeyboardFocus(true);
     }
     ~HardwareDial() override { setLookAndFeel(nullptr); }
