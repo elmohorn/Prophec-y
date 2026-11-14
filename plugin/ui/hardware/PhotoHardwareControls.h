@@ -122,11 +122,11 @@ class PhotoDialLookAndFeel final : public juce::LookAndFeel_V4 {
 public:
     void drawRotarySlider(juce::Graphics& g,int x,int y,int width,int height,
                           float normalized,float,float,juce::Slider& slider) override {
-        const int id=std::clamp(static_cast<int>(slider.getProperties()["p6.photo.dial"]),0,
+        const int id=std::clamp(static_cast<int>(slider.getProperties()[juce::Identifier("p6.photo.dial")]),0,
             static_cast<int>(dials.size())-1);
         const auto& part=dials[static_cast<std::size_t>(id)];
         const float scale=std::clamp(static_cast<float>(
-            static_cast<double>(slider.getProperties()["p6.photo.scale"])),.5f,4.f);
+            static_cast<double>(slider.getProperties()[juce::Identifier("p6.photo.scale")])),.5f,4.f);
         const float outer=std::min(photoOuterDiameter(part,scale),
                      static_cast<float>(std::min(width,height))-2.f);
         if(outer<=2.f)return;
@@ -170,19 +170,19 @@ public:
     ~Dial() override {setLookAndFeel(nullptr);}
     void setVariant(const juce::String& name) {
         auto index=dialIndex(name);
-        getProperties().set("p6.photo.dial",index);
+        getProperties().set(juce::Identifier("p6.photo.dial"),index);
         setTooltip(juce::String(dials[static_cast<std::size_t>(index)].id));
         repaint();
     }
     void setPreviewScale(float scale) {
-        getProperties().set("p6.photo.scale",std::clamp(scale,.5f,4.f));
+        getProperties().set(juce::Identifier("p6.photo.scale"),std::clamp(scale,.5f,4.f));
         repaint();
     }
 };
 
 // Other photographed controls are composable independent photo sprites.
 // Display-only class: not a substitute for an APVTS-bound fader/button.
-class StaticModule : public juce::Component {
+class StaticModule : public juce::Component, public juce::SettableTooltipClient {
 public:
     explicit StaticModule(const juce::String& id) {setModule(id);}
     void setModule(const juce::String& id) {
