@@ -24,22 +24,50 @@ public:
         auto r=getLocalBounds().toFloat().reduced(3.f);
         paintPlate(g,r);
         if(kind_==MeterKind::analogVu) {
-            const auto centre=juce::Point<float>(r.getCentreX(),r.getBottom()-6.f);
-            const auto radius=std::min(r.getWidth()*.44f,r.getHeight()*.75f);
-            for(int i=0;i<=8;++i) {
-                const float a=-1.15f+2.3f*i/8.f;
-                const auto p=juce::Point<float>(centre.x+std::sin(a)*radius,
-                                                centre.y-std::cos(a)*radius);
-                g.setColour(Palette::colour(Palette::silver).withAlpha(.55f));
-                g.fillEllipse(p.x-1.f,p.y-1.f,2.f,2.f);
+            // Small physical meter: recessed face, graduated scale, distinct
+            // warning arc, needle and pivot. This is a live meter, not a bitmap.
+            const auto housing = r.reduced(4.f, 2.f);
+            g.setColour(juce::Colours::black.withAlpha(.70f));
+            g.fillRoundedRectangle(housing, 5.f);
+            g.setGradientFill(juce::ColourGradient(
+                Palette::colour(0xff626065), housing.getX(), housing.getY(),
+                Palette::colour(0xff141517), housing.getRight(), housing.getBottom(), false));
+            g.drawRoundedRectangle(housing.reduced(.7f), 4.5f, 1.2f);
+            const auto face = housing.reduced(5.f, 3.f);
+            g.setGradientFill(juce::ColourGradient(
+                Palette::colour(0xff25272b), face.getX(), face.getY(),
+                Palette::colour(0xff0b0d10), face.getX(), face.getBottom(), false));
+            g.fillRoundedRectangle(face, 3.f);
+            const auto centre=juce::Point<float>(face.getCentreX(),face.getBottom()-2.5f);
+            const float radius=std::min(face.getWidth()*.44f,face.getHeight()*.89f);
+            for(int i=0;i<=10;++i) {
+                const float a=-1.15f+2.3f*static_cast<float>(i)/10.f;
+                const float dx=std::sin(a), dy=-std::cos(a);
+                const float inner=radius*(i%2==0 ? .76f : .82f);
+                const float outer=radius*.95f;
+                g.setColour(i>=9 ? Palette::colour(Palette::redBright).withAlpha(.85f)
+                                 : Palette::colour(Palette::silver).withAlpha(.64f));
+                g.drawLine(centre.x+dx*inner,centre.y+dy*inner,
+                           centre.x+dx*outer,centre.y+dy*outer,i%2==0?1.15f:.7f);
             }
+            g.setColour(Palette::colour(Palette::silver).withAlpha(.76f));
+            g.setFont(juce::Font(9.5f));
+            g.drawText("VU",juce::Rectangle<int>(
+                static_cast<int>(face.getCentreX()-12.f),
+                static_cast<int>(face.getY()+3.f),24,12),juce::Justification::centred);
             const float angle=-1.15f+2.3f*((left_+right_)*.5f);
+            g.setColour(juce::Colours::black.withAlpha(.78f));
+            g.drawLine(centre.x+1.f,centre.y+1.f,
+                       centre.x+std::sin(angle)*radius*.83f+1.f,
+                       centre.y-std::cos(angle)*radius*.83f+1.f,2.5f);
             g.setColour(Palette::colour(Palette::redBright));
-            g.drawLine(centre.x,centre.y,centre.x+std::sin(angle)*radius*.87f,
-                       centre.y-std::cos(angle)*radius*.87f,1.5f);
+            g.drawLine(centre.x,centre.y,
+                       centre.x+std::sin(angle)*radius*.83f,
+                       centre.y-std::cos(angle)*radius*.83f,1.5f);
             g.setColour(Palette::colour(Palette::silver));
-            g.setFont(juce::Font(10.f));
-            g.drawText("VU",juce::Rectangle<int>(0,0,getWidth(),16),juce::Justification::centred);
+            g.fillEllipse(centre.x-3.4f,centre.y-3.4f,6.8f,6.8f);
+            g.setColour(Palette::colour(Palette::chassis));
+            g.fillEllipse(centre.x-1.3f,centre.y-1.3f,2.6f,2.6f);
             return;
         }
         const int segments=kind_==MeterKind::ledBar?18:14;
