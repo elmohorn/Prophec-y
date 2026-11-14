@@ -19,15 +19,27 @@ public:
             DialSize::trim,DialSize::micro,DialSize::nano}};
         const std::array<juce::String,6> sizeNames{{"HERO 64","LARGE 48","MEDIUM 36",
             "TRIM 24","MICRO 18","NANO 14"}};
-        for(int i=0;i<6;++i){
-            auto& d=make<HardwareDial>(30+i*128,110,100,94,sizes[static_cast<std::size_t>(i)]);
-            d.setValue(.68,juce::dontSendNotification);
+        for (int i = 0; i < 6; ++i) {
+            // Every tile has the same footprint, but never the same physical cap.
+            // The surrounding bounds provide a hit area and LED clearance.
+            const auto variant = sizes[static_cast<std::size_t>(i)];
+            const int diameter = Geometry::dialDiameter(variant);
+            const int clearance = i < 2 ? 11 : 6;
+            const int box = std::max(static_cast<int>(Geometry::minimumHitSize),
+                                     diameter + 2 * clearance);
+            const int centreX = 80 + i * 128;
+            const int centreY = 156;
+            auto& d = make<HardwareDial>(centreX - box / 2, centreY - box / 2,
+                                          box, box, variant);
+            d.setValue(.68, juce::dontSendNotification);
             label(sizeNames[static_cast<std::size_t>(i)],30+i*128,204,100);
         }
-        for(int i=0;i<4;++i){
-            auto& d=make<HardwareDial>(815+i*148,114,100,92,DialSize::large,
-                        static_cast<Cap>(i));
-            d.setValue(.35+.14*i,juce::dontSendNotification);
+        for (int i = 0; i < 4; ++i) {
+            const int box = Geometry::dialDiameter(DialSize::large) + 22;
+            const int centreX = 865 + i * 148;
+            auto& d = make<HardwareDial>(centreX - box / 2, 156 - box / 2,
+                                          box, box, DialSize::large, static_cast<Cap>(i));
+            d.setValue(.35 + .14 * i, juce::dontSendNotification);
             label(std::array<juce::String,4>{{"BRUSHED","SOFT BLACK","KNURLED","SCALLOPED"}}[
                         static_cast<std::size_t>(i)],815+i*148,205,100);
         }
@@ -41,13 +53,18 @@ public:
             "VERTICAL 80","VERTICAL 56","VERTICAL 40",
             "HORIZONTAL 96","HORIZONTAL 72","TRIM 48"
         }};
-        for(int i=0;i<6;++i) {
-            const bool vertical=i<3;
-            const int x=35+i*210;
-            auto& f=make<HardwareFader>(x,294,
-                vertical?52:150, vertical?103:45,faders[static_cast<std::size_t>(i)]);
-            f.setValue(i%2==0?.7:.25,juce::dontSendNotification);
-            label(faderNames[static_cast<std::size_t>(i)],x,407,170);
+        for (int i = 0; i < 6; ++i) {
+            const bool vertical = i < 3;
+            const int slotX = 35 + i * 210;
+            const auto size = faders[static_cast<std::size_t>(i)];
+            const auto nominal = Geometry::sliderSize(size);
+            // Length is the physical track length; the hit box includes thumb travel.
+            const int boxW = vertical ? std::max(32, nominal.x + 12) : nominal.x + 20;
+            const int boxH = vertical ? nominal.y + 18 : std::max(34, nominal.y + 16);
+            auto& f = make<HardwareFader>(slotX + 75 - boxW / 2,
+                                          341 - boxH / 2, boxW, boxH, size);
+            f.setValue(i % 2 == 0 ? .7 : .25, juce::dontSendNotification);
+            label(faderNames[static_cast<std::size_t>(i)], slotX, 407, 170);
         }
 
         // 3. Physical buttons and hardware switches.
