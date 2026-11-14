@@ -14,7 +14,7 @@ inline juce::String property(const juce::Component& c, const char* key) {
 inline void put(juce::Component& c, const char* key, const juce::var& value) {
     c.getProperties().set(juce::Identifier(key), value);
 }
-inline float normalized(const juce::Slider& s) {
+inline float normalized(juce::Slider& s) {
     return static_cast<float>(std::clamp(s.valueToProportionOfLength(s.getValue()), 0., 1.));
 }
 } // namespace detail
@@ -64,10 +64,10 @@ public:
             if (zero.isNotEmpty()) neutral = std::clamp(zero.getFloatValue(), 0.f, 1.f);
             const float inner = radius + std::max(1.2f, diameter * .055f);
             const float outer = inner + std::clamp(diameter * .09f, 1.5f, 4.7f);
-            for (int i = 0; i < kLedRingSegments; ++i) {
+            for (int i = 0; i < p6plugin::ui::kLedRingSegments; ++i) {
                 const float a = startAngle + (endAngle - startAngle) *
-                    static_cast<float>(i) / static_cast<float>(kLedRingSegments - 1);
-                const auto state = ledSegmentState(i, position, neutral);
+                    static_cast<float>(i) / static_cast<float>(p6plugin::ui::kLedRingSegments - 1);
+                const auto state = p6plugin::ui::ledSegmentState(i, position, neutral);
                 const float dx = std::sin(a), dy = -std::cos(a);
                 g.setColour(state.lit ? red : rim.withAlpha(.42f));
                 g.drawLine(cx + dx * inner, cy + dy * inner,
@@ -291,7 +291,7 @@ public:
         setSliderStyle(juce::Slider::RotaryVerticalDrag);
         setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
         setRange(0.,1.,.001);setValue(.5,juce::dontSendNotification);
-        setLookAndFeel(&lookAndFeel());setSizeVariant(size);setCap(cap);
+        setLookAndFeel(&p6plugin::hardware::lookAndFeel());setSizeVariant(size);setCap(cap);
         // The approved concept lights the HERO and encoder; L/M/S and trims
         // have engraved scales with a red index, not identical LED halos.
         detail::put(*this,"p6.hardware.led",size == DialSize::hero ? 1 : 0);
@@ -323,7 +323,7 @@ public:
     explicit HardwareFader(SliderSize size=SliderSize::longVertical) {
         setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
         setRange(0.,1.,.001);setValue(.5,juce::dontSendNotification);
-        setLookAndFeel(&lookAndFeel());setSizeVariant(size);
+        setLookAndFeel(&p6plugin::hardware::lookAndFeel());setSizeVariant(size);
         setWantsKeyboardFocus(true);
     }
     ~HardwareFader() override {setLookAndFeel(nullptr);}
@@ -346,7 +346,7 @@ class HardwareButton : public juce::TextButton {
 public:
     explicit HardwareButton(const juce::String& label={},ButtonKind kind=ButtonKind::square)
         : juce::TextButton(label) {
-        setLookAndFeel(&lookAndFeel());setKind(kind);
+        setLookAndFeel(&p6plugin::hardware::lookAndFeel());setKind(kind);
         setClickingTogglesState(true);setWantsKeyboardFocus(true);
     }
     ~HardwareButton() override {setLookAndFeel(nullptr);}
@@ -359,7 +359,7 @@ public:
 class HardwareSwitch : public juce::ToggleButton {
 public:
     explicit HardwareSwitch(const juce::String& text={}) : juce::ToggleButton(text) {
-        setLookAndFeel(&lookAndFeel());detail::put(*this,"p6.hardware.button","rectangular");
+        setLookAndFeel(&p6plugin::hardware::lookAndFeel());detail::put(*this,"p6.hardware.button","rectangular");
         setWantsKeyboardFocus(true);
     }
     ~HardwareSwitch() override {setLookAndFeel(nullptr);}
@@ -384,7 +384,7 @@ private:
 
 class HardwareDropdown : public juce::ComboBox {
 public:
-    HardwareDropdown() {setLookAndFeel(&lookAndFeel());setWantsKeyboardFocus(true);}
+    HardwareDropdown() {setLookAndFeel(&p6plugin::hardware::lookAndFeel());setWantsKeyboardFocus(true);}
     ~HardwareDropdown() override {setLookAndFeel(nullptr);}
 };
 
