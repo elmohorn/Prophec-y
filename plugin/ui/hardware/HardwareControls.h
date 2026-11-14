@@ -312,6 +312,67 @@ public:
     }
 };
 
+// Rotary selector with stepped values and optional human-readable labels.
+// Bind using an existing parameter's SliderAttachment (not a new state).
+class HardwareRotarySelector : public HardwareDial {
+public:
+    HardwareRotarySelector() : HardwareDial(DialSize::large,Cap::softBlack) {
+        setLedEnabled(false);
+        setPositions({"LP","BP","HP","NOTCH"});
+    }
+    void setPositions(const juce::StringArray& items) {
+        positions_=items;
+        const int count=std::max(1,items.size());
+        setRange(0.,static_cast<double>(count-1),1.);
+        setValue(0.,juce::dontSendNotification);
+    }
+    juce::String selectedLabel() const {
+        const int index=std::clamp(static_cast<int>(std::lround(getValue())),
+                                   0,std::max(0,positions_.size()-1));
+        return positions_[index];
+    }
+private:
+    juce::StringArray positions_;
+};
+
+class HardwareEncoder : public HardwareDial {
+public:
+    explicit HardwareEncoder(DialSize size=DialSize::medium)
+        : HardwareDial(size,Cap::knurled) {
+        setLedEnabled(true);
+    }
+};
+
+// Distinct mechanical mini-toggle rather than a resized rectangular button.
+// Inherits JUCE Button for keyboard/accessibility and APVTS ButtonAttachment.
+class HardwareMiniToggle final : public juce::ToggleButton {
+public:
+    HardwareMiniToggle() {
+        setWantsKeyboardFocus(true);
+        setMouseClickGrabsKeyboardFocus(true);
+        setTitle("Mini toggle");
+    }
+    void paint(juce::Graphics& g) override {
+        const float cx=getWidth()*.5f, cy=getHeight()*.5f;
+        const bool on=getToggleState();
+        auto well=juce::Rectangle<float>(cx-12.f,cy-15.f,24.f,30.f);
+        paintPlate(g,well,11.f);
+        if(on)paintGlow(g,{cx,cy-7.f},17.f,Palette::colour(Palette::redBright),.28f);
+        const float endpoint=cy+(on?-11.f:11.f);
+        g.setColour(Palette::colour(Palette::chassis));
+        g.drawLine(cx+2.f,cy+4.f,cx-3.f,endpoint+1.f,6.f);
+        g.setGradientFill(juce::ColourGradient(Palette::colour(Palette::silver),
+            cx-3.f,endpoint-11.f,Palette::colour(Palette::rim),
+            cx+5.f,endpoint+4.f,false));
+        g.drawLine(cx,cy+3.f,cx,endpoint,5.f);
+        g.fillEllipse(cx-5.f,endpoint-5.f,10.f,10.f);
+        if(hasKeyboardFocus(false)){
+            g.setColour(Palette::colour(Palette::redBright));g.drawRoundedRectangle(
+                getLocalBounds().toFloat().reduced(1.f),5.f,1.f);
+        }
+    }
+};
+
 class HardwareLamp final : public juce::Component {
 public:
     explicit HardwareLamp(LampKind kind=LampKind::red) : kind_(kind) {}
