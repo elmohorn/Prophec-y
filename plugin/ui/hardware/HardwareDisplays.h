@@ -170,10 +170,10 @@ public:
     void mouseDrag(const juce::MouseEvent& e) override {update(e.position);}
     bool keyPressed(const juce::KeyPress& key) override {
         float dx=0.f,dy=0.f;
-        if(key==juce::KeyPress::leftKey)dx=-.02f;
-        else if(key==juce::KeyPress::rightKey)dx=.02f;
-        else if(key==juce::KeyPress::upKey)dy=-.02f;
-        else if(key==juce::KeyPress::downKey)dy=.02f;
+        if(key.getKeyCode()==juce::KeyPress::leftKey)dx=-.02f;
+        else if(key.getKeyCode()==juce::KeyPress::rightKey)dx=.02f;
+        else if(key.getKeyCode()==juce::KeyPress::upKey)dy=-.02f;
+        else if(key.getKeyCode()==juce::KeyPress::downKey)dy=.02f;
         else return false;
         setNormalized(x_+dx,y_+dy,true);return true;
     }
@@ -200,7 +200,7 @@ private:
     float x_{.5f},y_{.5f};
 };
 
-class HardwarePresetStrip final : public juce::Component {
+class HardwarePresetStrip final : public juce::Component, public juce::SettableTooltipClient {
 public:
     std::function<void()> onPrevious,onNext;
     HardwarePresetStrip() {setWantsKeyboardFocus(true);}
