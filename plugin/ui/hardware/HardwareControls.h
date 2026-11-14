@@ -32,100 +32,163 @@ public:
         setColour(juce::PopupMenu::highlightedBackgroundColourId, Palette::colour(Palette::red));
     }
 
+    // The visible diameter is a design token, never a fraction of the hit box.
+    // An oversized interaction box must not silently turn NANO into HERO.
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                           float position, float startAngle, float endAngle,
                           juce::Slider& slider) override {
         const auto cap = detail::property(slider, "p6.hardware.cap");
         const auto size = detail::property(slider, "p6.hardware.size");
-        const bool large = size == "hero" || size == "large";
-        const float diameter = std::min(static_cast<float>(width), static_cast<float>(height)) * .76f;
-        const float cx = x + width*.5f, cy = y + height*.5f;
-        const float radius = diameter*.5f;
-        auto centre = juce::Point<float>(cx,cy);
-        const float angle = startAngle + position * (endAngle-startAngle);
+        const float nominal = size == "hero" ? Geometry::dialDiameter(DialSize::hero)
+            : size == "large" ? Geometry::dialDiameter(DialSize::large)
+            : size == "trim" ? Geometry::dialDiameter(DialSize::trim)
+            : size == "micro" ? Geometry::dialDiameter(DialSize::micro)
+            : size == "nano" ? Geometry::dialDiameter(DialSize::nano)
+            : Geometry::dialDiameter(DialSize::medium);
+        const bool led = detail::property(slider, "p6.hardware.led") != "0";
+        const bool prominent = nominal >= 48.f;
+        const float clearance = led ? std::max(4.f, nominal * .16f) : 2.f;
+        const float diameter = std::min(nominal, std::max(4.f,
+            std::min(static_cast<float>(width), static_cast<float>(height)) - 2.f * clearance));
+        const float radius = diameter * .5f;
+        const float cx = x + width * .5f, cy = y + height * .5f;
+        const float angle = startAngle + position * (endAngle - startAngle);
+        const auto silver = Palette::colour(Palette::silver);
+        const auto rim = Palette::colour(Palette::rim);
         const auto red = Palette::colour(Palette::redBright);
-        const auto dim = Palette::colour(Palette::rim);
-        const bool led = detail::property(slider,"p6.hardware.led") != "0";
+
         if (led) {
             std::optional<float> neutral;
-            const auto zero = detail::property(slider,"p6.hardware.zero");
-            if (zero.isNotEmpty()) neutral = std::clamp(zero.getFloatValue(),0.f,1.f);
-            for(int i=0;i<kLedRingSegments;++i) {
-                const float a=startAngle+(endAngle-startAngle)*static_cast<float>(i)/(kLedRingSegments-1);
-                const auto state=ledSegmentState(i,position,neutral);
-                const auto inner=radius+5.f, outer=inner+(large?5.f:3.f);
-                g.setColour(state.lit ? red : dim.withAlpha(.65f));
-                g.drawLine(cx+std::sin(a)*inner,cy-std::cos(a)*inner,
-                           cx+std::sin(a)*outer,cy-std::cos(a)*outer,state.tip?2.2f:1.5f);
+            const auto zero = detail::property(slider, "p6.hardware.zero");
+            if (zero.isNotEmpty()) neutral = std::clamp(zero.getFloatValue(), 0.f, 1.f);
+            const float inner = radius + std::max(1.2f, diameter * .055f);
+            const float outer = inner + std::clamp(diameter * .09f, 1.5f, 4.7f);
+            for (int i = 0; i < kLedRingSegments; ++i) {
+                const float a = startAngle + (endAngle - startAngle) *
+                    static_cast<float>(i) / static_cast<float>(kLedRingSegments - 1);
+                const auto state = ledSegmentState(i, position, neutral);
+                const float dx = std::sin(a), dy = -std::cos(a);
+                g.setColour(state.lit ? red : rim.withAlpha(.42f));
+                g.drawLine(cx + dx * inner, cy + dy * inner,
+                           cx + dx * outer, cy + dy * outer,
+                           state.tip ? (prominent ? 2.0f : 1.2f) : (prominent ? 1.5f : .85f));
             }
         }
-        g.setColour(juce::Colours::black.withAlpha(.65f));
-        g.fillEllipse(cx-radius-2.f,cy-radius+1.f,diameter+4.f,diameter+4.f);
-        g.setGradientFill(juce::ColourGradient(Palette::colour(Palette::rim),
-            cx-radius,cy-radius,Palette::colour(Palette::chassis),cx+radius,cy+radius,false));
-        g.fillEllipse(cx-radius,cy-radius,diameter,diameter);
-        const float recess = (cap == "knurled" || cap == "scalloped") ? 4.f : 3.f;
-        const auto disc = juce::Rectangle<float>(cx-radius+recess,cy-radius+recess,
-                                                  diameter-2*recess,diameter-2*recess);
-        juce::Colour top = cap=="brushed" ? Palette::colour(Palette::silver) : Palette::colour(0xff57595d);
-        juce::Colour bottom = cap=="brushed" ? Palette::colour(0xff585b60) : Palette::colour(0xff090b0d);
-        g.setGradientFill(juce::ColourGradient(top,disc.getX(),disc.getY(),bottom,disc.getRight(),disc.getBottom(),false));
-        g.fillEllipse(disc);
-        g.setColour(Palette::colour(Palette::silver).withAlpha(cap=="brushed"?.5f:.17f));
-        g.drawEllipse(disc.reduced(.8f),1.f);
-        if (cap=="knurled" || cap=="scalloped") {
-            const int marks=cap=="scalloped"?12:32;
-            g.setColour(Palette::colour(Palette::chassis).withAlpha(.75f));
-            for(int i=0;i<marks;++i) {
-                const float a=juce::MathConstants<float>::twoPi*i/marks;
-                g.drawLine(cx+std::cos(a)*(radius-2.f),cy+std::sin(a)*(radius-2.f),
-                           cx+std::cos(a)*(radius-5.f),cy+std::sin(a)*(radius-5.f),1.f);
+
+        // Recess, machined metal rim, top and bottom bevel, and contact shadow.
+        g.setColour(juce::Colours::black.withAlpha(.66f));
+        g.fillEllipse(cx - radius - 1.5f, cy - radius + 1.5f,
+                      diameter + 3.f, diameter + 3.f);
+        g.setGradientFill(juce::ColourGradient(silver.withAlpha(.70f),
+            cx - radius, cy - radius, Palette::colour(Palette::chassis),
+            cx + radius, cy + radius, false));
+        g.fillEllipse(cx - radius, cy - radius, diameter, diameter);
+        g.setColour(silver.withAlpha(.28f));
+        g.drawEllipse(cx - radius + .7f, cy - radius + .7f,
+                      diameter - 1.4f, diameter - 1.4f, prominent ? 1.f : .6f);
+
+        const float bevel = std::clamp(diameter * .085f, 1.f, 4.5f);
+        const float faceRadius = radius - bevel;
+        const auto face = juce::Rectangle<float>(cx - faceRadius, cy - faceRadius,
+                                                faceRadius * 2.f, faceRadius * 2.f);
+        const bool metallic = cap == "brushed";
+        g.setGradientFill(juce::ColourGradient(
+            metallic ? Palette::colour(0xffc9ccce) : Palette::colour(0xff575a60),
+            face.getX(), face.getY(),
+            metallic ? Palette::colour(0xff4e535a) : Palette::colour(0xff0c0d10),
+            face.getRight(), face.getBottom(), false));
+        g.fillEllipse(face);
+        g.setColour(silver.withAlpha(metallic ? .48f : .16f));
+        g.drawEllipse(face.reduced(.5f), prominent ? 1.f : .65f);
+
+        // Subtle visible brushing lines are physically confined to the circular face.
+        if (metallic && diameter >= 24.f) {
+            g.setColour(juce::Colours::white.withAlpha(.075f));
+            for (float offset = -faceRadius + 3.f; offset < faceRadius - 2.f; offset += 2.6f) {
+                const float chord = std::sqrt(std::max(0.f, faceRadius * faceRadius - offset * offset));
+                g.drawLine(cx - chord, cy + offset, cx + chord, cy + offset, .55f);
             }
         }
-        g.setColour(cap=="brushed"?Palette::colour(Palette::chassis):Palette::colour(Palette::silver));
-        g.drawLine(cx+std::sin(angle)*radius*.2f,cy-std::cos(angle)*radius*.2f,
-                   cx+std::sin(angle)*radius*.78f,cy-std::cos(angle)*radius*.78f,
-                   large?2.6f:1.8f);
-        if(slider.hasKeyboardFocus(false)) {
-            g.setColour(red.withAlpha(.85f));
-            g.drawEllipse(juce::Rectangle<float>(cx-radius-5,cy-radius-5,diameter+10,diameter+10),1.f);
+        if (cap == "knurled" || cap == "scalloped") {
+            const int marks = cap == "scalloped" ? 12 : (diameter >= 36.f ? 36 : 18);
+            g.setColour(juce::Colours::black.withAlpha(.67f));
+            for (int i = 0; i < marks; ++i) {
+                const float a = juce::MathConstants<float>::twoPi *
+                    static_cast<float>(i) / static_cast<float>(marks);
+                const float r1 = radius - std::max(1.5f, bevel * 1.05f);
+                const float r2 = radius - .5f;
+                g.drawLine(cx + std::cos(a) * r1, cy + std::sin(a) * r1,
+                           cx + std::cos(a) * r2, cy + std::sin(a) * r2,
+                           diameter >= 36.f ? 1.f : .6f);
+            }
+        }
+
+        // Engraved index remains legible on the four distinct cap finishes.
+        g.setColour(metallic ? Palette::colour(Palette::chassis) : silver);
+        g.drawLine(cx + std::sin(angle) * radius * .23f,
+                   cy - std::cos(angle) * radius * .23f,
+                   cx + std::sin(angle) * faceRadius * .78f,
+                   cy - std::cos(angle) * faceRadius * .78f,
+                   std::clamp(diameter * .039f, .85f, 2.6f));
+        if (slider.hasKeyboardFocus(false)) {
+            g.setColour(red.withAlpha(.9f));
+            g.drawEllipse(cx - radius - clearance, cy - radius - clearance,
+                          diameter + clearance * 2.f, diameter + clearance * 2.f, 1.f);
         }
     }
 
     void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
-                          float sliderPos, float, float, juce::Slider::SliderStyle style,
+                          float, float, float, juce::Slider::SliderStyle style,
                           juce::Slider& slider) override {
-        const bool vertical = style==juce::Slider::LinearVertical ||
-                              style==juce::Slider::LinearBarVertical;
-        auto bounds = juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),
-                                              static_cast<float>(width),static_cast<float>(height));
-        auto track=vertical ? juce::Rectangle<float>(bounds.getCentreX()-3.f,bounds.getY()+5.f,
-                                                     6.f,bounds.getHeight()-10.f)
-                            : juce::Rectangle<float>(bounds.getX()+5.f,bounds.getCentreY()-3.f,
-                                                     bounds.getWidth()-10.f,6.f);
-        g.setColour(Palette::colour(Palette::chassis));
-        g.fillRoundedRectangle(track.expanded(2.f),4.f);
-        g.setColour(Palette::colour(Palette::rim));
-        g.drawRoundedRectangle(track.expanded(1.f),3.f,.8f);
-        const auto red=Palette::colour(Palette::redBright);
-        if(vertical) {
-            const float pos=std::clamp(sliderPos,track.getY(),track.getBottom());
-            auto fill=juce::Rectangle<float>(track.getX()+1.f,pos,track.getWidth()-2.f,track.getBottom()-pos);
-            g.setColour(red.withAlpha(.8f));g.fillRect(fill);
-            for(int i=0;i<9;++i){const float yy=track.getY()+track.getHeight()*i/8.f;
-                g.setColour(Palette::colour(Palette::rim));
-                g.drawLine(track.getX()-10.f,yy,track.getX()-5.f,yy,1.f);}
-            auto thumb=juce::Rectangle<float>(track.getCentreX()-11.f,pos-7.f,22.f,14.f);
-            paintThumb(g,thumb);
-        } else {
-            const float pos=std::clamp(sliderPos,track.getX(),track.getRight());
+        const bool vertical = style == juce::Slider::LinearVertical ||
+                              style == juce::Slider::LinearBarVertical;
+        const auto variant = detail::property(slider, "p6.hardware.slider");
+        const auto kind = variant == "long-v" ? SliderSize::longVertical
+            : variant == "compact-v" ? SliderSize::compactVertical
+            : variant == "mini-v" ? SliderSize::miniVertical
+            : variant == "long-h" ? SliderSize::horizontal
+            : variant == "trim-h" ? SliderSize::trimHorizontal
+            : SliderSize::compactHorizontal;
+        const auto nominal = Geometry::sliderSize(kind);
+        const auto bounds = juce::Rectangle<float>(
+            static_cast<float>(x), static_cast<float>(y),
+            static_cast<float>(width), static_cast<float>(height));
+        const float room = vertical ? bounds.getHeight() : bounds.getWidth();
+        const float targetLength = static_cast<float>(vertical ? nominal.y : nominal.x);
+        // Track is centered and capped at its token length even if the click target is larger.
+        const float length = std::max(5.f, std::min(targetLength, room - 18.f));
+        const auto track = vertical
+            ? juce::Rectangle<float>(bounds.getCentreX() - 2.7f,
+                                     bounds.getCentreY() - length * .5f, 5.4f, length)
+            : juce::Rectangle<float>(bounds.getCentreX() - length * .5f,
+                                     bounds.getCentreY() - 2.7f, length, 5.4f);
+        g.setColour(juce::Colours::black.withAlpha(.72f));
+        g.fillRoundedRectangle(track.expanded(2.1f), 3.3f);
+        g.setColour(Palette::colour(Palette::rim).withAlpha(.75f));
+        g.drawRoundedRectangle(track.expanded(.7f), 2.8f, .8f);
+        const auto red = Palette::colour(Palette::redBright);
+        const float fraction = detail::normalized(slider);
+        const float position = vertical ? track.getBottom() - fraction * track.getHeight()
+                                        : track.getX() + fraction * track.getWidth();
+        g.setColour(red.withAlpha(.73f));
+        if (vertical)
+            g.fillRect(juce::Rectangle<float>(track.getX() + 1.f, position,
+                       track.getWidth() - 2.f, track.getBottom() - position));
+        else
+            g.fillRect(juce::Rectangle<float>(track.getX(), track.getY() + 1.f,
+                       position - track.getX(), track.getHeight() - 2.f));
+
+        const float thumbW = vertical ? (kind == SliderSize::longVertical ? 23.f :
+            kind == SliderSize::compactVertical ? 19.f : 15.f) : 12.f;
+        const float thumbH = vertical ? 11.f : (kind == SliderSize::horizontal ? 23.f : 18.f);
+        auto thumb = juce::Rectangle<float>(
+            (vertical ? track.getCentreX() : position) - thumbW * .5f,
+            (vertical ? position : track.getCentreY()) - thumbH * .5f,
+            thumbW, thumbH);
+        paintThumb(g, thumb);
+        if (slider.hasKeyboardFocus(false)) {
             g.setColour(red.withAlpha(.8f));
-            g.fillRect(juce::Rectangle<float>(track.getX(),track.getY()+1.f,pos-track.getX(),track.getHeight()-2.f));
-            auto thumb=juce::Rectangle<float>(pos-7.f,track.getCentreY()-10.f,14.f,20.f);
-            paintThumb(g,thumb);
-        }
-        if(slider.hasKeyboardFocus(false)){
-            g.setColour(red.withAlpha(.8f));g.drawRoundedRectangle(bounds.reduced(1.f),4.f,1.f);
+            g.drawRoundedRectangle(bounds.reduced(1.f), 4.f, 1.f);
         }
     }
 
@@ -248,6 +311,10 @@ public:
     ~HardwareFader() override {setLookAndFeel(nullptr);}
     void setSizeVariant(SliderSize size) {
         size_=size;
+        static constexpr const char* names[] = {
+            "long-v", "compact-v", "mini-v", "long-h", "compact-h", "trim-h"
+        };
+        detail::put(*this, "p6.hardware.slider", names[static_cast<int>(size)]);
         setSliderStyle(static_cast<int>(size)<=static_cast<int>(SliderSize::miniVertical)
             ? juce::Slider::LinearVertical : juce::Slider::LinearHorizontal);
         repaint();
