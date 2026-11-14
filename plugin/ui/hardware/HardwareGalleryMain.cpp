@@ -13,7 +13,7 @@ namespace p6plugin::hardware {
 class HardwareGalleryContent final : public juce::Component {
 public:
     HardwareGalleryContent() {
-        setSize(1450,1205);
+        setSize(1450,1385);
         // 1. The complete knob family and the approved alternate caps.
         const std::array<DialSize,6> sizes{{DialSize::hero,DialSize::large,DialSize::medium,
             DialSize::trim,DialSize::micro,DialSize::nano}};
@@ -142,6 +142,15 @@ public:
         label("MODULATION MATRIX ROW",31,1170,965);
         for(int i=0;i<4;++i)make<HardwareScrew>(1030+i*59,1124,26,26);
         label("HARDWARE SCREWS",1028,1160,270);
+        auto& encoder=make<HardwareEncoder>(39,1260,110,103,DialSize::large);
+        encoder.setValue(.7,juce::dontSendNotification);
+        label("ENCODER",38,1354,115);
+        auto& rotary=make<HardwareRotarySelector>(197,1260,110,103);
+        rotary.setValue(2.,juce::dontSendNotification);
+        label("ROTARY SELECTOR",188,1354,140);
+        auto& miniToggle=make<HardwareMiniToggle>(377,1281,54,74);
+        miniToggle.setToggleState(true,juce::dontSendNotification);
+        label("MINI TOGGLE",351,1354,115);
     }
 
     void paint(juce::Graphics& g) override {
@@ -159,12 +168,13 @@ public:
         title(g,"METERS / SIGNAL",20,742);
         title(g,"COMPOSITE CONTROLS",20,932);
         title(g,"MATRIX / HARDWARE",20,1080);
+        title(g,"SPECIAL MECHANICAL CONTROLS",20,1220);
         g.setColour(Palette::colour(Palette::muted));
         g.setFont(juce::Font(10.5f));
         for(const auto& entry:labels_)
             g.drawFittedText(entry.first,entry.second,juce::Justification::centred,1);
         g.drawText("ALL VALUES IN THIS GALLERY ARE VISUAL DEMO DATA — NOT DSP OUTPUT",
-                   25,1190,getWidth()-50,12,juce::Justification::centredRight);
+                   25,1367,getWidth()-50,12,juce::Justification::centredRight);
     }
 
 private:
