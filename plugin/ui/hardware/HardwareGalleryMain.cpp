@@ -13,7 +13,7 @@ namespace p6plugin::hardware {
 class HardwareGalleryContent final : public juce::Component {
 public:
     HardwareGalleryContent() {
-        setSize(1450,1090);
+        setSize(1450,1205);
         // 1. The complete knob family and the approved alternate caps.
         const std::array<DialSize,6> sizes{{DialSize::hero,DialSize::large,DialSize::medium,
             DialSize::trim,DialSize::micro,DialSize::nano}};
@@ -133,8 +133,15 @@ public:
         progress.setProgress(.71f);
         label("PROGRESS",1092,1018,283);
 
-        // A composable modulation row is available separately and shown on
-        // demand in normal editor layouts: HardwareModulationRow.
+
+        // 7. Editable modulation matrix row and removable hardware screws.
+        auto& mod=make<HardwareModulationRow>(31,1120,965,45);
+        mod.setSources({"LFO 1","LFO 2","ENV","VELOCITY"});
+        mod.setDestinations({"CUTOFF","PITCH","SHAPE","PAN"});
+        mod.amount.setValue(.3,juce::dontSendNotification);
+        label("MODULATION MATRIX ROW",31,1170,965);
+        for(int i=0;i<4;++i)make<HardwareScrew>(1030+i*59,1124,26,26);
+        label("HARDWARE SCREWS",1028,1160,270);
     }
 
     void paint(juce::Graphics& g) override {
@@ -151,12 +158,13 @@ public:
         title(g,"PRESET / STEPS / STATUS",20,600);
         title(g,"METERS / SIGNAL",20,742);
         title(g,"COMPOSITE CONTROLS",20,932);
+        title(g,"MATRIX / HARDWARE",20,1080);
         g.setColour(Palette::colour(Palette::muted));
         g.setFont(juce::Font(10.5f));
         for(const auto& entry:labels_)
             g.drawFittedText(entry.first,entry.second,juce::Justification::centred,1);
         g.drawText("ALL VALUES IN THIS GALLERY ARE VISUAL DEMO DATA — NOT DSP OUTPUT",
-                   25,1068,getWidth()-50,16,juce::Justification::centredRight);
+                   25,1190,getWidth()-50,12,juce::Justification::centredRight);
     }
 
 private:
