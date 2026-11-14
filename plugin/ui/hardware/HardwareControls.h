@@ -327,6 +327,7 @@ public:
         setValue(0.,juce::dontSendNotification);
     }
     juce::String selectedLabel() const {
+        if(positions_.isEmpty()) return {};
         const int index=std::clamp(static_cast<int>(std::lround(getValue())),
                                    0,std::max(0,positions_.size()-1));
         return positions_[index];
