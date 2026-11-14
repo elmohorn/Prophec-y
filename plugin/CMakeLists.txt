@@ -190,3 +190,27 @@ if(P6_BUILD_UI_SMOKE)
     add_test(NAME p6_character_telemetry_mailbox COMMAND P6TelemetryMailboxProbe)
 endif()
 
+
+
+# Explicitly opt-in native gallery. It does not modify PluginEditor or DSP.
+# Configure the root with -DP6_BUILD_PLUGIN=ON -DP6_BUILD_HARDWARE_GALLERY=ON
+# then build --target P6HardwareGallery.
+option(P6_BUILD_HARDWARE_GALLERY "Build the standalone native UI-component review gallery" OFF)
+if(P6_BUILD_HARDWARE_GALLERY)
+    juce_add_gui_app(P6HardwareGallery PRODUCT_NAME "Prophec-Y Hardware Gallery")
+    target_sources(P6HardwareGallery PRIVATE
+        ui/hardware/HardwareGalleryMain.cpp
+        ui/hardware/HardwareTheme.h
+        ui/hardware/HardwareControls.h
+        ui/hardware/HardwareDisplays.h
+        ui/controls/ProphecyParameterControl.cpp
+        ui/controls/ProphecyParameterControl.h
+        ui/controls/SegmentedLedRing.h)
+    target_include_directories(P6HardwareGallery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(P6HardwareGallery PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(P6HardwareGallery PRIVATE
+        p6core p6presentation
+        juce::juce_audio_processors juce::juce_gui_extra
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags)
+endif()
