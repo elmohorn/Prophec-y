@@ -1,6 +1,9 @@
 #include "PluginProcessor.h"
 #include "PluginStateCodec.h"
 #include "PluginEditor.h"
+#if defined(P6_USE_WEB_UI) && P6_USE_WEB_UI
+#include "ui/web/ProphecYWebEditor.h"
+#endif
 
 #include "p6/NrpnCodec.h"
 #include "p6/ParameterRegistry.h"
@@ -745,7 +748,11 @@ p6plugin::OutputReadings P6AudioProcessor::consumeOutputReadings() noexcept
 
 juce::AudioProcessorEditor* P6AudioProcessor::createEditor()
 {
+#if defined(P6_USE_WEB_UI) && P6_USE_WEB_UI
+    return new ProphecYWebEditor(*this);
+#else
     return new P6PluginEditor(*this);
+#endif
 }
 
 const juce::String P6AudioProcessor::getProgramName (int)
