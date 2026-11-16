@@ -1,4 +1,5 @@
 option(P6_BUILD_STANDALONE "Also build the JUCE Standalone target" OFF)
+option(P6_USE_WEB_UI "Experimental v3.0 WebView editor" OFF)
 set(P6_PLUGIN_FORMATS VST3)
 if(P6_BUILD_STANDALONE)
     list(APPEND P6_PLUGIN_FORMATS Standalone)
@@ -17,7 +18,8 @@ juce_add_plugin(P6CorePlugin
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE
-    NEEDS_WEB_BROWSER FALSE
+    NEEDS_WEB_BROWSER ${P6_USE_WEB_UI}
+    NEEDS_WEBVIEW2 ${P6_USE_WEB_UI}
     NEEDS_CURL FALSE)
 
 set(P6_PANEL_ASSETS assets/tube_glass.png assets/tube_chamber.jpg assets/fonts/michroma.ttf
@@ -60,6 +62,9 @@ if(P6_OPTICAL_RGBA_COMPLETE)
         list(APPEND P6_PANEL_ASSETS "assets/character_rgba/${asset}")
     endforeach()
 endif()
+if(P6_USE_WEB_UI)
+    list(APPEND P6_PANEL_ASSETS ui/web/ProphecY_v3_0.html)
+endif()
 juce_add_binary_data(P6PanelAssets SOURCES ${P6_PANEL_ASSETS})
 set_target_properties(P6PanelAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -94,6 +99,12 @@ target_sources(P6CorePlugin PRIVATE
     PluginStateCodec.cpp
     PluginStateCodec.h)
 
+if(P6_USE_WEB_UI)
+    target_sources(P6CorePlugin PRIVATE ui/web/ProphecYWebEditor.cpp ui/web/ProphecYWebEditor.h)
+    target_link_libraries(P6CorePlugin PRIVATE juce::juce_gui_extra)
+    target_compile_definitions(P6CorePlugin PRIVATE P6_USE_WEB_UI=1)
+endif()
+
 if(P6_HAS_CHARACTER_ATLAS)
     target_compile_definitions(P6CorePlugin PRIVATE P6_HAS_CHARACTER_ATLAS=1)
 endif()
@@ -106,7 +117,7 @@ endif()
 
 target_compile_definitions(P6CorePlugin
     PUBLIC
-        JUCE_WEB_BROWSER=0
+        JUCE_WEB_BROWSER=$<BOOL:${P6_USE_WEB_UI}>
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_JACK=0
