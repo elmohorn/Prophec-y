@@ -26,9 +26,16 @@ jobs:
             'APPROVED_HTML' | Set-Content 'webview-build-mode.txt'
             'approved=true' >> $env:GITHUB_OUTPUT
           }
+      - name: Install Microsoft WebView2 SDK (JUCE 9 requirement)
+        shell: pwsh
+        run: |
+          nuget install Microsoft.Web.WebView2 -Version 1.0.3485.44 -OutputDirectory "$env:RUNNER_TEMP/webview2" -Source https://api.nuget.org/v3/index.json -NonInteractive
+          if (!(Test-Path "$env:RUNNER_TEMP/webview2/Microsoft.Web.WebView2.1.0.3485.44/build/native/include/WebView2.h")) {
+            throw 'WebView2 SDK header not found after NuGet install'
+          }
       - name: Configure JUCE WebView2 VST3
         shell: pwsh
-        run: cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON -DP6_USE_WEB_UI=ON
+        run: cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DP6_BUILD_PLUGIN=ON -DP6_FETCH_JUCE=ON -DP6_USE_WEB_UI=ON "-DJUCE_WEBVIEW2_PACKAGE_LOCATION=$env:RUNNER_TEMP/webview2"
       - name: Compile WebView2 VST3
         shell: pwsh
         run: cmake --build build-web --config Release --target P6CorePlugin_VST3 --parallel 2
