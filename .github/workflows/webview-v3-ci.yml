@@ -14,14 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Prepare WebView build-only smoke resource
+        id: source
         shell: pwsh
         run: |
           if (!(Test-Path 'plugin/ui/web/ProphecY_v3_0.html')) {
             Write-Warning 'Approved v3 HTML is not yet committed; compiling a bridge smoke resource ONLY.'
             '<!doctype html><html><body><h1>WebView bridge compile smoke only — NOT the approved v3 design</h1></body></html>' | Set-Content 'plugin/ui/web/ProphecY_v3_0.html'
             'SMOKE_ONLY' | Set-Content 'webview-build-mode.txt'
+            'approved=false' >> $env:GITHUB_OUTPUT
           } else {
             'APPROVED_HTML' | Set-Content 'webview-build-mode.txt'
+            'approved=true' >> $env:GITHUB_OUTPUT
           }
       - name: Configure JUCE WebView2 VST3
         shell: pwsh
@@ -33,7 +36,7 @@ jobs:
         shell: pwsh
         run: Get-Content webview-build-mode.txt
       - name: Upload VST3 only when approved HTML is present
-        if: hashFiles('plugin/ui/web/ProphecY_v3_0.html') != '' && hashFiles('webview-build-mode.txt') != ''
+        if: steps.source.outputs.approved == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ProphecY-v3-WebView2-Windows-VST3
