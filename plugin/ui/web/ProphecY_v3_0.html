@@ -1900,6 +1900,24 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   buttons.slice(0,switchIds.length).forEach((button,i)=>button.addEventListener('click',()=>{
     const id=switchIds[i];bridge.gesture(id,'begin');bridge.setNormalized(id,button.classList.contains('on')?1:0);bridge.gesture(id,'end');
   }));
+  // The native Character engine supports one device at a time, not parallel chains.
+  const tubeButton=buttons[17],springButton=buttons[18],rotaryButton=buttons[19],processButton=buttons[20];
+  const writeChoice=(id,value)=>{bridge.gesture(id,'begin');bridge.setNormalized(id,value);bridge.gesture(id,'end');};
+  const selectCharacter=(kind,active)=>{
+    if(active){
+      writeChoice('character_custom_type',kind==='spring'?.5:0);
+      if(kind==='tube')writeChoice('character_type',1);
+      writeChoice('character_bypass',0);
+    }else writeChoice('character_bypass',1);
+    tubeButton.classList.toggle('on',active&&kind==='tube');
+    springButton.classList.toggle('on',active&&kind==='spring');
+    processButton.classList.toggle('on',active);
+  };
+  tubeButton.addEventListener('click',()=>selectCharacter('tube',tubeButton.classList.contains('on')));
+  springButton.addEventListener('click',()=>selectCharacter('spring',springButton.classList.contains('on')));
+  processButton.addEventListener('click',()=>writeChoice('character_bypass',processButton.classList.contains('on')?0:1));
+  // No rotary DSP is implemented: never present its demo toggle as a working effect.
+  rotaryButton.disabled=true;rotaryButton.title='Rotary DSP not implemented';rotaryButton.classList.remove('on');
   // Host automation/preset restores: no UI->host echo while applying a snapshot.
   backend.addEventListener('prophecyHostState',state=>{
     if(!state||typeof state!=='object')return;
@@ -1910,6 +1928,12 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       faderIds.forEach((id,i)=>{if(id in state)window.__prophecyFaderObjects?.[i]?.setValue(clamp(state[id]));});
       switchIds.forEach((id,i)=>{if(id in state)buttons[i]?.classList.toggle('on',Number(state[id])>=.5);});
       if('wrapper_master_output_db' in state)window.prophecyGlass?.setMasterNormalized?.(clamp(state.wrapper_master_output_db));
+      const active=!('character_bypass' in state)||clamp(state.character_bypass)<.5;
+      const custom='character_custom_type' in state?Math.round(clamp(state.character_custom_type)*4):0;
+      const tube=custom===0&&clamp(state.character_type)>=.5;
+      tubeButton.classList.toggle('on',active&&tube);
+      springButton.classList.toggle('on',active&&custom===2);
+      processButton.classList.toggle('on',active);
       window.__prophecyUpdateADSR?.();
     }finally{bridge.suppress=false;}
   });
