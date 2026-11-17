@@ -79,7 +79,9 @@ try {
   }));
   assert.equal(await page.locator('prophecy-glass-panel #db-l').textContent(), '-3.1');
   assert.equal(await page.locator('#step-seq .step-btn').nth(2).getAttribute('class').then(s => s.includes('playhead')), true);
-  assert.equal(await page.locator('prophecy-glass-panel #display-mode-name').textContent(), 'STEREO · PEAK METERS');
+  // Parameter feedback overlays the live meters briefly; verify the automatic return.
+  await page.waitForFunction(() => document.querySelector('prophecy-glass-panel')?.shadowRoot
+    ?.getElementById('display-mode-name')?.textContent === 'STEREO · PEAK METERS', { timeout: 4000 });
 
   assert.deepEqual(errors, [], 'JavaScript runtime errors detected');
   console.log('PASS: hosted HTML load, host-to-UI state, no feedback, arp, Character, presets and unsupported controls');
