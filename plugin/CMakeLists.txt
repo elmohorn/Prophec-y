@@ -100,9 +100,16 @@ target_sources(P6CorePlugin PRIVATE
     PluginStateCodec.h)
 
 if(P6_USE_WEB_UI)
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ui/web/ProphecY_v3_0.html")
+        message(FATAL_ERROR "Web UI enabled but the complete v3 HTML asset is missing")
+    endif()
     target_sources(P6CorePlugin PRIVATE ui/web/ProphecYWebEditor.cpp ui/web/ProphecYWebEditor.h)
     target_link_libraries(P6CorePlugin PRIVATE juce::juce_gui_extra)
-    target_compile_definitions(P6CorePlugin PRIVATE P6_USE_WEB_UI=1)
+    # Without JUCE_USE_WIN_WEBVIEW2 the resource-provider implementation is
+    # compiled out on Windows even when the WebView2 SDK is linked successfully.
+    target_compile_definitions(P6CorePlugin PRIVATE
+        P6_USE_WEB_UI=1
+        JUCE_USE_WIN_WEBVIEW2=$<BOOL:${WIN32}>)
 endif()
 
 if(P6_HAS_CHARACTER_ATLAS)
