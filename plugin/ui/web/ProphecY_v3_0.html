@@ -1292,6 +1292,10 @@ showMode();
   host.showParameter=(name,value,unit='',note='SYNTH PARAMETER',percent=50)=>parameterFlash(name,value,unit,note,percent);
   host.resetGlass=()=>{preset=0;showPreset();setVal(50,false);showMode();};
   host.setPresetName=(name)=>{if(name){presets[preset]=name;showPreset();}};
+host.setPresetState=(name,index,total)=>{
+  $('#preset-name').textContent=name||'Unnamed Preset';
+  $('#bank-label').textContent=index>=0?'PRESET '+String(index+1).padStart(3,'0')+' / '+total:'CUSTOM PRESET';
+};
   host.getState=()=>({preset:presets[preset],presetIndex:preset,master:val,mode:modes[mode]});
   host._glassReady=true;
   host.dispatchEvent(new CustomEvent('glass-ready',{bubbles:true}));
@@ -1938,6 +1942,19 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   processButton.addEventListener('click',()=>writeChoice('character_bypass',processButton.classList.contains('on')?0:1));
   // No rotary DSP is implemented: never present its demo toggle as a working effect.
   rotaryButton.disabled=true;rotaryButton.title='Rotary DSP not implemented';rotaryButton.classList.remove('on');
+  // Capture the glass navigation before the demo handlers, and use real presets.
+  const glass=window.prophecyGlass?.shadowRoot;
+  if(glass){
+    for(const [id,delta] of [['prev',-1],['next',1]]){
+      glass.getElementById(id)?.addEventListener('click',e=>{
+        e.stopImmediatePropagation();
+        emit('prophecyPresetNavigate',{delta});
+      },true);
+    }
+  }
+  backend.addEventListener('prophecyPresetState',data=>{
+    window.prophecyGlass?.setPresetState?.(data?.name||'',Number(data?.index??-1),Number(data?.total??0));
+  });
   // Host automation/preset restores: no UI->host echo while applying a snapshot.
   backend.addEventListener('prophecyHostState',state=>{
     if(!state||typeof state!=='object')return;
