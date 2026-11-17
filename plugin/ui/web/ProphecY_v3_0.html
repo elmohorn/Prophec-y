@@ -1672,7 +1672,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   // Bar Slider Strips
   const arpSliders = [
     { label: "BPM", val: 120, min: 40, max: 240 },
-    { label: "RHYTHM", val: 4, min: 1, max: 16 },
+    { label: "RHYTHM", val: 4, min: 0, max: 8 },
     { label: "MOTION", val: 35, min: 0, max: 100 }
   ];
   const arpBox = document.getElementById("arp-sliders");
@@ -1694,6 +1694,12 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       fill.style.width = (p * 100) + "%";
       valEl.textContent = Math.round(s.min + p * (s.max - s.min));
       track.dataset.val = String(Math.round(s.min + p * (s.max - s.min)));
+      if(window.ProphecYBridge?.enabled&&!window.ProphecYBridge.suppress){
+        const id={BPM:'nrpn_0167',RHYTHM:'arp_character_rhythm',MOTION:'arp_character_motion'}[s.label];
+        const value=Number(track.dataset.val);
+        const norm=s.label==='BPM'?(value-30)/220:s.label==='RHYTHM'?value/8:value/100;
+        window.ProphecYBridge.setNormalized(id,norm);
+      }
     };
     track.addEventListener("mousedown", e => { drag = true; upd(e.clientX); });
     window.addEventListener("mousemove", e => { if (drag) upd(e.clientX); });
@@ -1701,6 +1707,14 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     arpBox.appendChild(wrap);
   });
 
+  window.__prophecySetArpSlider=(name,norm)=>{
+    const i={BPM:0,RHYTHM:1,MOTION:2}[name];if(i===undefined)return;
+    const s=arpSliders[i],wrap=arpBox.querySelectorAll('.bar-slider-wrap')[i];
+    const value=Math.round(name==='BPM'?30+norm*220:name==='RHYTHM'?norm*8:norm*100);
+    wrap.querySelector('.bar-slider-fill').style.width=(Math.max(0,Math.min(1,(value-s.min)/(s.max-s.min)))*100)+'%';
+    wrap.querySelector('.bar-slider-head .val').textContent=String(value);
+    wrap.querySelector('.bar-slider-track').dataset.val=String(value);
+  };
   // UI-only step editor: 64 slots / 16 per page, 3 states and per-step note/velocity/gate.
   const seqBox = document.getElementById("step-seq");
   const defaultStep = i => ({ state:i%4===0?1:(i%4===2?2:0),note:48+(i%8===0?0:i%8===4?7:3),vel:96,gate:75 });
@@ -1768,6 +1782,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   });
   drawSequencer();
   setInterval(()=>{
+    if(window.ProphecYBridge?.enabled)return; // Never fake DAW transport/playhead.
     if(!document.getElementById('arp-on-btn').classList.contains('on'))return;
     playStep=(playStep+1)%64;
     seqBox.querySelectorAll('.step-btn').forEach((b,i)=>b.classList.toggle('playhead',seqPage*16+i===playStep));
@@ -1900,6 +1915,10 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   buttons.slice(0,switchIds.length).forEach((button,i)=>button.addEventListener('click',()=>{
     const id=switchIds[i];bridge.gesture(id,'begin');bridge.setNormalized(id,button.classList.contains('on')?1:0);bridge.gesture(id,'end');
   }));
+  const arpSliderIds=['nrpn_0167','arp_character_rhythm','arp_character_motion'];
+  document.querySelectorAll('#arp-sliders .bar-slider-track').forEach((track,i)=>{
+    track.addEventListener('mousedown',()=>begin(arpSliderIds[i]),true);
+  });
   // The native Character engine supports one device at a time, not parallel chains.
   const tubeButton=buttons[17],springButton=buttons[18],rotaryButton=buttons[19],processButton=buttons[20];
   const characterState={character_bypass:0,character_type:0,character_custom_type:0};
@@ -1929,6 +1948,8 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       faderIds.forEach((id,i)=>{if(id in state)window.__prophecyFaderObjects?.[i]?.setValue(clamp(state[id]));});
       switchIds.forEach((id,i)=>{if(id in state)buttons[i]?.classList.toggle('on',Number(state[id])>=.5);});
       if('wrapper_master_output_db' in state)window.prophecyGlass?.setMasterNormalized?.(clamp(state.wrapper_master_output_db));
+      for(const [id,name] of [['nrpn_0167','BPM'],['arp_character_rhythm','RHYTHM'],['arp_character_motion','MOTION']])
+        if(id in state)window.__prophecySetArpSlider?.(name,clamp(state[id]));
       if(['character_bypass','character_type','character_custom_type'].some(id=>id in state)){
         for(const id of Object.keys(characterState))if(id in state)characterState[id]=clamp(state[id]);
         const active=characterState.character_bypass<.5;
