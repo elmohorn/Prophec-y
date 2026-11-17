@@ -67,6 +67,36 @@ try {
   }));
   assert.equal(await page.locator('prophecy-glass-panel #preset-name').textContent(), 'HOST PRESET TEST');
 
+  // Native library must populate the approved full-height drawer and distinguish selection from load.
+  assert.equal(await page.locator('#v3-preset-drawer').count(), 1);
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyPresetCatalogRequest')), true);
+  await page.evaluate(() => window.__nativeListeners.prophecyPresetCatalog([
+    { id: 'factory-1', name: 'REAL BRASS', category: 'Auto / Brass', bank: 'Factory', source: 'FACTORY', favorite: false, bankNumber: 0, program: 0 },
+    { id: 'factory-2', name: 'REAL ORGAN', category: 'Auto / Organ', bank: 'Factory', source: 'FACTORY', favorite: true, bankNumber: 0, program: 1 },
+    { id: 'user-1', name: 'USER BASS', category: 'Auto / Bass', bank: 'User', source: 'USER', favorite: false, bankNumber: 0, program: 2 }
+  ]));
+  await page.locator('prophecy-glass-panel .capacitive[data-page="PRESETS"]').click();
+  assert.equal(await page.locator('#v3-preset-drawer').getAttribute('aria-hidden'), 'false');
+  assert.equal(await page.locator('#g-list .grow').count(), 3);
+  await page.locator('#g-search').fill('organ');
+  assert.equal(await page.locator('#g-list .grow').count(), 1);
+  await page.locator('#g-search').fill('');
+  await page.locator('#g-cats [data-filter="USER"]').click();
+  assert.equal(await page.locator('#g-list .grow').count(), 1);
+  await page.locator('#g-cats [data-filter="ALL"]').click();
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('#g-list .grow').nth(1).click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e => e.name === 'prophecyPresetLoad')), false);
+  await page.locator('#g-load').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyPresetLoad' && e.payload.id === 'factory-2')), true);
+  await page.locator('#g-list .grow').nth(0).locator('.fav').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyPresetFavorite' && e.payload.id === 'factory-1' && e.payload.favorite === true)), true);
+  await page.locator('#g-close').click();
+  assert.equal(await page.locator('#v3-preset-drawer').getAttribute('aria-hidden'), 'true');
+
   // FX and LFO selectors must use verified algorithm/waveform indices.
   await page.locator('.fx-pair .oled-selector').first().click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
