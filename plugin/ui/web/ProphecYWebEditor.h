@@ -20,6 +20,9 @@ private:
     void handleGesture(const juce::var&);
     void handleResize(const juce::var&);
     void handlePresetNavigate(const juce::var&);
+    void handlePresetLoad(const juce::var&);
+    void handlePresetFavorite(const juce::var&);
+    void emitPresetCatalog();
     juce::WebBrowserComponent::Options makeOptions();
     P6AudioProcessor& processor_;
     juce::WebBrowserComponent browser_;
