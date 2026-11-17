@@ -1,7 +1,7 @@
 #include "ProphecYWebEditor.h"
 #include "../../PluginProcessor.h"
 #include "BinaryData.h"
-#include "../CharacterFx.h"
+#include "../../CharacterFx.h"
 
 #if !JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
  #error "Prophec-Y v3 requires a WebView resource provider; enable JUCE_USE_WIN_WEBVIEW2 on Windows"
