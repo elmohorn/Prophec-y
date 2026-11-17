@@ -2,6 +2,7 @@
 #include "../../PluginProcessor.h"
 #include "BinaryData.h"
 #include "../../CharacterFx.h"
+#include "../../PresetLibrary.h"
 
 #if !JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
  #error "Prophec-Y v3 requires a WebView resource provider; enable JUCE_USE_WIN_WEBVIEW2 on Windows"
@@ -29,6 +30,7 @@ juce::WebBrowserComponent::Options ProphecYWebEditor::makeOptions()
         .withEventListener("prophecyParameter",[this](juce::var v){handleParameter(v);})
         .withEventListener("prophecyGesture",[this](juce::var v){handleGesture(v);})
         .withEventListener("prophecyResize",[this](juce::var v){handleResize(v);})
+        .withEventListener("prophecyPresetNavigate",[this](juce::var v){handlePresetNavigate(v);})
         .withEventListener("prophecyReady",[this](juce::var){ready_=true;forceFullState_=true;});
 #if JUCE_WINDOWS
     options=options.withBackend(juce::WebBrowserComponent::Options::Backend::webview2);
@@ -48,6 +50,9 @@ juce::WebBrowserComponent::Options ProphecYWebEditor::makeOptions()
 ProphecYWebEditor::ProphecYWebEditor(P6AudioProcessor& p)
     :juce::AudioProcessorEditor(p),processor_(p),browser_(makeOptions())
 {
+    presetLibrary_=std::make_unique<p6plugin::PresetLibrary>(
+        p6plugin::PresetLibrary::defaultRoot(),P6AudioProcessor::factoryInitPreset());
+    (void)presetLibrary_->scan();
     addAndMakeVisible(browser_);
     setSize(1670,865);
     browser_.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
@@ -94,6 +99,25 @@ void ProphecYWebEditor::handleResize(const juce::var& payload)
     }
 }
 
+void ProphecYWebEditor::handlePresetNavigate(const juce::var& payload)
+{
+    if (!presetLibrary_) return;
+    const auto& entries=presetLibrary_->entries();
+    if (entries.empty()) return;
+    const int delta=property(payload,"delta").getIntValue();
+    if (delta==0) return;
+    const auto current=processor_.activePresetId();
+    int index=-1;
+    for (int i=0;i<static_cast<int>(entries.size());++i)
+        if (entries[static_cast<std::size_t>(i)].id==current){index=i;break;}
+    const int count=static_cast<int>(entries.size());
+    const int next=index<0?(delta>0?0:count-1):(index+(delta>0?1:-1)+count)%count;
+    const auto& selected=entries[static_cast<std::size_t>(next)];
+    processor_.loadMusicalPreset(selected.state,selected.id,selected.name);
+    forceFullState_=true;
+    lastPresetId_.clear();
+}
+
 void ProphecYWebEditor::timerCallback()
 {
     if(!ready_ || !browser_.isShowing())return;
@@ -127,6 +151,24 @@ void ProphecYWebEditor::timerCallback()
     for (const auto* id : p6plugin::kTubeIDs) append(id);
     for (const auto* id : p6plugin::kCustomIDs[1]) append(id);
     forceFullState_=false;
+    const auto presetId=processor_.activePresetId();
+    const auto presetName=processor_.activePresetName();
+    if(presetId!=lastPresetId_||presetName!=lastPresetName_){
+        auto* state=new juce::DynamicObject;
+        state->setProperty("name",presetName);
+        int index=-1,total=0;
+        if(presetLibrary_){
+            const auto& entries=presetLibrary_->entries();
+            total=static_cast<int>(entries.size());
+            for(int i=0;i<total;++i)
+                if(entries[static_cast<std::size_t>(i)].id==presetId){index=i;break;}
+        }
+        state->setProperty("index",index);
+        state->setProperty("total",total);
+        browser_.emitEventIfBrowserIsVisible("prophecyPresetState",juce::var(state));
+        lastPresetId_=presetId;
+        lastPresetName_=presetName;
+    }
     if(changed)browser_.emitEventIfBrowserIsVisible("prophecyHostState",juce::var(object));
     else delete object;
 }
