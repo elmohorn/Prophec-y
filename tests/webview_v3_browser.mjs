@@ -67,6 +67,19 @@ try {
   }));
   assert.equal(await page.locator('prophecy-glass-panel #preset-name').textContent(), 'HOST PRESET TEST');
 
+  // Arp selector and key tracking must drive native parameter IDs.
+  await page.locator('.arp-oled-row .oled-selector').first().click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'nrpn_0161' && e.payload.value === 0.25)), true);
+  await page.locator('[data-seg="keytrack"] .seg-opt').nth(2).click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'nrpn_0047' && e.payload.value === 1)), true);
+  await page.evaluate(() => window.__nativeListeners.prophecyHostState({
+    nrpn_0161: 0.75, nrpn_0162: 1, wrapper_clock_source: 0, nrpn_0047: 0.5
+  }));
+  assert.equal(await page.locator('.arp-oled-row .oled-selector').first().locator('.oled-sel-val').textContent(), 'RANDOM');
+  assert.equal(await page.locator('[data-seg="keytrack"] .seg-opt').nth(1).getAttribute('class').then(s => s.includes('active')), true);
+
   // Native eight-step mask must round-trip and follow the actual DSP playhead.
   await page.evaluate(() => window.__nativeListeners.prophecyHostState({ arp_step_1: 0 }));
   assert.equal(await page.locator('#step-seq .step-btn').first().getAttribute('class').then(s => s.includes('rest')), true);
