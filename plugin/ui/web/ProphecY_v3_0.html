@@ -1412,14 +1412,14 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
 </div>
 <div class="fx-pair">
 <div class="knob-slot" data-label="MIX A" data-size="36" data-val="32"></div>
-<button class="oled-selector" data-opts="OFF,CHORUS,PHASER,FLANGER" style="flex:1;">
+<button class="oled-selector" data-opts="OFF,BBD DELAY,DIG DELAY,CHORUS,PHASER 1,PHASER 2" style="flex:1;">
 <span class="oled-sel-lbl">FX A</span>
 <span class="oled-sel-val">CHORUS</span>
 </button>
 </div>
 <div class="fx-pair">
 <div class="knob-slot" data-label="MIX B" data-size="36" data-val="24"></div>
-<button class="oled-selector" data-opts="OFF,BBD DELAY,TAPE ECHO,HALL REV" style="flex:1;">
+<button class="oled-selector" data-opts="OFF,BBD DELAY,DIG DELAY,CHORUS,PHASER 1,PHASER 2,HALL,ROOM,PLATE,SPRING" style="flex:1;">
 <span class="oled-sel-lbl">FX B</span>
 <span class="oled-sel-val">BBD DELAY</span>
 </button>
@@ -1456,7 +1456,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
 <div class="knob-slot" data-label="RATE" data-size="48" data-val="50"></div>
 <div class="knob-slot" data-label="AMOUNT" data-size="38" data-val="35"></div>
-<button class="oled-selector" data-opts="TRI,SINE,SAW,SQR,S&amp;H" style="min-width:54px;">
+<button class="oled-selector" data-opts="TRI,SAW,REV SAW,SQR,S&amp;H" style="min-width:54px;">
 <span class="oled-sel-lbl">WAVE</span>
 <span class="oled-sel-val">TRI</span>
 </button>
@@ -1984,6 +1984,16 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     }
   }
   // Bind discrete selectors to verified native APVTS parameters.
+  const nativeTypeSelectors=[...document.querySelectorAll('.fx-pair .oled-selector'),document.querySelector('.mod-row .oled-selector')];
+  const nativeTypeIds=['nrpn_0119','nrpn_0127','nrpn_0090'];
+  const nativeTypeMax=[5,9,4];
+  nativeTypeSelectors.forEach((el,i)=>el?.addEventListener('click',()=>{
+    const opts=el.dataset.opts.split(',');
+    const index=opts.indexOf(el.querySelector('.oled-sel-val')?.textContent?.trim());
+    if(index<0)return;
+    const id=nativeTypeIds[i];
+    bridge.gesture(id,'begin');bridge.setNormalized(id,index/nativeTypeMax[i]);bridge.gesture(id,'end');
+  }));
   const arpSelectors=[...document.querySelectorAll('.arp-oled-row .oled-selector')];
   const selectIds=['nrpn_0161','nrpn_0162','nrpn_0163','wrapper_clock_source'];
   const selectRaw=[[0,1,2,3,4],[0,1,2],[1,2,6,5],[1,0,2]];
@@ -2047,6 +2057,13 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       faderIds.forEach((id,i)=>{if(id in state)window.__prophecyFaderObjects?.[i]?.setValue(clamp(state[id]));});
       switchIds.forEach((id,i)=>{if(id in state)buttons[i]?.classList.toggle('on',Number(state[id])>=.5);});
       if('wrapper_master_output_db' in state)window.prophecyGlass?.setMasterNormalized?.(clamp(state.wrapper_master_output_db));
+      nativeTypeIds.forEach((id,i)=>{
+        if(!(id in state))return;
+        const raw=Math.round(clamp(state[id])*nativeTypeMax[i]);
+        const selector=nativeTypeSelectors[i];
+        const value=selector?.querySelector('.oled-sel-val');
+        if(value)value.textContent=selector.dataset.opts.split(',')[raw]||'OFF';
+      });
       selectIds.forEach((id,i)=>{
         if(!(id in state))return;
         const raw=Math.round(clamp(state[id])*selectMax[i]);
