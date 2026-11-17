@@ -116,6 +116,9 @@ void ProphecYWebEditor::timerCallback()
     append("wrapper_master_output_db");
     append("wrapper_arp_hold");
     append("wrapper_arp_beat_sync");
+    append(nrpnId(167));
+    append("arp_character_rhythm");
+    append("arp_character_motion");
     append(nrpnId(160));
     append(nrpnId(168));
     append("character_bypass");
