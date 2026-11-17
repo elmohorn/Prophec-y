@@ -1,6 +1,11 @@
 #include "ProphecYWebEditor.h"
 #include "../../PluginProcessor.h"
 #include "BinaryData.h"
+#include "../CharacterFx.h"
+
+#if !JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+ #error "Prophec-Y v3 requires a WebView resource provider; enable JUCE_USE_WIN_WEBVIEW2 on Windows"
+#endif
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -91,7 +96,7 @@ void ProphecYWebEditor::handleResize(const juce::var& payload)
 
 void ProphecYWebEditor::timerCallback()
 {
-    if(!ready_)return;
+    if(!ready_ || !browser_.isShowing())return;
     auto* object=new juce::DynamicObject;
     bool changed=false;
     auto append=[&](const juce::String& id){
@@ -109,6 +114,15 @@ void ProphecYWebEditor::timerCallback()
     for(int nrpn:kFaderNrpn)append(nrpnId(nrpn));
     for(int nrpn:kSwitchNrpn)append(nrpnId(nrpn));
     append("wrapper_master_output_db");
+    append("wrapper_arp_hold");
+    append("wrapper_arp_beat_sync");
+    append(nrpnId(160));
+    append(nrpnId(168));
+    append("character_bypass");
+    append("character_type");
+    append("character_custom_type");
+    for (const auto* id : p6plugin::kTubeIDs) append(id);
+    for (const auto* id : p6plugin::kCustomIDs[1]) append(id);
     forceFullState_=false;
     if(changed)browser_.emitEventIfBrowserIsVisible("prophecyHostState",juce::var(object));
     else delete object;
