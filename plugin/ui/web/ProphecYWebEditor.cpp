@@ -15,7 +15,7 @@ namespace {
 constexpr std::array<int,30> kKnobNrpn{0,3,4,2,5,8,9,7,45,46,77,49,120,128,143,144,
                                        88,89,78,79,80,81,67,68,69,70,30,33,63,62};
 constexpr std::array<int,4> kFaderNrpn{2,7,27,32};
-constexpr std::array<int,14> kSwitchNrpn{135,145,146,147,148,149,91,93,94,95,97,156,29,48};
+constexpr std::array<int,14> kSwitchNrpn{135,145,146,147,148,149,91,93,94,95,97,156,29,71};
 juce::String nrpnId(int id){return "nrpn_"+juce::String(id).paddedLeft('0',4);}
 juce::String property(const juce::var& object,const char* name){
     if(auto* o=object.getDynamicObject())return o->getProperty(name).toString();
