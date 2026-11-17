@@ -13,18 +13,14 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare WebView build-only smoke resource
-        id: source
+      - name: Verify approved HTML source
         shell: pwsh
         run: |
-          if (!(Test-Path 'plugin/ui/web/ProphecY_v3_0.html')) {
-            Write-Warning 'Approved v3 HTML is not yet committed; compiling a bridge smoke resource ONLY.'
-            '<!doctype html><html><body><h1>WebView bridge compile smoke only — NOT the approved v3 design</h1></body></html>' | Set-Content 'plugin/ui/web/ProphecY_v3_0.html'
-            'SMOKE_ONLY' | Set-Content 'webview-build-mode.txt'
-            'approved=false' >> $env:GITHUB_OUTPUT
-          } else {
-            'APPROVED_HTML' | Set-Content 'webview-build-mode.txt'
-            'approved=true' >> $env:GITHUB_OUTPUT
+          $source = 'plugin/ui/web/ProphecY_v3_0.html'
+          if (!(Test-Path $source)) { throw 'Approved v3 HTML source missing' }
+          $html = Get-Content $source -Raw
+          if ($html.Length -lt 100000 -or !$html.Contains('prophecy-native-bridge') -or !$html.Contains('prophecy-glass-panel')) {
+            throw 'Approved v3 HTML source is incomplete'
           }
       - name: Install Microsoft WebView2 SDK (JUCE 9 requirement)
         shell: pwsh
@@ -39,11 +35,19 @@ jobs:
       - name: Compile WebView2 VST3
         shell: pwsh
         run: cmake --build build-web --config Release --target P6CorePlugin_VST3 --parallel 2
-      - name: Report build mode
+      - name: Assert embedded approved HTML in VST3 binary
         shell: pwsh
-        run: Get-Content webview-build-mode.txt
-      - name: Upload VST3 only when approved HTML is present
-        if: steps.source.outputs.approved == 'true'
+        run: |
+          @'
+          from pathlib import Path
+          candidates = list(Path("build-web").rglob("Contents/x86_64-win/P6 Core.vst3"))
+          assert len(candidates) == 1, f"Expected one VST3 binary; found {len(candidates)}"
+          binary = candidates[0].read_bytes()
+          for sentinel in (b"prophecy-native-bridge", b"prophecy-glass-panel", b"prophecyHostState"):
+              assert sentinel in binary, f"Embedded HTML sentinel missing: {sentinel!r}"
+          print(f"Verified embedded v3 HTML in {candidates[0]} ({len(binary)} bytes)")
+          '@ | python -
+      - name: Upload verified complete WebView VST3
         uses: actions/upload-artifact@v4
         with:
           name: ProphecY-v3-WebView2-Windows-VST3
