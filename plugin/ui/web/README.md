@@ -34,3 +34,11 @@ Windows needs the Microsoft.Web.WebView2 NuGet SDK and `JUCE_WEBVIEW2_PACKAGE_LO
 ## CI
 
 `tests/webview_v3_integrity.py` checks HTML scripts with Node, control counts, and JS/C++ parameter contracts. GitHub Actions compiles Windows VST3, runs existing DSP/state/realtime regression suites, and checks the approved HTML sentinel inside the binary before publishing the artifact. The native editor remains the default outside `P6_USE_WEB_UI=ON`.
+
+## v3.5 unified smoked-glass preset library
+
+The PRESETS capacitive control opens a full-height, contiguous smoked-glass drawer. Both the original left panel and the drawer use a shared reflection layer; the drawer's categories live only in the left filter column, and the loaded preset name is shown only in the original OLED. The approved synth layout and native DSP remain intact.
+
+The WebView now requests real preset metadata from the existing `p6plugin::PresetLibrary` through `prophecyPresetCatalogRequest`/`prophecyPresetCatalog`. A single click only selects a row; double-click or LOAD SELECTED emits `prophecyPresetLoad` and applies the native musical preset. Favorites call `PresetLibrary::setFavorite` via `prophecyPresetFavorite`, using its existing persistent store. The current loaded preset is identified by stable ID in `prophecyPresetState`. Native category filtering uses the existing inferred category metadata, not invented tags; unclassified presets remain available under All patches. Standalone HTML shows a clearly labeled demo catalog, not DSP-connected presets.
+
+Known remaining gaps: the UI has no Save As or SysEx import workflow yet; categories inferred from factory patch names are approximate. Full DAW validation and cross-platform WebKit tests remain pending.
