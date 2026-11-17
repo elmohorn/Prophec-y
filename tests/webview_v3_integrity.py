@@ -54,7 +54,7 @@ bridge = scan.scripts[-1]
 def ids_of(name):
     match = re.search(r"const " + re.escape(name) + r"=\[([^;]+)\];", bridge)
     assert match, f"Missing JS mapping {name}"
-    return re.findall(r"['\\"]([^'\\"]+)['\\"]", match.group(1))
+    return re.findall(r"[A-Za-z_][A-Za-z0-9_]*", match.group(1))
 
 knob_ids = ids_of("ids")
 fader_ids = ids_of("faderIds")
