@@ -1803,6 +1803,12 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     advancedBtn.setAttribute('aria-expanded',String(open));
     document.getElementById('advanced-caret').textContent=open?'▴':'▾';
   });
+  window.__prophecySequencer={
+    getStepState:i=>stepData[i]?.state??0,
+    setStepState:(i,state)=>{if(i>=0&&i<8){stepData[i].state=state;drawSequencer();}},
+    setPlayhead:step=>{seqBox.querySelectorAll('.step-btn').forEach((b,i)=>
+      b.classList.toggle('playhead',seqPage*16+i===step));}
+  };
   drawSequencer();
   window.__prophecyDemoPlayheadTimer=setInterval(()=>{
     if(window.ProphecYBridge?.enabled)return; // Never fake DAW transport/playhead.
@@ -1986,16 +1992,16 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     const i=[...button.parentElement.children].indexOf(button);
     if(i<0||i>=8){e.preventDefault();e.stopImmediatePropagation();return;}
     e.preventDefault();e.stopImmediatePropagation();
-    const d=stepData[i];d.state=d.state===0?1:0;
+    const d=window.__prophecySequencer;
+    const next=d.getStepState(i)===0?1:0;
     const id=nativeStepIds[i];
-    bridge.gesture(id,'begin');bridge.setNormalized(id,d.state?1:0);bridge.gesture(id,'end');
-    drawSequencer();
+    bridge.gesture(id,'begin');bridge.setNormalized(id,next);bridge.gesture(id,'end');
+    d.setStepState(i,next);
   },true);
   backend.addEventListener('prophecyTelemetry',data=>{
     window.prophecyGlass?.setOutputTelemetry?.(data);
     const step=Number(data?.playStep??-1);
-    document.querySelectorAll('#step-seq .step-btn').forEach((button,i)=>
-      button.classList.toggle('playhead',i===step));
+    window.__prophecySequencer?.setPlayhead(step);
   });
   backend.addEventListener('prophecyPresetState',data=>{
     window.prophecyGlass?.setPresetState?.(data?.name||'',Number(data?.index??-1),Number(data?.total??0));
@@ -2021,9 +2027,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
         springButton.classList.toggle('on',active&&custom===2);
         processButton.classList.toggle('on',active);
       }
-      let stepsChanged=false;
-      nativeStepIds.forEach((id,i)=>{if(id in state){stepData[i].state=Number(state[id])>=.5?1:0;stepsChanged=true;}});
-      if(stepsChanged)drawSequencer();
+      nativeStepIds.forEach((id,i)=>{if(id in state){window.__prophecySequencer?.setStepState(i,Number(state[id])>=.5?1:0);}});
       window.__prophecyUpdateADSR?.();
     }finally{bridge.suppress=false;}
   });
