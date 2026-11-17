@@ -42,6 +42,12 @@ jobs:
       - name: Compile WebView2 VST3
         shell: pwsh
         run: cmake --build build-web --config Release --target P6CorePlugin_VST3 --parallel 2
+      - name: Compile DSP and state regression tests
+        shell: pwsh
+        run: cmake --build build-web --config Release --target p6core_tests p6_control_contract_tests p6_realtime_contract_tests p6_plugin_state_tests p6_character_tests p6_preset_bank_tests p6_arp_state_tests --parallel 2
+      - name: Run DSP and state regression tests
+        shell: pwsh
+        run: ctest --test-dir build-web -C Release --output-on-failure -R "^(p6core_tests|p6_control_contract_tests|p6_realtime_contract_tests|p6_plugin_state_tests|p6_character_tests|p6_preset_bank_tests|p6_arp_state_tests)$"
       - name: Assert embedded approved HTML in VST3 binary
         shell: pwsh
         run: |
