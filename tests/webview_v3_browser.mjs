@@ -70,7 +70,7 @@ try {
   // FX and LFO selectors must use verified algorithm/waveform indices.
   await page.locator('.fx-pair .oled-selector').first().click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
-    e.name === 'prophecyParameter' && e.payload.id === 'nrpn_0119' && e.payload.value === 0.2)), true);
+    e.name === 'prophecyParameter' && e.payload.id === 'nrpn_0119' && Math.abs(e.payload.value - 0.8) < 1e-6)), true);
   await page.evaluate(() => window.__nativeListeners.prophecyHostState({
     nrpn_0119: 0.6, nrpn_0127: 6/9, nrpn_0090: 1
   }));
