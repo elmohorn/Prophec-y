@@ -31,6 +31,9 @@ juce::WebBrowserComponent::Options ProphecYWebEditor::makeOptions()
         .withEventListener("prophecyGesture",[this](juce::var v){handleGesture(v);})
         .withEventListener("prophecyResize",[this](juce::var v){handleResize(v);})
         .withEventListener("prophecyPresetNavigate",[this](juce::var v){handlePresetNavigate(v);})
+        .withEventListener("prophecyPresetCatalogRequest",[this](juce::var){emitPresetCatalog();})
+        .withEventListener("prophecyPresetLoad",[this](juce::var v){handlePresetLoad(v);})
+        .withEventListener("prophecyPresetFavorite",[this](juce::var v){handlePresetFavorite(v);})
         .withEventListener("prophecyReady",[this](juce::var){ready_=true;forceFullState_=true;});
 #if JUCE_WINDOWS
     options=options.withBackend(juce::WebBrowserComponent::Options::Backend::webview2);
@@ -118,6 +121,55 @@ void ProphecYWebEditor::handlePresetNavigate(const juce::var& payload)
     lastPresetId_.clear();
 }
 
+void ProphecYWebEditor::emitPresetCatalog()
+{
+    if(!presetLibrary_)return;
+    juce::Array<juce::var> list;
+    for(const auto& entry:presetLibrary_->entries()){
+        auto* item=new juce::DynamicObject;
+        item->setProperty("id",entry.id);
+        item->setProperty("name",entry.name);
+        item->setProperty("category",entry.category);
+        item->setProperty("bank",entry.bankLabel);
+        item->setProperty("source",entry.source==p6plugin::PresetSource::Factory?"FACTORY":
+                                    entry.source==p6plugin::PresetSource::Imported?"IMPORTED":"USER");
+        item->setProperty("bankNumber",entry.bank);
+        item->setProperty("program",entry.program);
+        item->setProperty("favorite",entry.favorite);
+        list.add(juce::var(item));
+    }
+    browser_.emitEventIfBrowserIsVisible("prophecyPresetCatalog",juce::var(list));
+}
+
+void ProphecYWebEditor::handlePresetLoad(const juce::var& payload)
+{
+    if(!presetLibrary_)return;
+    const auto id=property(payload,"id");
+    if(id.isEmpty())return;
+    if(const auto* preset=presetLibrary_->find(id)){
+        processor_.loadMusicalPreset(preset->state,preset->id,preset->name);
+        forceFullState_=true;
+        lastPresetId_.clear();
+    }
+}
+
+void ProphecYWebEditor::handlePresetFavorite(const juce::var& payload)
+{
+    if(!presetLibrary_)return;
+    const auto id=property(payload,"id");
+    auto* object=payload.getDynamicObject();
+    if(!object||id.isEmpty())return;
+    const bool favorite=static_cast<bool>(object->getProperty("favorite"));
+    const auto result=presetLibrary_->setFavorite(id,favorite);
+    if(result.wasOk())emitPresetCatalog();
+    else{
+        auto* error=new juce::DynamicObject;
+        error->setProperty("message",result.getErrorMessage());
+        browser_.emitEventIfBrowserIsVisible("prophecyPresetError",juce::var(error));
+        emitPresetCatalog();
+    }
+}
+
 void ProphecYWebEditor::timerCallback()
 {
     if(!ready_ || !browser_.isShowing())return;
@@ -160,6 +212,7 @@ void ProphecYWebEditor::timerCallback()
     if(presetId!=lastPresetId_||presetName!=lastPresetName_){
         auto* state=new juce::DynamicObject;
         state->setProperty("name",presetName);
+        state->setProperty("id",presetId);
         int index=-1,total=0;
         if(presetLibrary_){
             const auto& entries=presetLibrary_->entries();
