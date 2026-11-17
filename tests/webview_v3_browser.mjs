@@ -69,6 +69,7 @@ try {
 
   // Native library must populate the approved full-height drawer and distinguish selection from load.
   assert.equal(await page.locator('#v3-preset-drawer').count(), 1);
+  await page.locator('prophecy-glass-panel .capacitive[data-page="PRESETS"]').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyPresetCatalogRequest')), true);
   await page.evaluate(() => window.__nativeListeners.prophecyPresetCatalog([
@@ -76,7 +77,6 @@ try {
     { id: 'factory-2', name: 'REAL ORGAN', category: 'Auto / Organ', bank: 'Factory', source: 'FACTORY', favorite: true, bankNumber: 0, program: 1 },
     { id: 'user-1', name: 'USER BASS', category: 'Auto / Bass', bank: 'User', source: 'USER', favorite: false, bankNumber: 0, program: 2 }
   ]));
-  await page.locator('prophecy-glass-panel .capacitive[data-page="PRESETS"]').click();
   assert.equal(await page.locator('#v3-preset-drawer').getAttribute('aria-hidden'), 'false');
   assert.equal(await page.locator('#g-list .grow').count(), 3);
   await page.locator('#g-search').fill('organ');
