@@ -145,6 +145,7 @@ void ProphecYWebEditor::timerCallback()
     append(nrpnId(167));
     append("arp_character_rhythm");
     append("arp_character_motion");
+    append("arp_character_enabled");
     for(const auto* id:p6plugin::kArpStepIDs)append(id);
     append(nrpnId(160));
     append(nrpnId(168));
