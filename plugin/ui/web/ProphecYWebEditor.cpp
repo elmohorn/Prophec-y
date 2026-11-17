@@ -140,6 +140,8 @@ void ProphecYWebEditor::timerCallback()
     append("wrapper_master_output_db");
     append("wrapper_arp_hold");
     append("wrapper_arp_beat_sync");
+    append("wrapper_clock_source");
+    for(const int nrpn:{47,161,162,163})append(nrpnId(nrpn));
     append(nrpnId(167));
     append("arp_character_rhythm");
     append("arp_character_motion");
