@@ -1284,7 +1284,7 @@ master.addEventListener('pointerdown',e=>{drag=true;startY=e.clientY;startVal=va
 // Demo visuals only. Real meters and modulation will receive native DSP data later.
 const ledRows=[root.getElementById('large-led-l'),root.getElementById('large-led-r')];ledRows.forEach(row=>{for(let i=0;i<22;i++){let led=document.createElement('i');if(i>=18)led.classList.add(i>=21?'clip':'warn');row.appendChild(led)}});
 let frame=0;let last=0;const waveLine=$('#wave-line'),waveHalo=$('#wave-halo');
-function animate(t){requestAnimationFrame(animate);if(document.hidden||t-last<55)return;last=t;frame++;
+function animate(t){requestAnimationFrame(animate);if(window.ProphecYBridge?.enabled||document.hidden||t-last<55)return;last=t;frame++;
 if(modes[mode]==='wave'&&!overlayActive){let points=[];let phase=frame*.035;for(let x=0;x<=320;x+=4){let y=63-36*Math.sin(x/320*Math.PI*3.6-phase);points.push((x?'L':'M')+x+' '+y.toFixed(1))}let d=points.join(' ');waveLine.setAttribute('d',d);waveHalo.setAttribute('d',d);let cursorY=63-36*Math.sin(162/320*Math.PI*3.6-phase);$('#wave-dot').setAttribute('cy',cursorY.toFixed(1))}
 if(frame%2===0){let lv=14+Math.round(2.3*Math.sin(frame*.17)+1.4*Math.sin(frame*.39)),rv=13+Math.round(2.2*Math.sin(frame*.14+1.5)+1.3*Math.sin(frame*.31));ledRows.forEach((row,j)=>[...row.children].forEach((led,i)=>led.classList.toggle('on',i<(j?rv:lv))));$('#db-l').textContent=(-16+lv*.52).toFixed(1);$('#db-r').textContent=(-16+rv*.52).toFixed(1);$('#needle-l').style.transform='rotate('+(-44+lv*3.1)+'deg)';$('#needle-r').style.transform='rotate('+(-44+rv*3.1)+'deg)'}}requestAnimationFrame(animate);
 showMode();
@@ -1945,6 +1945,10 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   // Capture the glass navigation before the demo handlers, and use real presets.
   const glass=window.prophecyGlass?.shadowRoot;
   if(glass){
+    const meterCycle=glass.getElementById('display-cycle');
+    if(meterCycle){meterCycle.disabled=true;meterCycle.title='Live audio meter bridge pending';}
+    const meterLabel=glass.getElementById('display-mode-name');
+    if(meterLabel)meterLabel.textContent='METER NOT CONNECTED';
     for(const [id,delta] of [['prev',-1],['next',1]]){
       glass.getElementById(id)?.addEventListener('click',e=>{
         e.stopImmediatePropagation();
