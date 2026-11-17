@@ -5,6 +5,10 @@ on:
     branches: [feature/ui-v3-glass-metal]
   workflow_dispatch:
 
+concurrency:
+  group: webview-v3-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
