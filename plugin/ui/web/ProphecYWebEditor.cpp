@@ -143,6 +143,7 @@ void ProphecYWebEditor::timerCallback()
     append(nrpnId(167));
     append("arp_character_rhythm");
     append("arp_character_motion");
+    for(const auto* id:p6plugin::kArpStepIDs)append(id);
     append(nrpnId(160));
     append(nrpnId(168));
     append("character_bypass");
@@ -171,4 +172,13 @@ void ProphecYWebEditor::timerCallback()
     }
     if(changed)browser_.emitEventIfBrowserIsVisible("prophecyHostState",juce::var(object));
     else delete object;
+    const auto levels=processor_.consumeOutputReadings();
+    auto* meter=new juce::DynamicObject;
+    meter->setProperty("leftPeak",std::clamp(levels.peak[0],0.f,1.f));
+    meter->setProperty("rightPeak",std::clamp(levels.peak[1],0.f,1.f));
+    meter->setProperty("leftRms",std::clamp(levels.rms[0],0.f,1.f));
+    meter->setProperty("rightRms",std::clamp(levels.rms[1],0.f,1.f));
+    meter->setProperty("clips",static_cast<int>(levels.clips));
+    meter->setProperty("playStep",processor_.arpPlaybackStep());
+    browser_.emitEventIfBrowserIsVisible("prophecyTelemetry",juce::var(meter));
 }
