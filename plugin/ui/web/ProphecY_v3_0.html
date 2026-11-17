@@ -1292,6 +1292,25 @@ showMode();
   host.showParameter=(name,value,unit='',note='SYNTH PARAMETER',percent=50)=>parameterFlash(name,value,unit,note,percent);
   host.resetGlass=()=>{preset=0;showPreset();setVal(50,false);showMode();};
   host.setPresetName=(name)=>{if(name){presets[preset]=name;showPreset();}};
+host.enableLiveMeters=()=>{
+  modes.splice(0,1);modeLabels.splice(0,1);footLabels.splice(0,1);
+  mode=0;showMode();
+  $('#display-foot-right').textContent='LIVE DSP';
+  const title=root.querySelector('.led-heading span:last-child');
+  if(title)title.textContent='LIVE OUTPUT';
+};
+host.setOutputTelemetry=(d)=>{
+  const levels=[Number(d?.leftPeak)||0,Number(d?.rightPeak)||0];
+  const rms=[Number(d?.leftRms)||0,Number(d?.rightRms)||0];
+  levels.forEach((level,j)=>{
+    const db=Math.max(-60,Math.min(0,20*Math.log10(Math.max(1e-6,level))));
+    const count=Math.max(0,Math.min(22,Math.round((db+48)/48*22)));
+    [...ledRows[j].children].forEach((led,i)=>led.classList.toggle('on',i<count));
+    $(j?'#db-r':'#db-l').textContent=db.toFixed(1);
+    const rmsDb=Math.max(-40,Math.min(3,20*Math.log10(Math.max(1e-6,rms[j]))));
+    $(j?'#needle-r':'#needle-l').style.transform='rotate('+(-44+(rmsDb+40)/43*88)+'deg)';
+  });
+};
 host.setPresetState=(name,index,total)=>{
   $('#preset-name').textContent=name||'Unnamed Preset';
   $('#bank-label').textContent=index>=0?'PRESET '+String(index+1).padStart(3,'0')+' / '+total:'CUSTOM PRESET';
@@ -1946,10 +1965,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   // Capture the glass navigation before the demo handlers, and use real presets.
   const glass=window.prophecyGlass?.shadowRoot;
   if(glass){
-    const meterCycle=glass.getElementById('display-cycle');
-    if(meterCycle){meterCycle.disabled=true;meterCycle.title='Live audio meter bridge pending';}
-    const meterLabel=glass.getElementById('display-mode-name');
-    if(meterLabel)meterLabel.textContent='METER NOT CONNECTED';
+    window.prophecyGlass?.enableLiveMeters?.();
     for(const [id,delta] of [['prev',-1],['next',1]]){
       glass.getElementById(id)?.addEventListener('click',e=>{
         e.stopImmediatePropagation();
@@ -1957,6 +1973,30 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       },true);
     }
   }
+  // Native engine currently exposes eight binary arp gates, not 64 note/velocity/tie steps.
+  // Hide unsupported editor functions instead of suggesting that they affect audio.
+  const nativeStepIds=Array.from({length:8},(_,i)=>'arp_step_'+(i+1));
+  document.querySelectorAll('.seq-page').forEach((b,i)=>{if(i>0)b.disabled=true;});
+  for(const id of ['seq-state-btn','seq-note-down','seq-note-up','seq-vel-track','seq-gate-track']){
+    const el=document.getElementById(id);if(el){el.style.pointerEvents='none';el.setAttribute('aria-disabled','true');}
+  }
+  document.getElementById('seq-advanced')?.setAttribute('title','Native engine supports eight gate switches; note, velocity, gate and tie editing are not implemented');
+  document.getElementById('step-seq')?.addEventListener('contextmenu',e=>{
+    const button=e.target.closest('.step-btn');if(!button)return;
+    const i=[...button.parentElement.children].indexOf(button);
+    if(i<0||i>=8){e.preventDefault();e.stopImmediatePropagation();return;}
+    e.preventDefault();e.stopImmediatePropagation();
+    const d=stepData[i];d.state=d.state===0?1:0;
+    const id=nativeStepIds[i];
+    bridge.gesture(id,'begin');bridge.setNormalized(id,d.state?1:0);bridge.gesture(id,'end');
+    drawSequencer();
+  },true);
+  backend.addEventListener('prophecyTelemetry',data=>{
+    window.prophecyGlass?.setOutputTelemetry?.(data);
+    const step=Number(data?.playStep??-1);
+    document.querySelectorAll('#step-seq .step-btn').forEach((button,i)=>
+      button.classList.toggle('playhead',i===step));
+  });
   backend.addEventListener('prophecyPresetState',data=>{
     window.prophecyGlass?.setPresetState?.(data?.name||'',Number(data?.index??-1),Number(data?.total??0));
   });
@@ -1981,6 +2021,9 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
         springButton.classList.toggle('on',active&&custom===2);
         processButton.classList.toggle('on',active);
       }
+      let stepsChanged=false;
+      nativeStepIds.forEach((id,i)=>{if(id in state){stepData[i].state=Number(state[id])>=.5?1:0;stepsChanged=true;}});
+      if(stepsChanged)drawSequencer();
       window.__prophecyUpdateADSR?.();
     }finally{bridge.suppress=false;}
   });
