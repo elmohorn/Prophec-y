@@ -67,6 +67,20 @@ try {
   }));
   assert.equal(await page.locator('prophecy-glass-panel #preset-name').textContent(), 'HOST PRESET TEST');
 
+  // Native eight-step mask must round-trip and follow the actual DSP playhead.
+  await page.evaluate(() => window.__nativeListeners.prophecyHostState({ arp_step_1: 0 }));
+  assert.equal(await page.locator('#step-seq .step-btn').first().getAttribute('class').then(s => s.includes('rest')), true);
+  await page.locator('#step-seq .step-btn').first().click({ button: 'right' });
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'arp_step_1' && e.payload.value === 1)), true);
+  assert.equal(await page.locator('.seq-page').nth(1).isDisabled(), true);
+  await page.evaluate(() => window.__nativeListeners.prophecyTelemetry({
+    leftPeak: 0.7, rightPeak: 0.3, leftRms: 0.4, rightRms: 0.2, clips: 0, playStep: 2
+  }));
+  assert.equal(await page.locator('prophecy-glass-panel #db-l').textContent(), '-3.1');
+  assert.equal(await page.locator('#step-seq .step-btn').nth(2).getAttribute('class').then(s => s.includes('playhead')), true);
+  assert.equal(await page.locator('prophecy-glass-panel #display-mode-name').textContent(), 'STEREO · PEAK METERS');
+
   assert.deepEqual(errors, [], 'JavaScript runtime errors detected');
   console.log('PASS: hosted HTML load, host-to-UI state, no feedback, arp, Character, presets and unsupported controls');
 } finally {
