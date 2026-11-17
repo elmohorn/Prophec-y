@@ -52,17 +52,17 @@ for index, script in enumerate(scan.scripts):
 
 bridge = scan.scripts[-1]
 def ids_of(name):
-    match = re.search(r"const " + re.escape(name) + r"=\\[([^;]+)\\];", bridge)
+    match = re.search(r"const " + re.escape(name) + r"=\[([^;]+)\];", bridge)
     assert match, f"Missing JS mapping {name}"
-    return re.findall(r"['\\\"]([^'\\\"]+)['\\\"]", match.group(1))
+    return re.findall(r"['\\"]([^'\\"]+)['\\"]", match.group(1))
 
 knob_ids = ids_of("ids")
 fader_ids = ids_of("faderIds")
 switch_ids = ids_of("switchIds")
 def cpp_ids(name):
-    match = re.search(r"k" + name + r"Nrpn\\{([^}]+)\\}", CPP)
+    match = re.search(r"k" + name + r"Nrpn\{([^}]+)\}", CPP)
     assert match, f"Missing C++ mapping {name}"
-    return ["nrpn_" + str(int(x)).zfill(4) for x in re.findall(r"\\d+", match.group(1))]
+    return ["nrpn_" + str(int(x)).zfill(4) for x in re.findall(r"\d+", match.group(1))]
 
 assert knob_ids == cpp_ids("Knob"), "JS and C++ knob mapping diverged"
 assert fader_ids == cpp_ids("Fader"), "JS and C++ fader mapping diverged"
