@@ -29,6 +29,12 @@ jobs:
       - name: Validate HTML JavaScript and parameter bridge contracts
         shell: pwsh
         run: python tests/webview_v3_integrity.py
+      - name: Install headless browser test dependency
+        shell: pwsh
+        run: npm install --no-save --no-package-lock playwright-core@1.55.0
+      - name: Exercise HTML native bridge in Chromium
+        shell: pwsh
+        run: node tests/webview_v3_browser.mjs
       - name: Install Microsoft WebView2 SDK (JUCE 9 requirement)
         shell: pwsh
         run: |
