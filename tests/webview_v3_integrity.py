@@ -42,7 +42,7 @@ scan = Scan()
 scan.feed(HTML)
 assert scan.knobs == 39, f"Expected 39 knobs, got {scan.knobs}"
 assert scan.buttons == 21, f"Expected 21 tactile switches, got {scan.buttons}"
-assert len(scan.scripts) == 3, f"Expected three inline scripts, got {len(scan.scripts)}"
+assert len(scan.scripts) == 4, f"Expected four inline scripts including preset library, got {len(scan.scripts)}"
 
 for index, script in enumerate(scan.scripts):
     with tempfile.TemporaryDirectory() as tmp:
@@ -50,7 +50,7 @@ for index, script in enumerate(scan.scripts):
         js.write_text(script, encoding="utf-8")
         subprocess.run(["node", "--check", str(js)], check=True)
 
-bridge = scan.scripts[-1]
+bridge = scan.scripts[-2]
 def ids_of(name):
     match = re.search(r"const " + re.escape(name) + r"=\[([^;]+)\];", bridge)
     assert match, f"Missing JS mapping {name}"
@@ -73,4 +73,7 @@ assert "character_bypass" in CPP and "character_custom_type" in CPP
 assert "window.__prophecyUpdateADSR?.()" in bridge
 assert "rotaryButton.disabled=true" in bridge, "Unsupported rotary should not be interactive"
 assert "prophecyReady" in bridge and "prophecyHostState" in bridge
+assert "v3-unified-glass-reflection" in HTML and "glass-library-v35-css" in HTML
+assert "prophecyPresetCatalogRequest" in HTML and "prophecyPresetLoad" in CPP
+assert "prophecyPresetFavorite" in CPP and "emitPresetCatalog" in CPP
 print("WebView v3 HTML syntax, control counts and C++/JS parameter contracts OK")
