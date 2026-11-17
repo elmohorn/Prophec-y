@@ -1811,6 +1811,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     document.getElementById("amp-adsr-path").setAttribute("d", mkPath(a));
   }
   updateADSR();
+  window.__prophecyUpdateADSR=updateADSR;
 
 
   document.getElementById("reset-btn").addEventListener("click", () => {
@@ -1855,19 +1856,27 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   const backend=window.__JUCE__?.backend;
   const enabled=!!(backend && typeof backend.emitEvent==='function');
   const ids=["nrpn_0000", "nrpn_0003", "nrpn_0004", "nrpn_0002", "nrpn_0005", "nrpn_0008", "nrpn_0009", "nrpn_0007", "nrpn_0045", "nrpn_0046", "nrpn_0077", "nrpn_0049", "nrpn_0120", "nrpn_0128", "nrpn_0143", "nrpn_0144", "nrpn_0088", "nrpn_0089", "nrpn_0078", "nrpn_0079", "nrpn_0080", "nrpn_0081", "nrpn_0067", "nrpn_0068", "nrpn_0069", "nrpn_0070", "nrpn_0030", "nrpn_0033", "nrpn_0063", "nrpn_0062"];
+  // Stable host parameter IDs; order follows the authored control library.
+  // The last three rotary controls remain visual-only: no rotary DSP exists yet.
+  ids.push('character_tube_drive','character_tube_treble','character_tube_mix',
+           'character_spring_decay','character_spring_tension','character_spring_mix',
+           null,null,null);
   const faderIds=['nrpn_0002','nrpn_0007','nrpn_0027','nrpn_0032'];
   const switchIds=['nrpn_0135','nrpn_0145','nrpn_0146','nrpn_0147','nrpn_0148','nrpn_0149',
                    'nrpn_0091','nrpn_0093','nrpn_0094','nrpn_0095','nrpn_0097',
-                   'nrpn_0156','nrpn_0029','nrpn_0048'];
+                   'nrpn_0156','nrpn_0029','nrpn_0048',
+                   'nrpn_0160','wrapper_arp_hold','wrapper_arp_beat_sync'];
   const knobSlots=[...document.querySelectorAll('.knob-slot')];
   const buttons=[...document.querySelectorAll('.tactile-btn')];
   const clamp=v=>Math.max(0,Math.min(1,Number(v)||0));
   const emit=(event,data)=>{if(enabled)backend.emitEvent(event,data);};
-  const bridge={enabled,suppress:false,knobChanged(el,v){const i=knobSlots.indexOf(el);if(i>=0&&i<ids.length)this.setNormalized(ids[i],v);},
+  const bridge={enabled,suppress:false,knobChanged(el,v){const id=el.dataset.paramId;if(id)this.setNormalized(id,v);},
     faderChanged(i,v){if(faderIds[i])this.setNormalized(faderIds[i],v);},
     setNormalized(id,value){emit('prophecyParameter',{id,value:clamp(value)});},
     gesture(id,phase){if(id)emit('prophecyGesture',{id,phase});}
   };
+  knobSlots.forEach((el,i)=>{if(ids[i])el.dataset.paramId=ids[i];});
+  buttons.forEach((el,i)=>{if(switchIds[i])el.dataset.paramId=switchIds[i];});
   window.ProphecYBridge=bridge;
   if(!enabled)return;
   document.body.classList.add('juce-hosted');
@@ -1875,7 +1884,11 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   let activeGesture=null;
   const begin=(id)=>{if(activeGesture&&activeGesture!==id)bridge.gesture(activeGesture,'end');activeGesture=id;bridge.gesture(id,'begin');};
   const end=()=>{if(activeGesture){bridge.gesture(activeGesture,'end');activeGesture=null;}};
-  knobSlots.slice(0,ids.length).forEach((el,i)=>el.addEventListener('pointerdown',()=>begin(ids[i]),true));
+  knobSlots.forEach(el=>{
+    const id=el.dataset.paramId;if(!id)return;
+    el.addEventListener('pointerdown',()=>begin(id),true);
+    el.addEventListener('wheel',()=>{bridge.gesture(id,'begin');queueMicrotask(()=>bridge.gesture(id,'end'));},true);
+  });
   document.querySelectorAll('#mixer-faders .fader-col').forEach((el,i)=>el.addEventListener('pointerdown',()=>begin(faderIds[i]),true));
   const master=window.prophecyGlass?.shadowRoot?.getElementById('master');
   if(master){master.addEventListener('pointerdown',()=>begin('wrapper_master_output_db'),true);
@@ -1892,12 +1905,12 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     if(!state||typeof state!=='object')return;
     bridge.suppress=true;
     try{
-      ids.forEach((id,i)=>{if(!(id in state))return;const slot=knobSlots[i];const v=clamp(state[id]);
+      ids.forEach((id,i)=>{if(!id||!(id in state))return;const slot=knobSlots[i];const v=clamp(state[id]);
         slot.dataset.val=(v*100).toFixed(2);slot._knob?.setValue(v);});
       faderIds.forEach((id,i)=>{if(id in state)window.__prophecyFaderObjects?.[i]?.setValue(clamp(state[id]));});
       switchIds.forEach((id,i)=>{if(id in state)buttons[i]?.classList.toggle('on',Number(state[id])>=.5);});
       if('wrapper_master_output_db' in state)window.prophecyGlass?.setMasterNormalized?.(clamp(state.wrapper_master_output_db));
-      if(typeof updateADSR==='function')updateADSR();
+      window.__prophecyUpdateADSR?.();
     }finally{bridge.suppress=false;}
   });
   // Visual Character visibility does not imply a DSP bypass state.
