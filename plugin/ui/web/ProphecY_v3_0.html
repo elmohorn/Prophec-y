@@ -1345,6 +1345,43 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
 <div class="synth-chassis">
 <!-- LEFT PANEL: recessed smoked glass with original library neon path -->
 <prophecy-glass-panel aria-label="Prophec-Y glass control panel" id="prophecy-glass"></prophecy-glass-panel>
+
+<div id="v3-preset-drawer" role="dialog" aria-label="Prophec-Y preset library" aria-hidden="true">
+ <div class="gdrawer-glass">
+  <div class="ghead">
+   <div class="gtitle">PRESET LIBRARY<span class="gtitle-rule"></span></div>
+   <span class="gstatus">BANKS · PATCHES</span>
+   <button class="gload" id="g-load" title="Load selected preset">LOAD SELECTED</button>
+   <button class="gclose" id="g-close" aria-label="Close preset library">×</button>
+  </div>
+  <label class="gsearch"><span class="gsearch-icon">⌕</span><input id="g-search" placeholder="Search name, code, category or bank…" autocomplete="off" /></label>
+  <div class="gbody">
+   <nav class="gsidebar" id="g-cats" aria-label="Preset filters">
+    <div class="gsection">LIBRARY</div>
+    <button class="gcat active" data-filter="ALL"><span>All patches</span><em>0</em></button>
+    <button class="gcat" data-filter="FACTORY"><span>Factory</span><em>0</em></button>
+    <button class="gcat" data-filter="USER"><span>User / Imported</span><em>0</em></button>
+    <button class="gcat" data-filter="FAV"><span>★ Favorites</span><em>0</em></button>
+    <div class="gsection gsection-divider">CATEGORIES</div>
+    <button class="gcat" data-filter="BRASS"><span>Brass</span><em>0</em></button>
+    <button class="gcat" data-filter="BASS"><span>Bass</span><em>0</em></button>
+    <button class="gcat" data-filter="LEAD"><span>Lead</span><em>0</em></button>
+    <button class="gcat" data-filter="PAD"><span>Pad / Strings</span><em>0</em></button>
+    <button class="gcat" data-filter="KEYS"><span>Keys / Organ</span><em>0</em></button>
+    <button class="gcat" data-filter="ARP"><span>Arp / Sequence</span><em>0</em></button>
+    <button class="gcat" data-filter="SFX"><span>SFX / Atmosphere</span><em>0</em></button>
+   </nav>
+   <div class="glistarea">
+    <div class="gcolumns"><span>NO.</span><span>PRESET NAME</span><span>TYPE</span><span>★</span></div>
+    <div class="glist" id="g-list" role="listbox" aria-label="Available presets"></div>
+    <div class="glist-bottom"><span id="g-count">0 PATCHES</span><span>SINGLE CLICK SELECTS · DOUBLE CLICK LOADS</span></div>
+   </div>
+  </div>
+  <div class="gmeta" id="g-meta">PRESET BROWSER · READY</div>
+ </div>
+</div>
+<div id="v3-unified-glass-reflection" aria-hidden="true"></div>
+
 <!-- RIGHT SYNTHESIZER: Strict Left-to-Right 2-Row Architecture -->
 <main class="right-synth">
 
@@ -2106,5 +2143,210 @@ body.juce-hosted .editor-bar{width:1650px;max-width:none;margin:0}
 body.juce-hosted .chassis-scroll{width:max-content;max-width:none;overflow:visible;padding:0}
 body.juce-hosted .chassis-shell{margin:0}
 </style>
+<style id="glass-library-v35-css">
+/* Prophec-Y v3.5: one physical smoked-glass optical surface, shared across sidebar and drawer. */
+.synth-chassis{position:relative!important;isolation:isolate}
+#v3-preset-drawer{
+ position:absolute;z-index:120;top:19px;bottom:19px;left:455px;width:719px;
+ display:block;min-height:0;overflow:hidden;padding:11px 11px 11px 0;
+ border:0;border-radius:0 12px 12px 0;
+ background:repeating-linear-gradient(0deg,rgba(255,255,255,.013) 0px,rgba(255,255,255,.013) 1px,transparent 1px,transparent 3px),linear-gradient(115deg,#27292b,#141719 40%,#25272b 82%,#121315);
+ box-shadow:14px 22px 55px -18px #000d,inset 0 2px 2px #ffffff35,inset 0 -2px 4px #000;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0px,#000 29px,#000 100%);
+ mask-image:linear-gradient(90deg,transparent 0px,#000 29px,#000 100%);
+ font-family:Inter,'Segoe UI',Arial,sans-serif;
+ transform:translateX(-12px);opacity:0;pointer-events:none;
+ transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .17s ease;
+}
+#v3-preset-drawer.open{transform:translateX(0);opacity:1;pointer-events:auto}
+#v3-preset-drawer .gdrawer-glass{
+ position:relative;isolation:isolate;height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+ border:2px solid #101418;border-left:0;border-top-color:#5b6065;border-right-color:#35393d;border-bottom-color:#555a61;
+ border-radius:0 7px 7px 0;
+ background:radial-gradient(ellipse 820px 580px at 520px 340px,#10171c 0%,#060a0e 64%,#020306 100%);
+ background-size:1138px 738px;background-position:-430px 0;
+ box-shadow:inset 0 0 0 2px #050608,inset 0 2px 4px #ffffff25,inset 0 -4px 7px #000,0 2px 8px #000c;
+}
+#v3-preset-drawer .gdrawer-glass:before{content:'';position:absolute;inset:7px;pointer-events:none;z-index:2;border:1px solid #ffffff15;border-left:0;border-radius:0 4px 4px 0}
+#v3-unified-glass-reflection{
+ position:absolute;z-index:121;left:25px;top:30px;width:1138px;height:738px;
+ border-radius:7px;overflow:hidden;pointer-events:none;opacity:0;
+ background:linear-gradient(127deg,transparent 0 15%,rgba(194,216,231,.025) 20%,rgba(207,229,241,.115) 26%,rgba(179,211,229,.065) 31%,transparent 40%),
+ linear-gradient(132deg,transparent 0 57%,rgba(165,198,216,.07) 64%,rgba(165,198,216,.028) 71%,transparent 78%),
+ linear-gradient(171deg,rgba(255,255,255,.034) 0%,transparent 17% 82%,rgba(226,239,248,.024) 100%);
+ mix-blend-mode:screen;transition:opacity .14s ease;
+}
+#v3-unified-glass-reflection.active{opacity:1}
+#v3-unified-glass-reflection:before{
+ content:'';position:absolute;width:170px;height:1000px;left:280px;top:-250px;
+ transform:rotate(33deg);filter:blur(8px);
+ background:linear-gradient(90deg,transparent,rgba(177,197,210,.035) 26%,rgba(240,249,255,.08) 46%,rgba(194,228,237,.02) 66%,transparent);
+}
+#v3-preset-drawer button,#v3-preset-drawer input{font:inherit}
+#v3-preset-drawer button:focus-visible,#v3-preset-drawer input:focus-visible{outline:1px solid #80d5e8;outline-offset:1px}
+#v3-preset-drawer .ghead{display:flex;align-items:center;gap:13px;flex:0 0 auto;padding:22px 20px 13px 25px;border-bottom:1px solid #ffffff0d}
+#v3-preset-drawer .gtitle{font-size:12px;letter-spacing:.19em;font-weight:750;color:#e0e6ed;white-space:nowrap}
+#v3-preset-drawer .gtitle-rule{display:block;height:1px;margin-top:8px;width:36px;background:linear-gradient(90deg,#d03e49,transparent)}
+#v3-preset-drawer .gstatus{font-size:9px;letter-spacing:.12em;color:#66818e;margin-left:auto;white-space:nowrap}
+#v3-preset-drawer .gclose{width:31px;height:31px;border-radius:5px;background:linear-gradient(#1c232b,#0b1015);border:1px solid #303a46;color:#aab7c5;font-size:18px;cursor:pointer;flex:0 0 auto}
+#v3-preset-drawer .gclose:hover{color:#fff;border-color:#aa4050}
+#v3-preset-drawer .gload{border-radius:4px;border:1px solid #c13c4d;background:linear-gradient(180deg,#35131b,#180a10);color:#f1d9dd;box-shadow:0 0 12px #ef44551d,inset 0 1px 0 #ffffff0c;padding:9px 12px;font-size:9px;font-weight:800;letter-spacing:.09em;cursor:pointer;white-space:nowrap}
+#v3-preset-drawer .gload:hover{background:#441822}
+#v3-preset-drawer .gsearch{display:flex;align-items:center;gap:10px;margin:13px 21px 15px 24px;padding:0 12px;height:41px;flex:0 0 41px;background:linear-gradient(#020509,#070b10);border:1px solid #28333e;border-radius:5px;box-shadow:inset 0 3px 9px #000b;color:#55cbe6}
+#v3-preset-drawer .gsearch-icon{font-size:19px;line-height:1}
+#v3-preset-drawer .gsearch input{min-width:0;flex:1;border:0;outline:0;background:none;color:#d8f4ff;font-size:12px;letter-spacing:.03em;user-select:text}
+#v3-preset-drawer .gsearch input::placeholder{color:#657281}
+#v3-preset-drawer .gbody{display:grid;grid-template-columns:180px minmax(0,1fr);flex:1;min-height:0;border-top:1px solid #ffffff09}
+#v3-preset-drawer .gsidebar{border-right:1px solid #29323a;padding:9px 7px 10px 13px;overflow:auto;scrollbar-width:thin;scrollbar-color:#35414c #070a0d}
+#v3-preset-drawer .gsection{font-size:9px;color:#60778b;letter-spacing:.16em;font-weight:800;padding:10px 10px 6px}
+#v3-preset-drawer .gsection-divider{border-top:1px solid #ffffff12;margin-top:8px;padding-top:13px}
+#v3-preset-drawer .gcat{display:flex;width:100%;justify-content:space-between;align-items:center;gap:5px;background:none;border:0;border-left:2px solid transparent;border-radius:0 4px 4px 0;color:#a2adb9;padding:8px;text-align:left;font-size:10.5px;letter-spacing:.02em;cursor:pointer}
+#v3-preset-drawer .gcat em{font-size:9px;color:#607282;font-style:normal}
+#v3-preset-drawer .gcat.active{background:linear-gradient(90deg,#ef44442b,#ef444405);border-left-color:#f04455;color:#f6f5f5}
+#v3-preset-drawer .gcat:hover:not(.active){background:#ffffff0c;color:#e2e8ee}
+#v3-preset-drawer .glistarea{display:flex;flex-direction:column;min-height:0;padding:0 12px}
+#v3-preset-drawer .gcolumns{display:grid;grid-template-columns:47px minmax(0,1fr) 67px 24px;gap:7px;padding:12px 9px 11px;color:#687b8b;font-size:9px;letter-spacing:.13em;border-bottom:1px solid #34404a}
+#v3-preset-drawer .glist{overflow:auto;min-height:0;flex:1;scrollbar-width:thin;scrollbar-color:#3b414c #090c10}
+#v3-preset-drawer .grow{display:grid;grid-template-columns:47px minmax(0,1fr) 67px 24px;gap:7px;align-items:center;width:100%;height:47px;padding:0 9px;border:1px solid transparent;border-bottom-color:#ffffff0b;border-radius:4px;color:#d7dce3;cursor:pointer;text-align:left}
+#v3-preset-drawer .grow:hover{background:#ffffff0b}
+#v3-preset-drawer .grow.selected{border-color:#ef4444a6;background:linear-gradient(90deg,#ef44442e,#ef44440b);box-shadow:inset 3px 0 0 #ef4455,0 0 10px #ef44441b}
+#v3-preset-drawer .grow .code{font:10px 'Courier New',monospace;color:#83909d}
+#v3-preset-drawer .grow.selected .code{color:#ff8892}
+#v3-preset-drawer .grow .name{font-size:11.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v3-preset-drawer .grow .kind{font-size:9px;border:1px solid #303c48;border-radius:3px;color:#aabac5;text-align:center;padding:4px 1px;letter-spacing:.02em}
+#v3-preset-drawer .grow .fav{background:none;border:0;color:#657384;font-size:17px;cursor:pointer;padding:4px 0}
+#v3-preset-drawer .grow .fav.on{color:#ef6472;text-shadow:0 0 8px #ef444455}
+#v3-preset-drawer .glist-bottom{height:34px;flex:0 0 34px;border-top:1px solid #ffffff14;display:flex;justify-content:space-between;align-items:center;color:#71818e;font-size:9px;letter-spacing:.055em;gap:10px}
+#v3-preset-drawer .glist-bottom span:last-child{color:#586c79;font-size:8px}
+#v3-preset-drawer .gempty{color:#8694a2;font-size:12px;padding:28px 12px}
+#v3-preset-drawer .gmeta{flex:0 0 26px;border-top:1px solid #ffffff0b;display:flex;align-items:center;padding:0 23px;color:#61717f;font-size:8px;letter-spacing:.11em}
+@media (prefers-reduced-motion:reduce){#v3-preset-drawer{transition:none}}
+</style>
+<script id="glass-library-v35-js">
+(()=>{
+'use strict';
+const drawer=document.getElementById('v3-preset-drawer'),glass=document.querySelector('prophecy-glass-panel');
+const backend=window.__JUCE__?.backend;
+const hosted=!!(backend&&typeof backend.emitEvent==='function');
+const $=id=>document.getElementById(id);
+let catalog=[],activeFilter='ALL',selectedPresetId=null,loadedPresetId=null;
+const sample=[
+ ['A013','CLASSIC BRASS','BRASS'],['A014','WARM POLY STRINGS','PAD'],['A015','MIDNIGHT ARP','ARP'],
+ ['A016','CHURCH ORGAN AB','KEYS'],['A017','SILICON BASS','BASS'],['A018','VITACURA LEAD','LEAD'],
+ ['A019','SOLARIS PAD','PAD'],['A020','POLYHORN 84','BRASS'],['A021','ACID SUBLINE','BASS'],
+ ['A022','NIGHT DRIVE','LEAD'],['A023','COSMIC ATMOSPHERE','SFX'],['A024','SOFT POLY KEYS','KEYS']
+];
+const normalize=p=>String(p||'').toLocaleUpperCase();
+function kind(p){
+ const s=normalize(p.category);
+ if(/BRASS|HORN|TRUMPET/.test(s))return 'BRASS';
+ if(/BASS/.test(s))return 'BASS';
+ if(/LEAD/.test(s))return 'LEAD';
+ if(/ARP|SEQUEN/.test(s))return 'ARP';
+ if(/FX|SFX|ATMOS|PERCUSSION|NOISE|DRONE|SWEEP/.test(s))return 'SFX';
+ if(/ORGAN|KEY|PIANO|BELL|CLAV|RHODES/.test(s))return 'KEYS';
+ if(/PAD|STRING|CHOIR/.test(s))return 'PAD';
+ return '—';
+}
+function code(p){
+ if(!hosted)return p.code||'—';
+ if(p.bankNumber>=0&&p.bankNumber<10&&p.program>=0&&p.program<100)
+  return String.fromCharCode(65+p.bankNumber)+String(p.program+1).padStart(3,'0');
+ return p.id==='factory-init'?'INIT':'—';
+}
+function matches(p,f){
+ return f==='ALL'||f==='FAV'&&p.favorite||f==='FACTORY'&&p.source==='FACTORY'||
+        f==='USER'&&p.source!=='FACTORY'||kind(p)===f;
+}
+function counts(){
+ document.querySelectorAll('#g-cats .gcat').forEach(b=>{
+  b.querySelector('em').textContent=String(catalog.filter(p=>matches(p,b.dataset.filter)).length);
+ });
+}
+function render(){
+ const query=$('g-search').value.trim().toLocaleLowerCase();
+ const filtered=catalog.filter(p=>matches(p,activeFilter)&&(!query||
+  [p.id,code(p),p.name,p.category,p.bank,p.source].some(x=>String(x||'').toLocaleLowerCase().includes(query))));
+ const list=$('g-list');list.replaceChildren();
+ $('g-count').textContent=filtered.length+' / '+catalog.length+' PATCHES';
+ if(!filtered.length){const empty=document.createElement('div');empty.className='gempty';empty.textContent='No matching presets';list.append(empty);}
+ const fragment=document.createDocumentFragment();
+ filtered.forEach(p=>{
+  const row=document.createElement('div');
+  row.className='grow'+(p.id===selectedPresetId?' selected':'');
+  row.setAttribute('role','option');row.setAttribute('aria-selected',String(p.id===selectedPresetId));
+  row.innerHTML='<span class="code"></span><span class="name"></span><span class="kind"></span><button class="fav" aria-label="Toggle favorite">★</button>';
+  row.querySelector('.code').textContent=code(p);
+  row.querySelector('.name').textContent=p.name;
+  row.querySelector('.kind').textContent=kind(p);
+  const star=row.querySelector('.fav');star.classList.toggle('on',!!p.favorite);
+  star.addEventListener('click',event=>{
+   event.stopPropagation();
+   if(hosted){backend.emitEvent('prophecyPresetFavorite',{id:p.id,favorite:!p.favorite});$('g-meta').textContent='SAVING FAVORITE…';}
+   else {p.favorite=!p.favorite;counts();render();}
+  });
+  row.addEventListener('click',()=>{selectedPresetId=p.id;render()});
+  row.addEventListener('dblclick',loadSelected);
+  fragment.append(row);
+ });
+ list.append(fragment);
+}
+function loadSelected(){
+ const p=catalog.find(x=>x.id===selectedPresetId);if(!p)return;
+ if(hosted){backend.emitEvent('prophecyPresetLoad',{id:p.id});$('g-meta').textContent='LOADING PRESET…';}
+ else{loadedPresetId=p.id;glass?.setPresetName?.(p.name);$('g-meta').textContent='VISUAL PREVIEW ONLY · NO DSP CONNECTED';}
+}
+function setOpen(open){
+ drawer.classList.toggle('open',open);
+ drawer.setAttribute('aria-hidden',String(!open));
+ glass?.shadowRoot?.querySelector('.hardware')?.classList.toggle('drawer-attached',open);
+ $('v3-unified-glass-reflection').classList.toggle('active',open);
+ if(open&&hosted)backend.emitEvent('prophecyPresetCatalogRequest',{});
+}
+function attachGlass(){
+ const root=glass?.shadowRoot;if(!root)return;
+ if(!root.getElementById('v3-library-glass-style')){
+  const style=document.createElement('style');style.id='v3-library-glass-style';
+  style.textContent='.hardware.drawer-attached{border-top-right-radius:0;border-bottom-right-radius:0;box-shadow:0 22px 60px #000d,inset 0 2px 2px #ffffff35,inset 0 -2px 4px #000}.hardware.drawer-attached .glass{border-top-right-radius:0;border-bottom-right-radius:0;border-right-color:transparent;background:radial-gradient(ellipse 820px 580px at 520px 340px,#10171c 0%,#060a0e 64%,#020306 100%);background-size:1138px 738px;background-position:0 0}.hardware.drawer-attached .glass-optics{opacity:0!important}.hardware.drawer-attached .glass:before{border-right-color:transparent;border-top-right-radius:0;border-bottom-right-radius:0}.hardware.drawer-attached:before{border-right-color:transparent;border-top-right-radius:0;border-bottom-right-radius:0}.hardware.drawer-attached .tr,.hardware.drawer-attached .br{opacity:0;pointer-events:none}';
+  root.append(style);
+ }
+ root.querySelector('.capacitive[data-page="PRESETS"]')?.addEventListener('click',()=>setOpen(!drawer.classList.contains('open')));
+}
+if(glass?.shadowRoot?.querySelector('.hardware'))attachGlass();
+else glass?.addEventListener('glass-ready',attachGlass,{once:true});
+$('g-search').addEventListener('input',render);
+$('g-cats').addEventListener('click',event=>{
+ const button=event.target.closest('[data-filter]');if(!button)return;
+ activeFilter=button.dataset.filter;
+ document.querySelectorAll('#g-cats .gcat').forEach(b=>b.classList.toggle('active',b===button));
+ render();
+});
+$('g-close').addEventListener('click',()=>setOpen(false));
+$('g-load').addEventListener('click',loadSelected);
+if(hosted){
+ $('g-meta').textContent='LOADING NATIVE PRESET CATALOG…';
+ backend.addEventListener('prophecyPresetCatalog',data=>{
+  if(!Array.isArray(data))return;
+  catalog=data.map(p=>({...p,id:String(p.id),name:String(p.name),source:String(p.source)}));
+  if(!catalog.some(p=>p.id===selectedPresetId))
+   selectedPresetId=catalog.some(p=>p.id===loadedPresetId)?loadedPresetId:catalog[0]?.id||null;
+  counts();render();$('g-meta').textContent='NATIVE PRESET LIBRARY · DOUBLE CLICK TO LOAD';
+ });
+ backend.addEventListener('prophecyPresetState',data=>{
+  loadedPresetId=String(data?.id||'');
+  if(!selectedPresetId&&loadedPresetId){selectedPresetId=loadedPresetId;render();}
+  $('g-meta').textContent='NATIVE PRESET LIBRARY · READY';
+ });
+ backend.addEventListener('prophecyPresetError',data=>{
+  $('g-meta').textContent='PRESET ERROR · '+String(data?.message||'Unknown error');
+ });
+ backend.emitEvent('prophecyPresetCatalogRequest',{});
+}else{
+ catalog=sample.map(([id,name,category],i)=>({id,code:id,name,category,bank:'Factory / Demo',source:i===5||i===8?'USER':'FACTORY',favorite:i===2||i===3||i===7,bankNumber:0,program:i}));
+ selectedPresetId='A016';loadedPresetId='A016';counts();render();
+ $('g-meta').textContent='VISUAL PREVIEW · SAMPLE PATCHES · NO DSP CONNECTION';
+}
+})();
+</script>
 </body>
 </html>
