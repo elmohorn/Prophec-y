@@ -26,6 +26,9 @@ jobs:
           if ($html.Length -lt 100000 -or !$html.Contains('prophecy-native-bridge') -or !$html.Contains('prophecy-glass-panel')) {
             throw 'Approved v3 HTML source is incomplete'
           }
+      - name: Validate HTML JavaScript and parameter bridge contracts
+        shell: pwsh
+        run: python tests/webview_v3_integrity.py
       - name: Install Microsoft WebView2 SDK (JUCE 9 requirement)
         shell: pwsh
         run: |
