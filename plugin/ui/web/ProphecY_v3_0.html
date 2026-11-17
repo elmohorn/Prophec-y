@@ -1532,7 +1532,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
 <button class="tactile-btn"><span class="tactile-led"></span>SYNC</button>
 </div>
 <div class="arp-oled-row">
-<button class="oled-selector" data-opts="UP,DOWN,UP/DN,RANDOM"><span class="oled-sel-lbl">MODE</span><span class="oled-sel-val">UP</span></button>
+<button class="oled-selector" data-opts="UP,DOWN,UP/DN,RANDOM,ASSIGN"><span class="oled-sel-lbl">MODE</span><span class="oled-sel-val">UP</span></button>
 <button class="oled-selector" data-opts="1 OCT,2 OCT,3 OCT"><span class="oled-sel-lbl">RANGE</span><span class="oled-sel-val">1 OCT</span></button>
 <button class="oled-selector" data-opts="1/4,1/8,1/16,1/8T"><span class="oled-sel-lbl">DIVISION</span><span class="oled-sel-val">1/8</span></button>
 <button class="oled-selector" data-opts="HOST,INTERNAL,MIDI" id="arp-clock"><span class="oled-sel-lbl">CLOCK</span><span class="oled-sel-val">HOST</span></button>
@@ -1979,6 +1979,25 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       },true);
     }
   }
+  // Bind discrete selectors to verified native APVTS parameters.
+  const arpSelectors=[...document.querySelectorAll('.arp-oled-row .oled-selector')];
+  const selectIds=['nrpn_0161','nrpn_0162','nrpn_0163','wrapper_clock_source'];
+  const selectRaw=[[0,1,2,3,4],[0,1,2],[1,2,6,5],[1,0,2]];
+  const selectMax=[4,2,9,2];
+  arpSelectors.forEach((el,i)=>el.addEventListener('click',()=>{
+    const label=el.querySelector('.oled-sel-val')?.textContent?.trim();
+    const idx=el.dataset.opts.split(',').indexOf(label);
+    if(idx<0)return;
+    const id=selectIds[i];
+    bridge.gesture(id,'begin');
+    bridge.setNormalized(id,selectRaw[i][idx]/selectMax[i]);
+    bridge.gesture(id,'end');
+  }));
+  const keyTrack=document.querySelector('[data-seg="keytrack"]');
+  keyTrack?.querySelectorAll('.seg-opt').forEach((el,i)=>el.addEventListener('click',()=>{
+    bridge.gesture('nrpn_0047','begin');bridge.setNormalized('nrpn_0047',i/2);
+    bridge.gesture('nrpn_0047','end');
+  }));
   // Native engine currently exposes eight binary arp gates, not 64 note/velocity/tie steps.
   // Hide unsupported editor functions instead of suggesting that they affect audio.
   const nativeStepIds=Array.from({length:8},(_,i)=>'arp_step_'+(i+1));
@@ -2016,6 +2035,18 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       faderIds.forEach((id,i)=>{if(id in state)window.__prophecyFaderObjects?.[i]?.setValue(clamp(state[id]));});
       switchIds.forEach((id,i)=>{if(id in state)buttons[i]?.classList.toggle('on',Number(state[id])>=.5);});
       if('wrapper_master_output_db' in state)window.prophecyGlass?.setMasterNormalized?.(clamp(state.wrapper_master_output_db));
+      selectIds.forEach((id,i)=>{
+        if(!(id in state))return;
+        const raw=Math.round(clamp(state[id])*selectMax[i]);
+        const idx=selectRaw[i].indexOf(raw);
+        const label=idx<0?'DIV '+raw:arpSelectors[i]?.dataset.opts.split(',')[idx];
+        const value=arpSelectors[i]?.querySelector('.oled-sel-val');
+        if(value)value.textContent=label;
+      });
+      if('nrpn_0047' in state){
+        const raw=Math.round(clamp(state.nrpn_0047)*2);
+        keyTrack?.querySelectorAll('.seg-opt').forEach((b,i)=>b.classList.toggle('active',i===raw));
+      }
       for(const [id,name] of [['nrpn_0167','BPM'],['arp_character_rhythm','RHYTHM'],['arp_character_motion','MOTION']])
         if(id in state)window.__prophecySetArpSlider?.(name,clamp(state[id]));
       if(['character_bypass','character_type','character_custom_type'].some(id=>id in state)){
