@@ -2083,6 +2083,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   });
   backend.addEventListener('prophecyPresetState',data=>{
     window.prophecyGlass?.setPresetState?.(data?.name||'',Number(data?.index??-1),Number(data?.total??0));
+    window.dispatchEvent(new CustomEvent('prophecyLoadedPresetChanged',{detail:data}));
   });
   // Host automation/preset restores: no UI->host echo while applying a snapshot.
   backend.addEventListener('prophecyHostState',state=>{
@@ -2332,7 +2333,8 @@ if(hosted){
    selectedPresetId=catalog.some(p=>p.id===loadedPresetId)?loadedPresetId:catalog[0]?.id||null;
   counts();render();$('g-meta').textContent='NATIVE PRESET LIBRARY · DOUBLE CLICK TO LOAD';
  });
- backend.addEventListener('prophecyPresetState',data=>{
+ window.addEventListener('prophecyLoadedPresetChanged',event=>{
+  const data=event.detail;
   loadedPresetId=String(data?.id||'');
   if(!selectedPresetId&&loadedPresetId){selectedPresetId=loadedPresetId;render();}
   $('g-meta').textContent='NATIVE PRESET LIBRARY · READY';
