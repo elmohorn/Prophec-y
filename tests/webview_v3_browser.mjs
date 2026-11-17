@@ -67,6 +67,17 @@ try {
   }));
   assert.equal(await page.locator('prophecy-glass-panel #preset-name').textContent(), 'HOST PRESET TEST');
 
+  // FX and LFO selectors must use verified algorithm/waveform indices.
+  await page.locator('.fx-pair .oled-selector').first().click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'nrpn_0119' && e.payload.value === 0.2)), true);
+  await page.evaluate(() => window.__nativeListeners.prophecyHostState({
+    nrpn_0119: 0.6, nrpn_0127: 6/9, nrpn_0090: 1
+  }));
+  assert.equal(await page.locator('.fx-pair .oled-selector').first().locator('.oled-sel-val').textContent(), 'CHORUS');
+  assert.equal(await page.locator('.fx-pair .oled-selector').nth(1).locator('.oled-sel-val').textContent(), 'HALL');
+  assert.equal(await page.locator('.mod-row .oled-selector').first().locator('.oled-sel-val').textContent(), 'S&H');
+
   // Arp selector and key tracking must drive native parameter IDs.
   await page.locator('.arp-oled-row .oled-selector').first().click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
