@@ -1762,7 +1762,11 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       btn.className='step-btn '+['rest','gate','tie'][d.state]+(i===playStep?' playhead':'')+(i===selectedStep?' selected':'');
       btn.setAttribute('aria-label',`Step ${i+1}: ${stateNames[d.state]} ${noteName(d.note)}`);
       btn.title=`Step ${i+1} · ${stateNames[d.state]} · ${noteName(d.note)} · Click: select · Right click: cycle`;
-      btn.innerHTML=`<span class="step-index">${String(i+1).padStart(2,'0')}</span><span class="step-note">${d.state===0?'—':d.state===2?'TIE':noteName(d.note)}</span><span class="step-led"></span>`;
+      if(window.ProphecYBridge?.enabled){
+        if(i>=8){btn.disabled=true;btn.title='Not connected: native arp character mask has only eight gates';}
+        else btn.title='Native arp character gate '+(i+1)+' · Right click: ON/OFF';
+      }
+      btn.innerHTML=`<span class="step-index">${String(i+1).padStart(2,'0')}</span><span class="step-note">${window.ProphecYBridge?.enabled?(i>=8?'—':d.state?'ON':'OFF'):(d.state===0?'—':d.state===2?'TIE':noteName(d.note))}</span><span class="step-led"></span>`;
       btn.addEventListener('click',()=>{selectedStep=i;drawSequencer();});
       btn.addEventListener('contextmenu',e=>{e.preventDefault();selectedStep=i;d.state=(d.state+1)%3;drawSequencer();});
       seqBox.appendChild(btn);
@@ -2001,6 +2005,11 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   // Native engine currently exposes eight binary arp gates, not 64 note/velocity/tie steps.
   // Hide unsupported editor functions instead of suggesting that they affect audio.
   const nativeStepIds=Array.from({length:8},(_,i)=>'arp_step_'+(i+1));
+  document.querySelector('.arp-title-block .mod-sub')?.replaceChildren(document.createTextNode('8-STEP ARP CHARACTER GATES'));
+  document.getElementById('seq-velocity-lane').style.display='none';
+  document.querySelectorAll('#step-seq .step-btn').forEach((b,i)=>{
+    if(i>=8){b.disabled=true;b.title='Not connected: native arp character mask has eight gates';}
+  });
   document.querySelectorAll('.seq-page').forEach((b,i)=>{if(i>0)b.disabled=true;});
   for(const id of ['seq-state-btn','seq-note-down','seq-note-up','seq-vel-track','seq-gate-track']){
     const el=document.getElementById(id);if(el){el.style.pointerEvents='none';el.setAttribute('aria-disabled','true');}
@@ -2014,6 +2023,9 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     const d=window.__prophecySequencer;
     const next=d.getStepState(i)===0?1:0;
     const id=nativeStepIds[i];
+    bridge.gesture('arp_character_enabled','begin');
+    bridge.setNormalized('arp_character_enabled',1);
+    bridge.gesture('arp_character_enabled','end');
     bridge.gesture(id,'begin');bridge.setNormalized(id,next);bridge.gesture(id,'end');
     d.setStepState(i,next);
   },true);
