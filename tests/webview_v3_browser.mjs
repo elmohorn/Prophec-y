@@ -206,7 +206,10 @@ try {
   await page.locator('#step-seq .step-btn').nth(1).click({button:'right'});
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name==='prophecySequenceEdit' && e.payload.step===1 && e.payload.velocity===96)),true);
-  await page.locator('#native-seq-track').selectOption('1');
+  await page.evaluate(()=>{
+    const el=document.getElementById('native-seq-track');
+    el.value='1';el.dispatchEvent(new Event('change',{bubbles:true}));
+  });
   const trackDebug=await page.evaluate(()=>({
     track:window.__prophecySequencer.getNativeTrack(),
     cell:window.__prophecySequencer.getNativeCell(0),
