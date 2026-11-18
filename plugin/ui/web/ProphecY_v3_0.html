@@ -2286,8 +2286,17 @@ function render(){
    if(hosted){backend.emitEvent('prophecyPresetFavorite',{id:p.id,favorite:!p.favorite});$('g-meta').textContent='SAVING FAVORITE…';}
    else {p.favorite=!p.favorite;counts();render();}
   });
-  row.addEventListener('click',()=>{selectedPresetId=p.id;render()});
-  row.addEventListener('dblclick',loadSelected);
+  // Preserve the clicked DOM node: rebuilding the list on the first click
+  // prevents browsers from dispatching dblclick to that same element.
+  row.addEventListener('click',()=>{
+   selectedPresetId=p.id;
+   list.querySelectorAll('.grow').forEach(other=>{
+    const selected=other===row;
+    other.classList.toggle('selected',selected);
+    other.setAttribute('aria-selected',String(selected));
+   });
+  });
+  row.addEventListener('dblclick',()=>{selectedPresetId=p.id;loadSelected();});
   fragment.append(row);
  });
  list.append(fragment);
