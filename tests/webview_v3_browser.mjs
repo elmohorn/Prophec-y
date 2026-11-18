@@ -63,6 +63,21 @@ try {
     e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type'
       && Math.abs(e.payload.value - 0.5) < 1e-6)), true);
 
+  // Native Character is a one-device insert: Tube, then Spring, then bypass.
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('.tactile-btn').nth(17).click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_type' && e.payload.value === 1)), true);
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type' && e.payload.value === 0)), true);
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('.tactile-btn').nth(18).click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type' && e.payload.value === .5)), true);
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('#char-global-on').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_bypass' && e.payload.value === 1)), true);
   assert.equal(await page.locator('.tactile-btn').nth(19).isDisabled(), true);
   assert.equal(await page.locator('#reset-btn').isDisabled(), true);
 
