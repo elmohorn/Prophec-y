@@ -143,10 +143,16 @@ try {
   // Native eight-step mask must round-trip and follow the actual DSP playhead.
   await page.evaluate(() => window.__nativeListeners.prophecyHostState({ arp_step_1: 0 }));
   assert.equal(await page.locator('#step-seq .step-btn').first().getAttribute('class').then(s => s.includes('rest')), true);
-  await page.locator('#step-seq .step-btn').first().click({ button: 'right' });
+  await page.locator('#step-seq .step-btn').first().click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'arp_step_1' && e.payload.value === 1)), true);
-  assert.equal(await page.locator('.seq-page').nth(1).isDisabled(), true);
+  assert.equal(await page.locator('#step-seq .step-btn').first().getAttribute('class').then(s => s.includes('gate')), true);
+  assert.equal(await page.locator('#step-seq .step-btn').nth(8).isVisible(), false,
+    'The unconnected 64-step note editor must not masquerade as functional');
+  assert.equal(await page.locator('.seq-page').nth(1).isVisible(), false);
+  await page.locator('#step-seq .step-btn').first().click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'arp_step_1' && e.payload.value === 0)), true);
   await page.evaluate(() => window.__nativeListeners.prophecyTelemetry({
     leftPeak: 0.7, rightPeak: 0.3, leftRms: 0.4, rightRms: 0.2, clips: 0, playStep: 2
   }));
