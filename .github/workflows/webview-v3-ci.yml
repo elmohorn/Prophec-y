@@ -66,6 +66,9 @@ jobs:
               assert sentinel in binary, f"Embedded HTML sentinel missing: {sentinel!r}"
           print(f"Verified embedded v3 HTML in {candidates[0]} ({len(binary)} bytes)")
           '@ | python -
+      - name: Repair and validate strict VST3 moduleinfo JSON
+        shell: pwsh
+        run: python tests/validate_vst3_moduleinfo.py
       - name: Upload verified complete WebView VST3
         uses: actions/upload-artifact@v4
         with:
