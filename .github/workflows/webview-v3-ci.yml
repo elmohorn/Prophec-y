@@ -2,7 +2,7 @@ name: WebView v3 integration
 
 on:
   push:
-    branches: [feature/ui-v3-glass-metal]
+    branches: [feature/ui-v3-glass-metal, fix/preset-library-regressions-v35]
   workflow_dispatch:
 
 concurrency:
