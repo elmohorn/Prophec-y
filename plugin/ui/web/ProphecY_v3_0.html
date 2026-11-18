@@ -1715,7 +1715,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     const size=parseInt(el.dataset.size||36,10),bipolar=el.dataset.bipolar==='1',val=Number(el.dataset.val||50)/100;
     if(!el._knob){el.dataset.initialVal=el.dataset.val||'50';el._knob=ProphecyUI.createKnob(el,{size,label:el.dataset.label||'',value:val,ledRing:el.dataset.tier==='hero'||size>=60,bipolar,ticks:size>=35,knurled:true,onChange:v=>{el.dataset.val=(v*100).toFixed(2);if(el.id==='master-knob')el.style.setProperty('--master-angle',(-135+v*270)+'deg');if(typeof updateADSR==='function')updateADSR();
       if(window.ProphecYBridge?.enabled && !window.ProphecYBridge.suppress)window.ProphecYBridge.knobChanged(el,v);
-      if(window.__prophecyReady && window.prophecyGlass?.showParameter && el.id!=='master-knob') {
+      if(window.__prophecyReady && !window.ProphecYBridge?.suppress && window.prophecyGlass?.showParameter && el.id!=='master-knob') {
         const label=el.dataset.label || el.closest('.module')?.querySelector('.mod-title')?.textContent || el.id || 'PARAMETER';
         window.prophecyGlass.showParameter(label.toUpperCase(),Math.round(v*100),'%', 'SYNTH PARAMETER',Math.round(v*100));
       }}});knobs.push(el);}
