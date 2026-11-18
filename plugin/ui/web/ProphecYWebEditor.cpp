@@ -31,7 +31,18 @@ juce::WebBrowserComponent::Options ProphecYWebEditor::makeOptions()
         .withEventListener("prophecyGesture",[this](juce::var v){handleGesture(v);})
         .withEventListener("prophecyResize",[this](juce::var v){handleResize(v);})
         .withEventListener("prophecyPresetNavigate",[this](juce::var v){handlePresetNavigate(v);})
-        .withEventListener("prophecyPresetCatalogRequest",[this](juce::var){emitPresetCatalog();})
+        .withEventListener("prophecyPresetCatalogRequest",[this](juce::var){
+            // Another plugin instance may have updated favorites or User presets.
+            // Refresh only on an explicit UI request, never from the audio thread.
+            juce::Result result=juce::Result::ok();
+            if(presetLibrary_)result=presetLibrary_->scan();
+            emitPresetCatalog();
+            if(result.failed()){
+                auto* error=new juce::DynamicObject;
+                error->setProperty("message",result.getErrorMessage());
+                browser_.emitEventIfBrowserIsVisible("prophecyPresetError",juce::var(error));
+            }
+        })
         .withEventListener("prophecyPresetLoad",[this](juce::var v){handlePresetLoad(v);})
         .withEventListener("prophecyPresetFavorite",[this](juce::var v){handlePresetFavorite(v);})
         .withEventListener("prophecyReady",[this](juce::var){ready_=true;forceFullState_=true;});
@@ -150,7 +161,12 @@ void ProphecYWebEditor::handlePresetLoad(const juce::var& payload)
         processor_.loadMusicalPreset(preset->state,preset->id,preset->name);
         forceFullState_=true;
         lastPresetId_.clear();
+        return;
     }
+    // A deleted or replaced User preset must not leave the UI stuck at LOADING.
+    auto* error=new juce::DynamicObject;
+    error->setProperty("message","Preset not found; refresh the library");
+    browser_.emitEventIfBrowserIsVisible("prophecyPresetError",juce::var(error));
 }
 
 void ProphecYWebEditor::handlePresetFavorite(const juce::var& payload)
