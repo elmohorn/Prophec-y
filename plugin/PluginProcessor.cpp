@@ -9,6 +9,7 @@
 #include "p6/ParameterRegistry.h"
 #include "p6/ProgramLayout.h"
 #include "p6/SysexCodec.h"
+#include "p6/P6Sequence.h"
 
 #include <algorithm>
 #include <array>
@@ -680,6 +681,14 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 copyPatchIntoRealtimeStorage(audioPatch_,patch_);midiRouter_.reset();
                 scheduler_.loadPatch(audioPatch_,audioCalibration_);
             } else if(hardwareChanged) scheduler_.updatePatch(audioPatch_,audioCalibration_);
+            if (!fullLoad && sequenceEditPending_.exchange(false,std::memory_order_acq_rel)) {
+                std::copy_n(patch_.rawPayload.begin()+p6::P6Sequence::kPayloadOffset,
+                            p6::P6Sequence::kPayloadSize,
+                            audioPatch_.rawPayload.begin()+p6::P6Sequence::kPayloadOffset);
+                scheduler_.updateSequence(audioPatch_);
+            } else if (fullLoad) {
+                sequenceEditPending_.store(false,std::memory_order_release);
+            }
             applyRuntimeControls(false);
             p6plugin::CharacterState characterState;
             characterState.type=selectedCharacterType();
@@ -725,6 +734,9 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     }
     const auto readings=output_.readings();
     arpPlaybackStep_.store(scheduler_.arpCharacterStep(),std::memory_order_relaxed);
+    const auto len=scheduler_.sequenceLength();
+    sequencePlaybackStep_.store(scheduler_.sequencePlaying()&&len>0
+        ? static_cast<int>((scheduler_.sequenceStep()+len-1)%len) : -1,std::memory_order_relaxed);
     arpVariationSeed_.store(scheduler_.arpVariationSeed(),std::memory_order_relaxed);
     for(std::size_t c=0;c<2;++c) {
         auto retainMax=[](std::atomic<float>& slot,float value){auto old=slot.load(std::memory_order_relaxed);while(old<value&&!slot.compare_exchange_weak(old,value,std::memory_order_relaxed)){};};
@@ -897,7 +909,37 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     hostSequencePlayObserved_.store (state.extras[7] != 0 ? 1 : 0, std::memory_order_release);
 
     fullPatchLoadPending_.store (true, std::memory_order_release);
+    sequenceRevision_.fetch_add(1,std::memory_order_release);
     adoptPreset({},getProgramName(0));
+}
+
+p6::P6Sequence P6AudioProcessor::sequenceSnapshot()
+{
+    const std::lock_guard<std::recursive_mutex> stateReadLock(stateWriterMutex_);
+    drainPendingNrpnToCanonical(false);
+    const juce::SpinLock::ScopedLockType lock(patchLock_);
+    return p6::decodeSequence(patch_);
+}
+
+bool P6AudioProcessor::editSequenceCell(int track,int step,int note,int velocity)
+{
+    if(track<0||track>=static_cast<int>(p6::P6Sequence::kTracks)||
+       step<0||step>=static_cast<int>(p6::P6Sequence::kSteps)||
+       note<12||note>108||velocity<0||velocity>127)return false;
+    StateUpdateGuard update(*this);
+    {
+        const juce::SpinLock::ScopedLockType lock(patchLock_);
+        const auto base=256+track*128+step;
+        // applyRawNrpn preserves the opaque high velocity flag from imported
+        // Sequential factory programs; the UI never assigns it tie semantics.
+        p6::applyRawNrpn(patch_,{static_cast<std::uint16_t>(base),
+                                 static_cast<std::uint16_t>(note)});
+        p6::applyRawNrpn(patch_,{static_cast<std::uint16_t>(base+64),
+                                 static_cast<std::uint16_t>(velocity)});
+    }
+    sequenceEditPending_.store(true,std::memory_order_release);
+    sequenceRevision_.fetch_add(1,std::memory_order_release);
+    return true;
 }
 
 p6plugin::WrapperState P6AudioProcessor::presetSnapshot()
