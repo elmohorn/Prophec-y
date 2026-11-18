@@ -207,6 +207,13 @@ try {
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name==='prophecySequenceEdit' && e.payload.step===1 && e.payload.velocity===96)),true);
   await page.locator('#native-seq-track').selectOption('1');
+  const trackDebug=await page.evaluate(()=>({
+    track:window.__prophecySequencer.getNativeTrack(),
+    cell:window.__prophecySequencer.getNativeCell(0),
+    selector:document.getElementById('native-seq-track').value,
+    text:document.querySelector('#step-seq .step-btn .step-note')?.textContent
+  }));
+  console.log('NATIVE SEQUENCER TRACK SWITCH',JSON.stringify(trackDebug));
   assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-note').textContent(),'C#4');
   await page.locator('.seq-page').nth(1).click();
   assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-index').textContent(),'17');
