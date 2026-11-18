@@ -2049,10 +2049,19 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     bridge.gesture('nrpn_0047','begin');bridge.setNormalized('nrpn_0047',i/2);
     bridge.gesture('nrpn_0047','end');
   }));
-  // Native engine currently exposes eight binary arp gates, not 64 note/velocity/tie steps.
-  // Hide unsupported editor functions instead of suggesting that they affect audio.
+  // The full six-track/64-step sequencer exists in C++, but this UI does not
+  // yet expose its editable note/velocity payload. The connected control here
+  // is the eight-step arpeggiator Character mask: show only what actually works.
   const nativeStepIds=Array.from({length:8},(_,i)=>'arp_step_'+(i+1));
+  document.querySelector('.seq-title-cluster .mod-title').textContent='ARP CHARACTER';
+  document.querySelector('.seq-title-cluster .seq-muted').textContent='8 LIVE GATES · CLICK TO TOGGLE';
   document.querySelector('.arp-title-block .mod-sub')?.replaceChildren(document.createTextNode('8-STEP ARP CHARACTER GATES'));
+  document.querySelector('.seq-page[data-page="0"]').textContent='01–08';
+  document.querySelector('.seq-edit').setAttribute('title','Full 64-step note/velocity sequencer editor not yet connected to the DSP');
+  const nativeSeqHint=document.createElement('span');
+  nativeSeqHint.className='seq-native-hint';
+  nativeSeqHint.textContent='CLICK STEP TO TOGGLE GATE · 64-STEP NOTE EDITOR PENDING';
+  document.querySelector('.seq-edit').appendChild(nativeSeqHint);
   document.getElementById('seq-velocity-lane').style.display='none';
   document.querySelectorAll('#step-seq .step-btn').forEach((b,i)=>{
     if(i>=8){b.disabled=true;b.title='Not connected: native arp character mask has eight gates';}
@@ -2062,20 +2071,23 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     const el=document.getElementById(id);if(el){el.style.pointerEvents='none';el.setAttribute('aria-disabled','true');}
   }
   document.getElementById('seq-advanced')?.setAttribute('title','Native engine supports eight gate switches; note, velocity, gate and tie editing are not implemented');
-  document.getElementById('step-seq')?.addEventListener('contextmenu',e=>{
+  const toggleNativeArpGate=e=>{
     const button=e.target.closest('.step-btn');if(!button)return;
     const i=[...button.parentElement.children].indexOf(button);
-    if(i<0||i>=8){e.preventDefault();e.stopImmediatePropagation();return;}
+    if(i<0||i>=8){if(e.type==='contextmenu')e.preventDefault();return;}
     e.preventDefault();e.stopImmediatePropagation();
-    const d=window.__prophecySequencer;
-    const next=d.getStepState(i)===0?1:0;
+    const seq=window.__prophecySequencer;
+    const next=seq.getStepState(i)===0?1:0;
     const id=nativeStepIds[i];
     bridge.gesture('arp_character_enabled','begin');
     bridge.setNormalized('arp_character_enabled',1);
     bridge.gesture('arp_character_enabled','end');
     bridge.gesture(id,'begin');bridge.setNormalized(id,next);bridge.gesture(id,'end');
-    d.setStepState(i,next);
-  },true);
+    seq.setStepState(i,next);
+  };
+  // Primary click is the expected interaction; secondary click remains an alias.
+  document.getElementById('step-seq')?.addEventListener('click',toggleNativeArpGate,true);
+  document.getElementById('step-seq')?.addEventListener('contextmenu',toggleNativeArpGate,true);
   backend.addEventListener('prophecyTelemetry',data=>{
     window.prophecyGlass?.setOutputTelemetry?.(data);
     const step=Number(data?.playStep??-1);
@@ -2143,6 +2155,15 @@ body.juce-hosted{padding:8px;min-height:0;align-items:flex-start;gap:8px;backgro
 body.juce-hosted .editor-bar{width:1650px;max-width:none;margin:0}
 body.juce-hosted .chassis-scroll{width:max-content;max-width:none;overflow:visible;padding:0}
 body.juce-hosted .chassis-shell{margin:0}
+</style>
+<style id="native-arp-8gate-ux">
+/* Native WebView: show only the eight editable arpeggiator Character gates. */
+body.juce-hosted #step-seq{grid-template-columns:repeat(8,minmax(0,1fr))}
+body.juce-hosted #step-seq .step-btn:nth-child(n+9){display:none}
+body.juce-hosted #seq-bank .seq-page:not(:first-child){display:none}
+body.juce-hosted .seq-edit .seq-edit-group{display:none}
+body.juce-hosted .seq-edit{justify-content:flex-start}
+body.juce-hosted .seq-native-hint{font-size:9px;color:#9baab9;letter-spacing:.055em}
 </style>
 <style id="glass-library-v35-css">
 /* Prophec-Y v3.5: one physical smoked-glass optical surface, shared across sidebar and drawer. */
