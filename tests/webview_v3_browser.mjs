@@ -88,9 +88,9 @@ try {
     e.name === 'prophecyParameter' && e.payload.id === 'character_plasma_drive' && e.payload.value === .8)), true);
   assert.equal(await page.locator('.character-fx.char-active').count(), 1,
     'Only one Character FX device may be displayed as active');
-  await page.locator('#character-position').selectOption('0');
+  await page.locator('#character-position').selectOption('1');
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
-    e.name === 'prophecyParameter' && e.payload.id === 'character_position' && e.payload.value === 0)), true);
+    e.name === 'prophecyParameter' && e.payload.id === 'character_position' && e.payload.value === 1)), true);
   await page.locator('#character-plasma-mode').selectOption('1');
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_plasma_mode' && e.payload.value === 1)), true);
