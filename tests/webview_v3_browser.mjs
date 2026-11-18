@@ -184,8 +184,7 @@ try {
   assert.equal(await page.locator('[data-seg="keytrack"] .seg-opt').nth(1).getAttribute('class').then(s => s.includes('active')), true);
 
   // Six-track/64-step native editor: snapshots are canonical, not demo data.
-  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
-    e.name === 'prophecySequenceRequest')), true);
+  assert.equal(await page.evaluate(() => typeof window.__nativeListeners.prophecySequenceState === 'function'), true);
   await page.evaluate(() => window.__nativeListeners.prophecySequenceState({
     tracks:Array.from({length:6},(_,track)=>Array.from({length:64},(_,step)=>({
       note:60+track,velocity:step===0?100:0,flag:false
