@@ -75,6 +75,8 @@ assert "rotaryButton.disabled=true" in bridge, "Unsupported rotary should not be
 assert 'data:image/webp;base64' not in HTML, "Defective embedded striped-metal texture returned"
 assert '--brushed-metal:repeating-linear-gradient' in HTML, "Brushed metal must use subtle transparent micrograin"
 assert 'transform:skewX(-6deg)' not in HTML, "Neon logo must not be skewed twice"
+assert HTML.count('M 414 15 L 375 15') == 6, "All neon glow layers must use a level C top stroke"
+assert 'M 414 16.5 L 375 15' not in HTML, "Slanted C top stroke has returned"
 assert "prophecyReady" in bridge and "prophecyHostState" in bridge
 assert "v3-unified-glass-reflection" in HTML and "glass-library-v35-css" in HTML
 assert "prophecyPresetCatalogRequest" in HTML and "prophecyPresetLoad" in CPP
