@@ -86,6 +86,24 @@ try {
     { id: 'user-1', name: 'USER BASS', category: 'Auto / Bass', bank: 'User', source: 'USER', favorite: false, bankNumber: 0, program: 2 }
   ]));
   assert.equal(await page.locator('#v3-preset-drawer').getAttribute('aria-hidden'), 'false');
+  const glassPlane = await page.evaluate(() => {
+    const chassis=document.querySelector('.synth-chassis');
+    const hardware=document.querySelector('prophecy-glass-panel').shadowRoot.querySelector('.hardware');
+    const drawer=document.getElementById('v3-preset-drawer');
+    const shared=getComputedStyle(chassis,'::after');
+    const hw=hardware.getBoundingClientRect();
+    const rect=chassis.getBoundingClientRect();
+    return {visible:shared.content!=='none',top:parseFloat(shared.top),left:parseFloat(shared.left),
+      width:parseFloat(shared.width),right:drawer.offsetLeft+drawer.offsetWidth,
+      hostTop:hw.top-rect.top,hostLeft:hw.left-rect.left,
+      glassBackground:getComputedStyle(hardware.querySelector('.glass')).backgroundImage};
+  });
+  assert.equal(glassPlane.visible,true,'Shared glass plane must exist');
+  assert.ok(Math.abs(glassPlane.top-glassPlane.hostTop-11)<1,'Shared glass must align to left inset');
+  assert.ok(Math.abs(glassPlane.left-glassPlane.hostLeft-11)<1,'Shared glass must align to left inset');
+  assert.ok(Math.abs(glassPlane.width-(glassPlane.right-glassPlane.hostLeft-22))<1,
+    'One continuous inner frame must extend from left hardware to drawer right edge');
+  assert.equal(glassPlane.glassBackground,'none','Independent glass gradient must be removed');
   assert.equal(await page.locator('#g-list .grow').count(), 3);
   await page.locator('#g-search').fill('organ');
   assert.equal(await page.locator('#g-list .grow').count(), 1);
