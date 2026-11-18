@@ -52,3 +52,12 @@ Real UA LUNA testing confirms that the VST3 loads and produces sound without the
 - Native WebView exposes the **eight arpeggiator Character gates** as eight clickable ON/OFF steps, with verified `arp_step_1..8` events. The misleading 16/64-step note editor is hidden in the hosted view until it is actually connected. The JUCE-independent DSP already supports a separate six-track 64-step polyphonic sequencer; a full native editor and safe state bridge for its note/velocity data remain to be implemented.
 
 Do not claim the 64-step sequencer is functional from the eight-gate UI. Do not merge or replace the user's working LUNA VST3 until the new CI passes and the user confirms the result.
+
+## Native sequencer and Character integration (isolated feature branch)
+
+- The native six-track, 64-step Prophet-6 sequence is now the source of truth. WebView requests `prophecySequenceState` (6×64 raw note, velocity and preserved bit-7 flag) and emits validated `prophecySequenceEdit` events for note/velocity changes.
+- C++ edits canonical `patch_.rawPayload` under the existing non-realtime writer/patch guards. An atomic dirty bit publishes only the 768 sequence bytes to the audio thread; `scheduler_.updateSequence()` updates playback without restarting the oscillator/filter engine or resetting transport. Preset and DAW state serialization already includes the raw sequence payload.
+- UI exposes track 1–6, four pages of 16 steps, REST/NOTE editing, MIDI note +/- (12–108), velocity, sequence length 1–64, PLAY/STOP and audio-thread playhead telemetry. Right-click toggles a step between REST and NOTE; primary click selects a step. The eight independent arpeggiator Character gates are in the Advanced section.
+- Factory velocity bit 7 is retained losslessly but **not** interpreted as tie/gate until the firmware semantics are proven. Variable gate length is not supported by the current native player and its demo editor is hidden.
+- Character FX is a **single DSP insert**, never a chain: Tube, Plasma, Optical Spring, Ferrofluid and Neon Wavefolder are mutually exclusive. A device picker selects the current module; its 7 native parameters (prominent dials plus secondary sliders) and pre/post routing are host-synchronized. Plasma Hybrid/Legacy is selectable. Rotary is explicitly disabled because there is no Rotary DSP.
+- These are integration changes awaiting validation in a real DAW. Do not merge into main or replace the user's known-good LUNA build solely on a successful compile.
