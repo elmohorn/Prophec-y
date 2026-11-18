@@ -45,6 +45,8 @@ juce::WebBrowserComponent::Options ProphecYWebEditor::makeOptions()
         })
         .withEventListener("prophecyPresetLoad",[this](juce::var v){handlePresetLoad(v);})
         .withEventListener("prophecyPresetFavorite",[this](juce::var v){handlePresetFavorite(v);})
+        .withEventListener("prophecySequenceEdit",[this](juce::var v){handleSequenceEdit(v);})
+        .withEventListener("prophecySequenceRequest",[this](juce::var){emitSequenceState();})
         .withEventListener("prophecyReady",[this](juce::var){ready_=true;forceFullState_=true;});
 #if JUCE_WINDOWS
     options=options.withBackend(juce::WebBrowserComponent::Options::Backend::webview2);
@@ -186,6 +188,39 @@ void ProphecYWebEditor::handlePresetFavorite(const juce::var& payload)
     }
 }
 
+void ProphecYWebEditor::handleSequenceEdit(const juce::var& payload)
+{
+    if(!payload.getDynamicObject())return;
+    const int track=property(payload,"track").getIntValue();
+    const int step=property(payload,"step").getIntValue();
+    const int note=property(payload,"note").getIntValue();
+    const int velocity=property(payload,"velocity").getIntValue();
+    if(processor_.editSequenceCell(track,step,note,velocity))
+        emitSequenceState();
+}
+
+void ProphecYWebEditor::emitSequenceState()
+{
+    const auto sequence=processor_.sequenceSnapshot();
+    juce::Array<juce::var> tracks;
+    for(const auto& track:sequence.tracks){
+        juce::Array<juce::var> cells;
+        for(const auto& cell:track){
+            auto* item=new juce::DynamicObject;
+            item->setProperty("note",static_cast<int>(cell.noteRaw));
+            item->setProperty("velocity",static_cast<int>(cell.velocity));
+            // Firmware flag semantics are unknown. Preserve, never edit as tie.
+            item->setProperty("flag",cell.highBitFlag);
+            cells.add(juce::var(item));
+        }
+        tracks.add(juce::var(cells));
+    }
+    auto* state=new juce::DynamicObject;
+    state->setProperty("tracks",juce::var(tracks));
+    browser_.emitEventIfBrowserIsVisible("prophecySequenceState",juce::var(state));
+    lastSequenceRevision_=processor_.sequenceRevision();
+}
+
 void ProphecYWebEditor::timerCallback()
 {
     if(!ready_ || !browser_.isShowing())return;
@@ -211,6 +246,9 @@ void ProphecYWebEditor::timerCallback()
     append("wrapper_clock_source");
     for(const int nrpn:{47,90,119,127,161,162,163})append(nrpnId(nrpn));
     append(nrpnId(167));
+    append(nrpnId(168));
+    append(nrpnId(169));
+    append("runtime_sequence_play");
     append("arp_character_rhythm");
     append("arp_character_motion");
     append("arp_character_enabled");
@@ -242,6 +280,7 @@ void ProphecYWebEditor::timerCallback()
         lastPresetId_=presetId;
         lastPresetName_=presetName;
     }
+    if(lastSequenceRevision_!=processor_.sequenceRevision())emitSequenceState();
     if(changed)browser_.emitEventIfBrowserIsVisible("prophecyHostState",juce::var(object));
     else delete object;
     const auto levels=processor_.consumeOutputReadings();
@@ -252,5 +291,6 @@ void ProphecYWebEditor::timerCallback()
     meter->setProperty("rightRms",std::clamp(levels.rms[1],0.f,1.f));
     meter->setProperty("clips",static_cast<int>(levels.clips));
     meter->setProperty("playStep",processor_.arpPlaybackStep());
+    meter->setProperty("sequenceStep",processor_.sequencePlaybackStep());
     browser_.emitEventIfBrowserIsVisible("prophecyTelemetry",juce::var(meter));
 }
