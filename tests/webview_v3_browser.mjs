@@ -58,26 +58,34 @@ try {
 
   // Character is single-device: Spring selection changes the actual custom type.
   await page.locator('#character-toggle').click();
-  await page.locator('.tactile-btn').nth(18).click();
+  await page.locator('.character-device-picker [data-character-type="3"]').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type'
       && Math.abs(e.payload.value - 0.5) < 1e-6)), true);
 
   // Native Character is a one-device insert: Tube, then Spring, then bypass.
   await page.evaluate(() => { window.__nativeEvents.length = 0; });
-  await page.locator('.tactile-btn').nth(17).click();
+  await page.locator('.character-device-picker [data-character-type="1"]').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_type' && e.payload.value === 1)), true);
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type' && e.payload.value === 0)), true);
   await page.evaluate(() => { window.__nativeEvents.length = 0; });
-  await page.locator('.tactile-btn').nth(18).click();
+  await page.locator('.character-device-picker [data-character-type="3"]').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type' && e.payload.value === .5)), true);
   await page.evaluate(() => { window.__nativeEvents.length = 0; });
   await page.locator('#char-global-on').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_bypass' && e.payload.value === 1)), true);
+  await page.locator('.character-device-picker [data-character-type="2"]').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type' && e.payload.value === .25)), true);
+  await page.locator('.character-fx.generic[data-character-type="2"] [data-param="character_plasma_drive"]').fill('800');
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_plasma_drive' && e.payload.value === .8)), true);
+  assert.equal(await page.locator('.character-fx.char-active').count(), 1,
+    'Only one Character FX device may be displayed as active');
   assert.equal(await page.locator('.tactile-btn').nth(19).isDisabled(), true);
   assert.equal(await page.locator('#reset-btn').isDisabled(), true);
 
@@ -173,30 +181,58 @@ try {
   assert.equal(await page.locator('.arp-oled-row .oled-selector').first().locator('.oled-sel-val').textContent(), 'RANDOM');
   assert.equal(await page.locator('[data-seg="keytrack"] .seg-opt').nth(1).getAttribute('class').then(s => s.includes('active')), true);
 
-  // Native eight-step mask must round-trip and follow the actual DSP playhead.
-  await page.evaluate(() => window.__nativeListeners.prophecyHostState({ arp_step_1: 0 }));
-  assert.equal(await page.locator('#step-seq .step-btn').first().getAttribute('class').then(s => s.includes('rest')), true);
-  await page.locator('#step-seq .step-btn').first().click();
+  // Six-track/64-step native editor: snapshots are canonical, not demo data.
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
-    e.name === 'prophecyParameter' && e.payload.id === 'arp_step_1' && e.payload.value === 1)), true);
-  assert.equal(await page.locator('#step-seq .step-btn').first().getAttribute('class').then(s => s.includes('gate')), true);
-  assert.equal(await page.locator('#step-seq .step-btn').nth(8).isVisible(), false,
-    'The unconnected 64-step note editor must not masquerade as functional');
-  assert.equal(await page.locator('.seq-page').nth(1).isVisible(), false);
-  await page.locator('#step-seq .step-btn').first().click();
-  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
-    e.name === 'prophecyParameter' && e.payload.id === 'arp_step_1' && e.payload.value === 0)), true);
-  await page.evaluate(() => window.__nativeListeners.prophecyTelemetry({
-    leftPeak: 0.7, rightPeak: 0.3, leftRms: 0.4, rightRms: 0.2, clips: 0, playStep: 2
+    e.name === 'prophecySequenceRequest')), true);
+  await page.evaluate(() => window.__nativeListeners.prophecySequenceState({
+    tracks:Array.from({length:6},(_,track)=>Array.from({length:64},(_,step)=>({
+      note:60+track,velocity:step===0?100:0,flag:false
+    })))
   }));
-  assert.equal(await page.locator('prophecy-glass-panel #db-l').textContent(), '-3.1');
-  assert.equal(await page.locator('#step-seq .step-btn').nth(2).getAttribute('class').then(s => s.includes('playhead')), true);
+  assert.equal(await page.locator('#step-seq .step-btn').count(),16);
+  assert.equal(await page.locator('#step-seq .step-btn').nth(8).isVisible(),true);
+  assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-note').textContent(),'C4');
+  await page.locator('#step-seq .step-btn').first().click({button:'right'});
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name==='prophecySequenceEdit' && e.payload.track===0 && e.payload.step===0 &&
+    e.payload.note===60 && e.payload.velocity===0)),true);
+  await page.locator('#step-seq .step-btn').nth(1).click({button:'right'});
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name==='prophecySequenceEdit' && e.payload.step===1 && e.payload.velocity===96)),true);
+  await page.locator('#native-seq-track').selectOption('1');
+  assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-note').textContent(),'C#4');
+  await page.locator('.seq-page').nth(1).click();
+  assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-index').textContent(),'17');
+  await page.locator('#native-seq-play').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name==='prophecyParameter' && e.payload.id==='runtime_sequence_play' && e.payload.value===1)),true);
+  await page.locator('#native-seq-length').fill('32');
+  await page.locator('#native-seq-length').dispatchEvent('change');
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name==='prophecyParameter' && e.payload.id==='nrpn_0169' &&
+    Math.abs(e.payload.value-31/63)<1e-6)),true);
+  await page.evaluate(() => window.__nativeListeners.prophecyHostState({
+    runtime_sequence_play:0,nrpn_0169:31/63,arp_step_1:1
+  }));
+  assert.equal(await page.locator('#native-seq-play').textContent(),'PLAY');
+  assert.equal(await page.locator('#native-seq-length').inputValue(),'32');
+  await page.locator('#arp-advanced-btn').click();
+  assert.equal(await page.locator('.seq-arp-character-gates button').count(),8);
+  await page.locator('.seq-arp-character-gates button').first().click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name==='prophecyParameter' && e.payload.id==='arp_step_1')),true);
+  await page.evaluate(() => window.__nativeListeners.prophecyTelemetry({
+    leftPeak:0.7,rightPeak:0.3,leftRms:0.4,rightRms:0.2,clips:0,
+    playStep:2,sequenceStep:17
+  }));
+  assert.equal(await page.locator('prophecy-glass-panel #db-l').textContent(),'-3.1');
+  assert.equal(await page.locator('#step-seq .step-btn').nth(1).getAttribute('class').then(s=>s.includes('playhead')),true);
   // Parameter feedback overlays the live meters briefly; verify the automatic return.
   await page.waitForFunction(() => document.querySelector('prophecy-glass-panel')?.shadowRoot
     ?.getElementById('display-mode-name')?.textContent === 'STEREO · PEAK METERS', { timeout: 4000 });
 
   assert.deepEqual(errors, [], 'JavaScript runtime errors detected');
-  console.log('PASS: hosted HTML load, host-to-UI state, no feedback, arp, Character, presets and unsupported controls');
+  console.log('PASS: hosted HTML, 6x64 sequence editing, Character single-device, presets and native bridge');
 } finally {
   await browser.close();
 }
