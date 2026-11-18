@@ -42,6 +42,14 @@ try {
   assert.equal(hostResult.knob, '80.00');
   assert.equal(hostResult.character, '65.00');
   assert.equal(hostResult.echoed, 0, 'Host state was echoed back to the DAW');
+  // A preset load updates many knobs. It must NOT display the final knob
+  // (typically Character MIX) as if the user had manually edited it.
+  const glassModeBeforePreset = await page.locator('prophecy-glass-panel #display-mode-name').textContent();
+  await page.evaluate(() => window.__nativeListeners.prophecyHostState({
+    character_spring_mix: 0.35, character_tube_mix: 0.35, nrpn_0000: 0.5
+  }));
+  assert.equal(await page.locator('prophecy-glass-panel #display-mode-name').textContent(),
+    glassModeBeforePreset, 'Preset state hydration must not trigger parameter feedback');
 
   // Real arpeggiator button dispatches a host parameter, not a demo-only state.
   await page.locator('.tactile-btn').nth(14).click();
