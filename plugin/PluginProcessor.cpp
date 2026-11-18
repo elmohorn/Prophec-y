@@ -588,6 +588,8 @@ void P6AudioProcessor::drainPendingNrpnToCanonical (bool mirrorHost)
             if (! edit || ! nrpnMailbox_.isLatest (i, edit->generation))
                 continue;
             p6::applyRawNrpn (patch_, { static_cast<std::uint16_t> (i), edit->value });
+            if (i >= 256 && i <= 1023)
+                sequenceRevision_.fetch_add(1,std::memory_order_release);
         }
     }
 
