@@ -6,6 +6,7 @@
 #include "p6/P6PerformanceScheduler.h"
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PatchState.h"
+#include "p6/P6Sequence.h"
 #include "p6/ParameterMapper.h"
 #include "p6/VersionedEditMailbox.h"
 #include "CharacterFx.h"
@@ -94,6 +95,10 @@ public:
     void resetOutputClips() noexcept { outputClips_.store(0,std::memory_order_relaxed); }
     unsigned outputRevision() const noexcept { return outputRevision_.load(std::memory_order_relaxed); }
     int arpPlaybackStep() const noexcept { return arpPlaybackStep_.load(std::memory_order_relaxed); }
+    int sequencePlaybackStep() const noexcept { return sequencePlaybackStep_.load(std::memory_order_relaxed); }
+    std::uint32_t sequenceRevision() const noexcept { return sequenceRevision_.load(std::memory_order_acquire); }
+    p6::P6Sequence sequenceSnapshot();
+    bool editSequenceCell(int track,int step,int note,int velocity);
     std::array<p6::MidiMonitorEvent,2> recentMidiEvents() const noexcept { return midiRouter_.recentMidiEvents(); }
     int midiPitchBendRaw14() const noexcept { return midiRouter_.pitchBendRaw14(); }
     unsigned midiPitchBendRevision() const noexcept { return midiRouter_.pitchBendRevision(); }
@@ -153,6 +158,9 @@ private:
     std::atomic<float>* arpCharacterFreeze_{};
     std::array<std::atomic<float>*,8> arpSteps_{};
     std::atomic<int> arpPlaybackStep_{-1};
+    std::atomic<int> sequencePlaybackStep_{-1};
+    std::atomic<std::uint32_t> sequenceRevision_{1};
+    std::atomic<bool> sequenceEditPending_{false};
     std::atomic<std::uint32_t> arpVariationSeed_{0x735a2d97u},arpRestoreSeed_{0x735a2d97u},arpRestoreRevision_{};
     std::uint32_t appliedArpRestoreRevision_{};
     std::array<std::atomic<float>,2> outputPeak_{},outputRms_{},preMasterPeak_{};
