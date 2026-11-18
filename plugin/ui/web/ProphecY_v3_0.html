@@ -2165,6 +2165,30 @@ body.juce-hosted .seq-edit .seq-edit-group{display:none}
 body.juce-hosted .seq-edit{justify-content:flex-start}
 body.juce-hosted .seq-native-hint{font-size:9px;color:#9baab9;letter-spacing:.055em}
 </style>
+<style id="glass-library-v36-one-plane">
+/* One shared machined bezel and one continuous optical glass plane.
+   Left panel and drawer provide only controls while the drawer is open. */
+.synth-chassis:has(#v3-preset-drawer.open)::before{
+ content:'';position:absolute;pointer-events:none;z-index:105;
+ left:var(--union-x,15px);top:var(--union-y,19px);width:var(--union-width,1160px);height:var(--union-height,760px);
+ border-radius:12px;
+ background:repeating-linear-gradient(0deg,rgba(255,255,255,.013) 0px,rgba(255,255,255,.013) 1px,transparent 1px,transparent 3px),linear-gradient(115deg,#27292b,#141719 40%,#25272b 82%,#121315);
+ box-shadow:0 22px 60px #000d,0 0 0 1px #52565b,inset 0 2px 2px #ffffff35,inset 0 -2px 4px #000;
+}
+.synth-chassis:has(#v3-preset-drawer.open)::after{
+ content:'';position:absolute;pointer-events:none;z-index:106;
+ left:calc(var(--union-x,15px) + 11px);top:calc(var(--union-y,19px) + 11px);
+ width:calc(var(--union-width,1160px) - 22px);height:calc(var(--union-height,760px) - 22px);
+ border-radius:7px;
+ background:radial-gradient(ellipse 820px 580px at 520px 340px,#10171c 0%,#060a0e 64%,#020306 100%);
+ border:2px solid #101418;border-top-color:#5b6065;border-left-color:#4a5056;border-right-color:#35393d;border-bottom-color:#555a61;
+ box-shadow:inset 0 0 0 2px #050608,inset 0 2px 4px #ffffff25,inset 0 -4px 7px #000,0 2px 8px #000c;
+}
+.synth-chassis:has(#v3-preset-drawer.open) prophecy-glass-panel{position:relative;z-index:110}
+#v3-preset-drawer.open{background:transparent;box-shadow:none;-webkit-mask-image:none;mask-image:none;overflow:visible}
+#v3-preset-drawer.open .gdrawer-glass{background:transparent;border-color:transparent;box-shadow:none}
+#v3-preset-drawer.open .gdrawer-glass:before{display:none}
+</style>
 <style id="glass-library-v35-css">
 /* Prophec-Y v3.5: one physical smoked-glass optical surface, shared across sidebar and drawer. */
 .synth-chassis{position:relative!important;isolation:isolate}
@@ -2327,7 +2351,18 @@ function loadSelected(){
  if(hosted){backend.emitEvent('prophecyPresetLoad',{id:p.id});$('g-meta').textContent='LOADING PRESET…';}
  else{loadedPresetId=p.id;glass?.setPresetName?.(p.name);$('g-meta').textContent='VISUAL PREVIEW ONLY · NO DSP CONNECTED';}
 }
+function syncGlassGeometry(){
+ const chassis=drawer.closest('.synth-chassis');
+ const hardware=glass?.shadowRoot?.querySelector('.hardware');
+ if(!chassis||!hardware)return;
+ const host=hardware.getBoundingClientRect(),frame=chassis.getBoundingClientRect();
+ chassis.style.setProperty('--union-x',(host.left-frame.left)+'px');
+ chassis.style.setProperty('--union-y',(host.top-frame.top)+'px');
+ chassis.style.setProperty('--union-width',(drawer.offsetLeft+drawer.offsetWidth-(host.left-frame.left))+'px');
+ chassis.style.setProperty('--union-height',host.height+'px');
+}
 function setOpen(open){
+ if(open)syncGlassGeometry();
  drawer.classList.toggle('open',open);
  drawer.setAttribute('aria-hidden',String(!open));
  glass?.shadowRoot?.querySelector('.hardware')?.classList.toggle('drawer-attached',open);
@@ -2341,10 +2376,18 @@ function attachGlass(){
   style.textContent='.hardware.drawer-attached{border-top-right-radius:0;border-bottom-right-radius:0;box-shadow:0 22px 60px #000d,inset 0 2px 2px #ffffff35,inset 0 -2px 4px #000}.hardware.drawer-attached .glass{border-top-right-radius:0;border-bottom-right-radius:0;border-right-color:transparent;background:radial-gradient(ellipse 820px 580px at 520px 340px,#10171c 0%,#060a0e 64%,#020306 100%);background-size:1138px 738px;background-position:0 0}.hardware.drawer-attached .glass-optics{opacity:0!important}.hardware.drawer-attached .glass:before{border-right-color:transparent;border-top-right-radius:0;border-bottom-right-radius:0}.hardware.drawer-attached:before{border-right-color:transparent;border-top-right-radius:0;border-bottom-right-radius:0}.hardware.drawer-attached .tr,.hardware.drawer-attached .br{opacity:0;pointer-events:none}';
   root.append(style);
  }
+ // The metal rim and glass are now painted once on the common chassis.
+ // Never allow the two child frames to draw independent horizontal highlights.
+ if(!root.getElementById('v36-shared-plane')){
+  const plane=document.createElement('style');plane.id='v36-shared-plane';
+  plane.textContent='.hardware.drawer-attached,.hardware.drawer-attached .glass{background:transparent!important;border-color:transparent!important;box-shadow:none!important}.hardware.drawer-attached:before,.hardware.drawer-attached .glass:before{display:none!important}';
+  root.append(plane);
+ }
  root.querySelector('.capacitive[data-page="PRESETS"]')?.addEventListener('click',()=>setOpen(!drawer.classList.contains('open')));
 }
 if(glass?.shadowRoot?.querySelector('.hardware'))attachGlass();
 else glass?.addEventListener('glass-ready',attachGlass,{once:true});
+window.addEventListener('resize',()=>{if(drawer.classList.contains('open'))syncGlassGeometry();});
 $('g-search').addEventListener('input',render);
 $('g-cats').addEventListener('click',event=>{
  const button=event.target.closest('[data-filter]');if(!button)return;
