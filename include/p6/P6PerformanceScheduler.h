@@ -77,6 +77,9 @@ public:
     }
 
     void setSequencePlaying(bool playing);
+    // Refresh only the sequencer payload; do not reset oscillators, effects,
+    // held notes, transport, or the audio engine during a UI step edit.
+    void updateSequence(const P6PatchState& patch) { sequencer_.updatePatch(patch); }
     void setSequenceTransposeKey(int midiNote) { sequencer_.setTransposeKey(midiNote); }
     void setSequenceTransposeSemitones(int semitones) { sequencer_.setTransposeSemitones(semitones); }
     void setSequenceLength(std::size_t steps) { sequencer_.setLength(steps); }
