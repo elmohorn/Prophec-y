@@ -81,7 +81,9 @@ try {
   await page.locator('.character-device-picker [data-character-type="2"]').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_custom_type' && e.payload.value === .25)), true);
-  await page.locator('.character-fx.generic[data-character-type="2"] [data-param="character_plasma_drive"]').fill('800');
+  await page.locator('.character-fx.generic[data-character-type="2"] [data-param="character_plasma_drive"]').evaluate(el=>{
+    el.value='800';el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_plasma_drive' && e.payload.value === .8)), true);
   assert.equal(await page.locator('.character-fx.char-active').count(), 1,
