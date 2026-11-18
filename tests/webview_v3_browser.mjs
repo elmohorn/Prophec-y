@@ -91,6 +91,17 @@ try {
   await page.locator('#g-load').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyPresetLoad' && e.payload.id === 'factory-2')), true);
+  // A single click selects but never loads; a double-click must load the
+  // same persistent DOM row (previously replaced during the first click).
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('#g-list .grow').nth(0).click();
+  assert.equal(await page.locator('#g-list .grow').nth(0).getAttribute('aria-selected'), 'true');
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyPresetLoad')), false);
+  await page.locator('#g-list .grow').nth(0).dblclick();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.filter(e =>
+    e.name === 'prophecyPresetLoad' && e.payload.id === 'factory-1').length), 1,
+    'Double-click must load the selected preset exactly once');
   await page.locator('#g-list .grow').nth(0).locator('.fav').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyPresetFavorite' && e.payload.id === 'factory-1' && e.payload.favorite === true)), true);
