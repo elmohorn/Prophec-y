@@ -2020,6 +2020,72 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   // The native Character engine supports one device at a time, not parallel chains.
   const tubeButton=buttons[17],springButton=buttons[18],rotaryButton=buttons[19],processButton=buttons[20];
   const characterState={character_bypass:0,character_type:0,character_custom_type:0};
+  // Exactly one Character processor exists in C++. This picker selects that
+  // single slot; it does not create parallel or serial effect instances.
+  const picker=document.createElement('div');
+  picker.className='character-device-picker';
+  const choices=[
+    ['TUBE',1,0],['PLASMA',2,.25],['SPRING',3,.5],
+    ['FERRO',4,.75],['NEON',5,1]
+  ];
+  picker.innerHTML=choices.map(([label,type])=>
+    '<button type="button" data-character-type="'+type+'">'+label+'</button>').join('');
+  document.querySelector('.character-top').after(picker);
+  const genericConfigs=[
+    {type:2,label:'PLASMA',prefix:'character_plasma_',fields:['drive','ignition','sustain','character','tone','mix','output']},
+    {type:4,label:'FERROFLUID',prefix:'character_ferro_',fields:['cutoff','resonance','sensitivity','response','polarity','mix','output']},
+    {type:5,label:'NEON WAVEFOLDER',prefix:'character_neon_',fields:['drive','folds','symmetry','bias','tone','mix','output']}
+  ];
+  const genericControls=new Map();
+  for(const config of genericConfigs){
+    const card=document.createElement('section');
+    card.className='character-fx generic';
+    card.dataset.characterType=String(config.type);
+    card.innerHTML='<div class="char-head">'+config.label+'</div><div class="char-knobs">'+
+      config.fields.map(name=>{
+        const id=config.prefix+name;
+        return '<label>'+name.toUpperCase()+'<input type="range" min="0" max="1000" value="500" data-param="'+id+'"/><span>50</span></label>';
+      }).join('')+'</div>';
+    document.querySelector('.character-bottom').before(card);
+    card.querySelectorAll('input').forEach(input=>{
+      const id=input.dataset.param;
+      genericControls.set(id,input);
+      input.addEventListener('pointerdown',()=>bridge.gesture(id,'begin'));
+      input.addEventListener('pointerup',()=>bridge.gesture(id,'end'));
+      input.addEventListener('pointercancel',()=>bridge.gesture(id,'end'));
+      input.addEventListener('input',()=>{
+        input.nextElementSibling.textContent=String(Math.round(Number(input.value)/10));
+        bridge.setNormalized(id,Number(input.value)/1000);
+      });
+    });
+  }
+  const renderCharacter=()=>{
+    const custom=Math.round(characterState.character_custom_type*4);
+    const type=custom>0?custom+1:(characterState.character_type>=.5?1:0);
+    const enabled=characterState.character_bypass<.5&&type>0;
+    picker.querySelectorAll('button').forEach(b=>
+      b.classList.toggle('active',Number(b.dataset.characterType)===type));
+    document.querySelectorAll('.character-fx').forEach(card=>{
+      const cardType=card.classList.contains('tube')?1:card.classList.contains('spring')?3:
+        Number(card.dataset.characterType||-1);
+      card.classList.toggle('char-active',cardType===(type||1));
+    });
+    tubeButton.classList.toggle('on',enabled&&type===1);
+    springButton.classList.toggle('on',enabled&&type===3);
+    processButton.classList.toggle('on',enabled);
+  };
+  picker.addEventListener('click',e=>{
+    const button=e.target.closest('button[data-character-type]');if(!button)return;
+    const type=Number(button.dataset.characterType);
+    if(type===1){writeChoice('character_type',1);writeChoice('character_custom_type',0);}
+    else writeChoice('character_custom_type',(type-1)/4);
+    writeChoice('character_bypass',0);
+    characterState.character_type=type===1?1:characterState.character_type;
+    characterState.character_custom_type=type===1?0:(type-1)/4;
+    characterState.character_bypass=0;
+    renderCharacter();
+  });
+
   const writeChoice=(id,value)=>{bridge.gesture(id,'begin');bridge.setNormalized(id,value);bridge.gesture(id,'end');};
   const selectCharacter=(kind,active)=>{
     if(active){
@@ -2031,11 +2097,27 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     springButton.classList.toggle('on',active&&kind==='spring');
     processButton.classList.toggle('on',active);
   };
-  tubeButton.addEventListener('click',()=>selectCharacter('tube',tubeButton.classList.contains('on')));
-  springButton.addEventListener('click',()=>selectCharacter('spring',springButton.classList.contains('on')));
-  processButton.addEventListener('click',()=>writeChoice('character_bypass',processButton.classList.contains('on')?0:1));
+  tubeButton.addEventListener('click',()=>{
+    const active=tubeButton.classList.contains('on');
+    selectCharacter('tube',active);
+    characterState.character_type=1;characterState.character_custom_type=0;characterState.character_bypass=active?0:1;
+    renderCharacter();
+  });
+  springButton.addEventListener('click',()=>{
+    const active=springButton.classList.contains('on');
+    selectCharacter('spring',active);
+    characterState.character_custom_type=.5;characterState.character_bypass=active?0:1;
+    renderCharacter();
+  });
+  processButton.addEventListener('click',()=>{
+    const enabled=processButton.classList.contains('on');
+    writeChoice('character_bypass',enabled?0:1);
+    characterState.character_bypass=enabled?0:1;
+    renderCharacter();
+  });
   // No rotary DSP is implemented: never present its demo toggle as a working effect.
   rotaryButton.disabled=true;rotaryButton.title='Rotary DSP not implemented';rotaryButton.classList.remove('on');
+  renderCharacter();
   // Capture the glass navigation before the demo handlers, and use real presets.
   const glass=window.prophecyGlass?.shadowRoot;
   if(glass){
@@ -2227,9 +2309,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
         const active=characterState.character_bypass<.5;
         const custom=Math.round(characterState.character_custom_type*4);
         const tube=custom===0&&characterState.character_type>=.5;
-        tubeButton.classList.toggle('on',active&&tube);
-        springButton.classList.toggle('on',active&&custom===2);
-        processButton.classList.toggle('on',active);
+        renderCharacter();
       }
       for(let i=0;i<8;i++){
         const id='arp_step_'+(i+1);
@@ -2242,6 +2322,12 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       }
       if('nrpn_0169' in state)
         document.getElementById('native-seq-length').value=String(1+Math.round(clamp(state.nrpn_0169)*63));
+      for(const [id,input] of genericControls){
+        if(id in state){
+          input.value=String(Math.round(clamp(state[id])*1000));
+          input.nextElementSibling.textContent=String(Math.round(clamp(state[id])*100));
+        }
+      }
       window.__prophecyUpdateADSR?.();
     }finally{bridge.suppress=false;}
   });
@@ -2286,6 +2372,7 @@ body.juce-hosted .character-device-picker button.active{border-color:#ef4a50;bac
 body.juce-hosted .character-fx.generic .char-knobs{display:grid;grid-template-columns:1fr;gap:8px}
 body.juce-hosted .character-fx.generic label{display:grid;grid-template-columns:72px 1fr 26px;align-items:center;gap:4px;font:700 9px monospace;color:#bac5d1}
 body.juce-hosted .character-fx.generic input{width:100%;accent-color:#ef4444}
+body.juce-hosted .character-fx.rotary{display:none!important}
 </style>
 <style id="glass-library-v36-one-plane">
 /* One shared machined bezel and one continuous optical glass plane.
