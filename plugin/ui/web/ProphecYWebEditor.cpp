@@ -259,7 +259,8 @@ void ProphecYWebEditor::timerCallback()
     append("character_type");
     append("character_custom_type");
     for (const auto* id : p6plugin::kTubeIDs) append(id);
-    for (const auto* id : p6plugin::kCustomIDs[1]) append(id);
+    for (const auto& device : p6plugin::kCustomIDs)
+        for (const auto* id : device) append(id);
     forceFullState_=false;
     const auto presetId=processor_.activePresetId();
     const auto presetName=processor_.activePresetName();
