@@ -258,6 +258,8 @@ void ProphecYWebEditor::timerCallback()
     append("character_bypass");
     append("character_type");
     append("character_custom_type");
+    append("character_position");
+    append("character_plasma_mode");
     for (const auto* id : p6plugin::kTubeIDs) append(id);
     for (const auto& device : p6plugin::kCustomIDs)
         for (const auto* id : device) append(id);
