@@ -206,17 +206,8 @@ try {
   await page.locator('#step-seq .step-btn').nth(1).click({button:'right'});
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name==='prophecySequenceEdit' && e.payload.step===1 && e.payload.velocity===96)),true);
-  await page.evaluate(()=>{
-    const el=document.getElementById('native-seq-track');
-    el.value='1';el.dispatchEvent(new Event('change',{bubbles:true}));
-  });
-  const trackDebug=await page.evaluate(()=>({
-    track:window.__prophecySequencer.getNativeTrack(),
-    cell:window.__prophecySequencer.getNativeCell(0),
-    selector:document.getElementById('native-seq-track').value,
-    text:document.querySelector('#step-seq .step-btn .step-note')?.textContent
-  }));
-  console.log('NATIVE SEQUENCER TRACK SWITCH',JSON.stringify(trackDebug));
+  // Explicit value avoids Playwright matching option label "1" (track 1, value 0).
+  await page.locator('#native-seq-track').selectOption({value:'1'});
   assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-note').textContent(),'C#4');
   await page.locator('.seq-page').nth(1).click();
   assert.equal(await page.locator('#step-seq .step-btn').first().locator('.step-index').textContent(),'17');
