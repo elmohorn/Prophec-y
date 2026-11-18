@@ -2076,48 +2076,115 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     bridge.gesture('nrpn_0047','begin');bridge.setNormalized('nrpn_0047',i/2);
     bridge.gesture('nrpn_0047','end');
   }));
-  // The full six-track/64-step sequencer exists in C++, but this UI does not
-  // yet expose its editable note/velocity payload. The connected control here
-  // is the eight-step arpeggiator Character mask: show only what actually works.
-  const nativeStepIds=Array.from({length:8},(_,i)=>'arp_step_'+(i+1));
-  document.querySelector('.seq-title-cluster .mod-title').textContent='ARP CHARACTER';
-  document.querySelector('.seq-title-cluster .seq-muted').textContent='8 LIVE GATES · CLICK TO TOGGLE';
-  document.querySelector('.arp-title-block .mod-sub')?.replaceChildren(document.createTextNode('8-STEP ARP CHARACTER GATES'));
-  document.querySelector('.seq-page[data-page="0"]').textContent='01–08';
-  document.querySelector('.seq-edit').setAttribute('title','Full 64-step note/velocity sequencer editor not yet connected to the DSP');
-  const nativeSeqHint=document.createElement('span');
-  nativeSeqHint.className='seq-native-hint';
-  nativeSeqHint.textContent='CLICK STEP TO TOGGLE GATE · 64-STEP NOTE EDITOR PENDING';
-  document.querySelector('.seq-edit').appendChild(nativeSeqHint);
-  document.getElementById('seq-velocity-lane').style.display='none';
-  document.querySelectorAll('#step-seq .step-btn').forEach((b,i)=>{
-    if(i>=8){b.disabled=true;b.title='Not connected: native arp character mask has eight gates';}
-  });
-  document.querySelectorAll('.seq-page').forEach((b,i)=>{if(i>0)b.disabled=true;});
-  for(const id of ['seq-state-btn','seq-note-down','seq-note-up','seq-vel-track','seq-gate-track']){
-    const el=document.getElementById(id);if(el){el.style.pointerEvents='none';el.setAttribute('aria-disabled','true');}
-  }
-  document.getElementById('seq-advanced')?.setAttribute('title','Native engine supports eight gate switches; note, velocity, gate and tie editing are not implemented');
-  const toggleNativeArpGate=e=>{
+  // The six-track/64-step note/velocity payload is owned by the native C++
+  // patch. The HTML editor only displays snapshots and sends validated edits.
+  const seq=window.__prophecySequencer;
+  const controls=document.createElement('div');
+  controls.className='seq-native-controls';
+  controls.innerHTML='<label for="native-seq-track">TRACK</label><select id="native-seq-track" aria-label="Sequencer track">'+
+    Array.from({length:6},(_,i)=>'<option value="'+i+'">'+(i+1)+'</option>').join('')+
+    '</select><button type="button" id="native-seq-play">PLAY</button>'+
+    '<label for="native-seq-length">LEN</label><input id="native-seq-length" type="number" min="1" max="64" value="64" />';
+  document.querySelector('.seq-head-actions').prepend(controls);
+  document.querySelector('.seq-title-cluster .mod-title').textContent='STEP SEQUENCER';
+  document.querySelector('.seq-title-cluster .seq-muted').textContent='6 TRACKS · 64 STEPS';
+  document.querySelector('.seq-edit').setAttribute('title','Raw Sequential note and velocity; imported bit-7 flag is preserved');
+  document.querySelector('.seq-edit .seq-edit-group label').textContent='STATE';
+  document.querySelector('.seq-edit #seq-gate-editor').setAttribute('title','Variable gate length is not supported by the native sequencer');
+  document.querySelector('#native-seq-track').addEventListener('change',e=>seq.setNativeTrack(Number(e.target.value)));
+  const sendCell=(step,note,velocity)=>{
+    const track=seq.getNativeTrack();
+    const boundedNote=Math.max(12,Math.min(108,Math.round(note)));
+    const boundedVelocity=Math.max(0,Math.min(127,Math.round(velocity)));
+    seq.setNativeCell(step,boundedNote,boundedVelocity);
+    emit('prophecySequenceEdit',{track,step,note:boundedNote,velocity:boundedVelocity});
+  };
+  // Primary click selects a step; right click toggles NOTE/REST.
+  document.getElementById('step-seq').addEventListener('click',e=>{
     const button=e.target.closest('.step-btn');if(!button)return;
-    const i=[...button.parentElement.children].indexOf(button);
-    if(i<0||i>=8){if(e.type==='contextmenu')e.preventDefault();return;}
+    const step=Number(button.querySelector('.step-index')?.textContent)-1;
+    if(step<0||step>=64)return;
+    seq.selectNativeStep(step);
+  },true);
+  document.getElementById('step-seq').addEventListener('contextmenu',e=>{
+    const button=e.target.closest('.step-btn');if(!button)return;
     e.preventDefault();e.stopImmediatePropagation();
-    const seq=window.__prophecySequencer;
-    const next=seq.getStepState(i)===0?1:0;
-    const id=nativeStepIds[i];
+    const step=Number(button.querySelector('.step-index')?.textContent)-1;
+    if(step<0||step>=64)return;
+    const cell=seq.getNativeCell(step);
+    seq.selectNativeStep(step);
+    sendCell(step,cell.note,cell.vel>0?0:96);
+  },true);
+  const intercept=(id,fn)=>{
+    document.getElementById(id)?.addEventListener('click',e=>{
+      e.preventDefault();e.stopImmediatePropagation();fn();
+    },true);
+  };
+  intercept('seq-state-btn',()=>{
+    const step=seq.getSelectedStep(),cell=seq.getNativeCell(step);
+    sendCell(step,cell.note,cell.vel>0?0:96);
+  });
+  intercept('seq-note-down',()=>{
+    const step=seq.getSelectedStep(),cell=seq.getNativeCell(step);
+    sendCell(step,cell.note-1,cell.vel);
+  });
+  intercept('seq-note-up',()=>{
+    const step=seq.getSelectedStep(),cell=seq.getNativeCell(step);
+    sendCell(step,cell.note+1,cell.vel);
+  });
+  // Prototype velocity slider updates the local model; commit its value to
+  // the canonical patch on pointer release, never per render frame.
+  document.getElementById('seq-vel-track').addEventListener('pointerup',()=>{
+    const step=seq.getSelectedStep(),cell=seq.getNativeCell(step);
+    sendCell(step,cell.note,cell.vel);
+  });
+  document.getElementById('seq-velocity-lane').addEventListener('pointerup',e=>{
+    const cellEl=e.target.closest('.vel-cell');if(!cellEl)return;
+    const step=Number(cellEl.title.match(/Step (\d+)/)?.[1]||0)-1;
+    if(step<0||step>=64)return;
+    const cell=seq.getNativeCell(step);
+    sendCell(step,cell.note,cell.vel);
+  },true);
+  const seqPlay=document.getElementById('native-seq-play');
+  seqPlay.addEventListener('click',()=>{
+    const next=!seqPlay.classList.contains('on');
+    bridge.gesture('runtime_sequence_play','begin');
+    bridge.setNormalized('runtime_sequence_play',next?1:0);
+    bridge.gesture('runtime_sequence_play','end');
+    seqPlay.classList.toggle('on',next);
+    seqPlay.textContent=next?'STOP':'PLAY';
+  });
+  document.getElementById('native-seq-length').addEventListener('change',e=>{
+    const len=Math.max(1,Math.min(64,Math.round(Number(e.target.value)||64)));
+    e.target.value=String(len);
+    bridge.gesture('nrpn_0169','begin');
+    bridge.setNormalized('nrpn_0169',(len-1)/63);
+    bridge.gesture('nrpn_0169','end');
+  });
+  // Eight arpeggiator Character gates are separate from the polyphonic
+  // sequencer. They do not edit sequence notes or velocities.
+  const arpGates=document.createElement('div');
+  arpGates.className='seq-arp-character-gates';
+  arpGates.innerHTML='<span>ARP CHARACTER GATES</span>'+
+    Array.from({length:8},(_,i)=>'<button type="button" data-gate="'+i+'">'+String(i+1).padStart(2,'0')+'</button>').join('');
+  document.getElementById('seq-advanced').appendChild(arpGates);
+  arpGates.addEventListener('click',e=>{
+    const btn=e.target.closest('button[data-gate]');if(!btn)return;
+    const i=Number(btn.dataset.gate),next=!btn.classList.contains('on');
+    btn.classList.toggle('on',next);
     bridge.gesture('arp_character_enabled','begin');
     bridge.setNormalized('arp_character_enabled',1);
     bridge.gesture('arp_character_enabled','end');
-    bridge.gesture(id,'begin');bridge.setNormalized(id,next);bridge.gesture(id,'end');
-    seq.setStepState(i,next);
-  };
-  // Primary click is the expected interaction; secondary click remains an alias.
-  document.getElementById('step-seq')?.addEventListener('click',toggleNativeArpGate,true);
-  document.getElementById('step-seq')?.addEventListener('contextmenu',toggleNativeArpGate,true);
+    const id='arp_step_'+(i+1);
+    bridge.gesture(id,'begin');bridge.setNormalized(id,next?1:0);bridge.gesture(id,'end');
+  });
+  backend.addEventListener('prophecySequenceState',data=>{
+    if(Array.isArray(data?.tracks)&&data.tracks.length===6)seq.setNativeTracks(data.tracks);
+  });
+  emit('prophecySequenceRequest',{});
   backend.addEventListener('prophecyTelemetry',data=>{
     window.prophecyGlass?.setOutputTelemetry?.(data);
-    const step=Number(data?.playStep??-1);
+    const step=Number(data?.sequenceStep??-1);
     window.__prophecySequencer?.setPlayhead(step);
   });
   backend.addEventListener('prophecyPresetState',data=>{
@@ -2164,7 +2231,17 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
         springButton.classList.toggle('on',active&&custom===2);
         processButton.classList.toggle('on',active);
       }
-      nativeStepIds.forEach((id,i)=>{if(id in state){window.__prophecySequencer?.setStepState(i,Number(state[id])>=.5?1:0);}});
+      for(let i=0;i<8;i++){
+        const id='arp_step_'+(i+1);
+        if(id in state)arpGates.querySelector('[data-gate="'+i+'"]')?.classList.toggle('on',Number(state[id])>=.5);
+      }
+      if('runtime_sequence_play' in state){
+        const playing=Number(state.runtime_sequence_play)>=.5;
+        seqPlay.classList.toggle('on',playing);
+        seqPlay.textContent=playing?'STOP':'PLAY';
+      }
+      if('nrpn_0169' in state)
+        document.getElementById('native-seq-length').value=String(1+Math.round(clamp(state.nrpn_0169)*63));
       window.__prophecyUpdateADSR?.();
     }finally{bridge.suppress=false;}
   });
