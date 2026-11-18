@@ -42,3 +42,13 @@ The PRESETS capacitive control opens a full-height, contiguous smoked-glass draw
 The WebView now requests real preset metadata from the existing `p6plugin::PresetLibrary` through `prophecyPresetCatalogRequest`/`prophecyPresetCatalog`. A single click only selects a row; double-click or LOAD SELECTED emits `prophecyPresetLoad` and applies the native musical preset. Favorites call `PresetLibrary::setFavorite` via `prophecyPresetFavorite`, using its existing persistent store. The current loaded preset is identified by stable ID in `prophecyPresetState`. Native category filtering uses the existing inferred category metadata, not invented tags; unclassified presets remain available under All patches. Standalone HTML shows a clearly labeled demo catalog, not DSP-connected presets.
 
 Known remaining gaps: the UI has no Save As or SysEx import workflow yet; categories inferred from factory patch names are approximate. Full DAW validation and cross-platform WebKit tests remain pending.
+
+## v3.6 LUNA findings (2026-11-18)
+
+Real UA LUNA testing confirms that the VST3 loads and produces sound without the previously reported random clicks (one session; not a long-term guarantee). Three UI regressions were identified and fixed on `fix/preset-library-regressions-v35` without changing the audio engine:
+
+- The left panel and preset drawer use a **single parent-painted metal bezel and smoked-glass plane** when the drawer is open. The two child panels no longer draw their own independent horizontal border highlights. The common plane's geometry is measured from the mounted elements.
+- Host-driven preset parameter hydration no longer triggers the temporary OLED parameter overlay (previously frequently displayed `MIX 35%`). User-originated knob edits still trigger the overlay.
+- Native WebView exposes the **eight arpeggiator Character gates** as eight clickable ON/OFF steps, with verified `arp_step_1..8` events. The misleading 16/64-step note editor is hidden in the hosted view until it is actually connected. The JUCE-independent DSP already supports a separate six-track 64-step polyphonic sequencer; a full native editor and safe state bridge for its note/velocity data remain to be implemented.
+
+Do not claim the 64-step sequencer is functional from the eight-gate UI. Do not merge or replace the user's working LUNA VST3 until the new CI passes and the user confirms the result.
