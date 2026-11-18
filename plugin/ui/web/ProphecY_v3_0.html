@@ -1782,8 +1782,21 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   const seqBox = document.getElementById("step-seq");
   const defaultStep = i => ({ state:i%4===0?1:(i%4===2?2:0),note:48+(i%8===0?0:i%8===4?7:3),vel:96,gate:75 });
   const stepData = Array.from({length:64},(_,i)=>defaultStep(i));
+  let nativeTracks=null, nativeTrack=0;
+  function loadNativeTrack(){
+    if(!nativeTracks)return;
+    for(let i=0;i<64;i++){
+      const src=nativeTracks[nativeTrack]?.[i]||{note:60,velocity:0,flag:false};
+      const d=stepData[i];
+      d.note=Math.max(12,Math.min(108,Number(src.note)||60));
+      d.vel=Math.max(0,Math.min(127,Number(src.velocity)||0));
+      d.flag=!!src.flag;
+      d.state=d.vel===0?0:d.flag?2:1;
+    }
+    drawSequencer();
+  }
   let seqPage=0,playStep=0,selectedStep=0;
-  const stateNames=["REST","GATE","TIE"];
+  const stateNames=["REST","NOTE","FLAG"];
   function noteName(n){ const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; return names[n%12]+(Math.floor(n/12)-1); }
   function syncEditor(){
     const d=stepData[selectedStep];
@@ -1803,12 +1816,11 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       btn.setAttribute('aria-label',`Step ${i+1}: ${stateNames[d.state]} ${noteName(d.note)}`);
       btn.title=`Step ${i+1} · ${stateNames[d.state]} · ${noteName(d.note)} · Click: select · Right click: cycle`;
       if(window.ProphecYBridge?.enabled){
-        if(i>=8){btn.disabled=true;btn.title='Not connected: native arp character mask has only eight gates';}
-        else btn.title='Native arp character gate '+(i+1)+' · Right click: ON/OFF';
+        btn.title='Track '+(nativeTrack+1)+' · Step '+(i+1)+' · Click: select · Right click: NOTE/REST';
       }
-      btn.innerHTML=`<span class="step-index">${String(i+1).padStart(2,'0')}</span><span class="step-note">${window.ProphecYBridge?.enabled?(i>=8?'—':d.state?'ON':'OFF'):(d.state===0?'—':d.state===2?'TIE':noteName(d.note))}</span><span class="step-led"></span>`;
+      btn.innerHTML=`<span class="step-index">${String(i+1).padStart(2,'0')}</span><span class="step-note">${window.ProphecYBridge?.enabled?(d.vel===0?'—':noteName(d.note)):(d.state===0?'—':d.state===2?'FLAG':noteName(d.note))}</span><span class="step-led"></span>`;
       btn.addEventListener('click',()=>{selectedStep=i;drawSequencer();});
-      btn.addEventListener('contextmenu',e=>{e.preventDefault();selectedStep=i;d.state=(d.state+1)%3;drawSequencer();});
+      btn.addEventListener('contextmenu',e=>{e.preventDefault();if(window.ProphecYBridge?.enabled)return;selectedStep=i;d.state=(d.state+1)%3;drawSequencer();});
       seqBox.appendChild(btn);
     }
     const lane=document.getElementById('seq-velocity-lane');
@@ -1850,6 +1862,18 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   window.__prophecySequencer={
     getStepState:i=>stepData[i]?.state??0,
     setStepState:(i,state)=>{if(i>=0&&i<8){stepData[i].state=state;drawSequencer();}},
+    setNativeTracks:tracks=>{nativeTracks=tracks;loadNativeTrack();},
+    setNativeTrack:track=>{nativeTrack=Math.max(0,Math.min(5,track));loadNativeTrack();},
+    getNativeTrack:()=>nativeTrack,
+    getNativeCell:step=>stepData[step],
+    selectNativeStep:step=>{selectedStep=step;drawSequencer();},
+    getSelectedStep:()=>selectedStep,
+    setNativeCell:(step,note,velocity)=>{
+      if(!stepData[step])return;
+      const d=stepData[step];d.note=note;d.vel=velocity;d.state=velocity===0?0:d.flag?2:1;
+      if(nativeTracks?.[nativeTrack]?.[step]){nativeTracks[nativeTrack][step].note=note;nativeTracks[nativeTrack][step].velocity=velocity;}
+      drawSequencer();
+    },
     setPlayhead:step=>{seqBox.querySelectorAll('.step-btn').forEach((b,i)=>
       b.classList.toggle('playhead',seqPage*16+i===step));}
   };
@@ -2160,13 +2184,31 @@ body.juce-hosted .chassis-scroll{width:max-content;max-width:none;overflow:visib
 body.juce-hosted .chassis-shell{margin:0}
 </style>
 <style id="native-arp-8gate-ux">
-/* Native WebView: show only the eight editable arpeggiator Character gates. */
-body.juce-hosted #step-seq{grid-template-columns:repeat(8,minmax(0,1fr))}
-body.juce-hosted #step-seq .step-btn:nth-child(n+9){display:none}
-body.juce-hosted #seq-bank .seq-page:not(:first-child){display:none}
-body.juce-hosted .seq-edit .seq-edit-group{display:none}
+/* Native WebView: true six-track sequencer editor; eight Character gates live separately. */
+body.juce-hosted #step-seq{grid-template-columns:repeat(16,minmax(0,1fr))}
+body.juce-hosted #step-seq .step-btn:nth-child(n+9){display:flex}
+body.juce-hosted #seq-bank .seq-page:not(:first-child){display:inline-block}
+body.juce-hosted #seq-gate-editor{display:none}
 body.juce-hosted .seq-edit{justify-content:flex-start}
 body.juce-hosted .seq-native-hint{font-size:9px;color:#9baab9;letter-spacing:.055em}
+body.juce-hosted .seq-native-controls{display:flex;align-items:center;gap:6px}
+body.juce-hosted .seq-native-controls select,body.juce-hosted .seq-native-controls input{
+ background:#071016;border:1px solid #374553;border-radius:3px;color:#c4e6ef;font:700 10px monospace;height:24px}
+body.juce-hosted .seq-native-controls input{width:38px;text-align:center}
+body.juce-hosted .seq-native-controls button{border:1px solid #3b4756;border-radius:3px;background:#111923;color:#d6e0ec;font:700 9px monospace;padding:5px 7px;cursor:pointer}
+body.juce-hosted .seq-native-controls button.on{border-color:#ee4147;color:white;background:#541b23}
+body.juce-hosted .seq-arp-character-gates{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:5px}
+body.juce-hosted .seq-arp-character-gates button{background:#15191e;color:#9ca9b7;border:1px solid #424956;border-radius:3px;cursor:pointer;font:700 9px monospace;padding:5px 8px}
+body.juce-hosted .seq-arp-character-gates button.on{background:#661d25;border-color:#e94b51;color:#fff}
+body.juce-hosted .character-chain{display:none}
+body.juce-hosted .character-fx{display:none}
+body.juce-hosted .character-fx.char-active{display:flex}
+body.juce-hosted .character-device-picker{display:flex;gap:4px;flex-wrap:wrap}
+body.juce-hosted .character-device-picker button{border:1px solid #37404d;border-radius:3px;background:#0c1118;color:#91a1b3;font:700 9px monospace;padding:7px 8px;cursor:pointer}
+body.juce-hosted .character-device-picker button.active{border-color:#ef4a50;background:#401a20;color:white}
+body.juce-hosted .character-fx.generic .char-knobs{display:grid;grid-template-columns:1fr;gap:8px}
+body.juce-hosted .character-fx.generic label{display:grid;grid-template-columns:72px 1fr 26px;align-items:center;gap:4px;font:700 9px monospace;color:#bac5d1}
+body.juce-hosted .character-fx.generic input{width:100%;accent-color:#ef4444}
 </style>
 <style id="glass-library-v36-one-plane">
 /* One shared machined bezel and one continuous optical glass plane.
