@@ -23,6 +23,8 @@ private:
     void handlePresetLoad(const juce::var&);
     void handlePresetFavorite(const juce::var&);
     void emitPresetCatalog();
+    void emitSequenceState();
+    void handleSequenceEdit(const juce::var&);
     juce::WebBrowserComponent::Options makeOptions();
     P6AudioProcessor& processor_;
     juce::WebBrowserComponent browser_;
@@ -30,6 +32,7 @@ private:
     juce::String lastPresetId_, lastPresetName_;
     bool ready_{false};
     bool forceFullState_{true};
+    std::uint32_t lastSequenceRevision_{0};
     std::map<juce::String,float> lastValues_;
     std::set<juce::String> gestures_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ProphecYWebEditor)
