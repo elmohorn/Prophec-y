@@ -2037,6 +2037,17 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     {type:5,label:'NEON WAVEFOLDER',prefix:'character_neon_',fields:['drive','folds','symmetry','bias','tone','mix','output']}
   ];
   const genericControls=new Map();
+  const bindCharacterSlider=input=>{
+    const id=input.dataset.param;
+    genericControls.set(id,input);
+    input.addEventListener('pointerdown',()=>bridge.gesture(id,'begin'));
+    input.addEventListener('pointerup',()=>bridge.gesture(id,'end'));
+    input.addEventListener('pointercancel',()=>bridge.gesture(id,'end'));
+    input.addEventListener('input',()=>{
+      input.nextElementSibling.textContent=String(Math.round(Number(input.value)/10));
+      bridge.setNormalized(id,Number(input.value)/1000);
+    });
+  };
   for(const config of genericConfigs){
     const card=document.createElement('section');
     card.className='character-fx generic';
@@ -2047,18 +2058,32 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
         return '<label>'+name.toUpperCase()+'<input type="range" min="0" max="1000" value="500" data-param="'+id+'"/><span>50</span></label>';
       }).join('')+'</div>';
     document.querySelector('.character-bottom').before(card);
-    card.querySelectorAll('input').forEach(input=>{
-      const id=input.dataset.param;
-      genericControls.set(id,input);
-      input.addEventListener('pointerdown',()=>bridge.gesture(id,'begin'));
-      input.addEventListener('pointerup',()=>bridge.gesture(id,'end'));
-      input.addEventListener('pointercancel',()=>bridge.gesture(id,'end'));
-      input.addEventListener('input',()=>{
-        input.nextElementSibling.textContent=String(Math.round(Number(input.value)/10));
-        bridge.setNormalized(id,Number(input.value)/1000);
-      });
-    });
+    card.querySelectorAll('input').forEach(bindCharacterSlider);
   }
+  // Keep the three prominent physical dials for each approved device, but
+  // expose all remaining DSP parameters through compact secondary sliders.
+  const extraConfigs=[
+    {selector:'.character-fx.tube',prefix:'character_tube_',fields:['sag','bass','middle','output']},
+    {selector:'.character-fx.spring',prefix:'character_spring_',fields:['drive','pickup','damping','output']}
+  ];
+  for(const config of extraConfigs){
+    const extra=document.createElement('div');
+    extra.className='character-extra-controls';
+    extra.innerHTML=config.fields.map(name=>
+      '<label>'+name.toUpperCase()+'<input type="range" min="0" max="1000" value="500" data-param="'+
+      config.prefix+name+'"/><span>50</span></label>').join('');
+    document.querySelector(config.selector).appendChild(extra);
+    extra.querySelectorAll('input').forEach(bindCharacterSlider);
+  }
+  const routing=document.createElement('div');
+  routing.className='character-routing';
+  routing.innerHTML='<label>INSERT<select id="character-position"><option value="0">PRE FX</option><option value="1">POST FX</option></select></label>'+
+    '<label>PLASMA<select id="character-plasma-mode"><option value="0">LEGACY</option><option value="1">HYBRID</option></select></label>';
+  picker.after(routing);
+  document.getElementById('character-position').addEventListener('change',e=>
+    writeChoice('character_position',Number(e.target.value)));
+  document.getElementById('character-plasma-mode').addEventListener('change',e=>
+    writeChoice('character_plasma_mode',Number(e.target.value)));
   const renderCharacter=()=>{
     const custom=Math.round(characterState.character_custom_type*4);
     const type=custom>0?custom+1:(characterState.character_type>=.5?1:0);
@@ -2322,6 +2347,10 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       }
       if('nrpn_0169' in state)
         document.getElementById('native-seq-length').value=String(1+Math.round(clamp(state.nrpn_0169)*63));
+      if('character_position' in state)
+        document.getElementById('character-position').value=String(Math.round(clamp(state.character_position)));
+      if('character_plasma_mode' in state)
+        document.getElementById('character-plasma-mode').value=String(Math.round(clamp(state.character_plasma_mode)));
       for(const [id,input] of genericControls){
         if(id in state){
           input.value=String(Math.round(clamp(state[id])*1000));
@@ -2372,6 +2401,13 @@ body.juce-hosted .character-device-picker button.active{border-color:#ef4a50;bac
 body.juce-hosted .character-fx.generic .char-knobs{display:grid;grid-template-columns:1fr;gap:8px}
 body.juce-hosted .character-fx.generic label{display:grid;grid-template-columns:72px 1fr 26px;align-items:center;gap:4px;font:700 9px monospace;color:#bac5d1}
 body.juce-hosted .character-fx.generic input{width:100%;accent-color:#ef4444}
+body.juce-hosted .character-extra-controls{display:grid;gap:7px;margin-top:8px}
+body.juce-hosted .character-extra-controls label{display:grid;grid-template-columns:72px 1fr 26px;gap:4px;align-items:center;font:700 9px monospace;color:#b5c2d0}
+body.juce-hosted .character-extra-controls input{width:100%;accent-color:#ef4444}
+body.juce-hosted .character-routing{display:flex;gap:8px;justify-content:space-between}
+body.juce-hosted .character-routing label{display:flex;gap:6px;align-items:center;font:700 9px monospace;color:#b7c6d2}
+body.juce-hosted .character-routing select{background:#071016;color:#d0e2e9;border:1px solid #3d4b5b;border-radius:3px;font:700 9px monospace;padding:5px}
+
 body.juce-hosted .character-fx.rotary{display:none!important}
 </style>
 <style id="glass-library-v36-one-plane">
