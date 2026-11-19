@@ -1,4 +1,5 @@
 #include "p6/P6Engine.h"
+#include "p6/RealtimeSysexDecoder.h"
 #include "p6/P6Effects.h"
 #include "p6/P6MidiRouter.h"
 #include "p6/P6PerformanceScheduler.h"
@@ -88,6 +89,25 @@ public:
         return gAllocationCount.load(std::memory_order_acquire);
     }
 };
+
+void testRealtimeSysexDecoder() {
+    p6::P6PatchState patch;
+    for(std::size_t i=0;i<patch.rawPayload.size();++i)patch.rawPayload[i]=static_cast<std::uint8_t>((i*73+17)&255);
+    const auto program=p6::SysexCodec::encodeProgramDump(patch,3,42);
+    const auto edit=p6::SysexCodec::encodeEditBuffer(patch);
+    p6::RealtimeSysexPayload out;
+    { AllocationScope guard;
+      P6_CHECK(p6::decodeRealtimeSysex(program,out));P6_CHECK(guard.count()==0); }
+    P6_CHECK(out.bytes==patch.rawPayload && out.bank==3 && out.program==42);
+    P6_CHECK(p6::decodeRealtimeSysex(edit,out));
+    P6_CHECK(out.bytes==patch.rawPayload && out.bank==-1 && out.program==-1);
+    const auto before=out;
+    auto invalid=program;invalid[25]=0x80;
+    P6_CHECK(!p6::decodeRealtimeSysex(invalid,out));
+    P6_CHECK(out.bytes==before.bytes && out.bank==before.bank && out.program==before.program);
+    invalid=program;invalid[4]=0x10;P6_CHECK(!p6::decodeRealtimeSysex(invalid,out));
+    invalid=program;invalid.pop_back();P6_CHECK(!p6::decodeRealtimeSysex(invalid,out));
+}
 
 void testCoreRealtimePathDoesNotAllocateAfterPrepare()
 {
@@ -212,6 +232,7 @@ void testMailboxRealtimeOperationsDoNotAllocate()
 
 int main()
 {
+    testRealtimeSysexDecoder();
     testCoreRealtimePathDoesNotAllocateAfterPrepare();
     testPreparedActiveEffectsDoNotAllocate();
     testMailboxRealtimeOperationsDoNotAllocate();
