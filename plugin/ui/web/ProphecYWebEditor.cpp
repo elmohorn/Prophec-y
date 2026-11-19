@@ -3,6 +3,7 @@
 #include "BinaryData.h"
 #include "../../CharacterFx.h"
 #include "../../PresetLibrary.h"
+#include "../preset/PresetBrowser.h"
 
 #if !JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
  #error "Prophec-Y v3 requires a WebView resource provider; enable JUCE_USE_WIN_WEBVIEW2 on Windows"
@@ -45,6 +46,7 @@ juce::WebBrowserComponent::Options ProphecYWebEditor::makeOptions()
         })
         .withEventListener("prophecyPresetLoad",[this](juce::var v){handlePresetLoad(v);})
         .withEventListener("prophecyPresetFavorite",[this](juce::var v){handlePresetFavorite(v);})
+        .withEventListener("prophecyPresetManage",[this](juce::var){openPresetManager();})
         .withEventListener("prophecySequenceEdit",[this](juce::var v){handleSequenceEdit(v);})
         .withEventListener("prophecySequenceRequest",[this](juce::var){emitSequenceState();})
         .withEventListener("prophecyReady",[this](juce::var){ready_=true;forceFullState_=true;});
@@ -82,7 +84,18 @@ ProphecYWebEditor::~ProphecYWebEditor()
         if(auto* p=processor_.parameters().getParameter(id))p->endChangeGesture();
 }
 
-void ProphecYWebEditor::resized(){browser_.setBounds(getLocalBounds());}
+void ProphecYWebEditor::resized(){browser_.setBounds(getLocalBounds());if(presetManager_)presetManager_->setBounds(getLocalBounds().reduced(24));}
+
+void ProphecYWebEditor::openPresetManager()
+{
+    if(!presetManager_){
+        presetManager_=std::make_unique<PresetBrowser>(processor_);
+        presetManager_->onClose=[this]{presetManager_->setVisible(false);if(presetLibrary_)presetLibrary_->scan();emitPresetCatalog();forceFullState_=true;};
+        addChildComponent(*presetManager_);
+    }
+    presetManager_->refreshLibrary();presetManager_->setBounds(getLocalBounds().reduced(24));
+    presetManager_->setVisible(true);presetManager_->toFront(true);
+}
 
 void ProphecYWebEditor::handleParameter(const juce::var& payload)
 {
@@ -128,10 +141,7 @@ void ProphecYWebEditor::handlePresetNavigate(const juce::var& payload)
         if (entries[static_cast<std::size_t>(i)].id==current){index=i;break;}
     const int count=static_cast<int>(entries.size());
     const int next=index<0?(delta>0?0:count-1):(index+(delta>0?1:-1)+count)%count;
-    const auto& selected=entries[static_cast<std::size_t>(next)];
-    processor_.loadMusicalPreset(selected.state,selected.id,selected.name);
-    forceFullState_=true;
-    lastPresetId_.clear();
+    loadPresetSafely(entries[static_cast<std::size_t>(next)].id);
 }
 
 void ProphecYWebEditor::emitPresetCatalog()
@@ -156,19 +166,29 @@ void ProphecYWebEditor::emitPresetCatalog()
 
 void ProphecYWebEditor::handlePresetLoad(const juce::var& payload)
 {
-    if(!presetLibrary_)return;
     const auto id=property(payload,"id");
-    if(id.isEmpty())return;
-    if(const auto* preset=presetLibrary_->find(id)){
-        processor_.loadMusicalPreset(preset->state,preset->id,preset->name);
-        forceFullState_=true;
-        lastPresetId_.clear();
-        return;
-    }
-    // A deleted or replaced User preset must not leave the UI stuck at LOADING.
-    auto* error=new juce::DynamicObject;
-    error->setProperty("message","Preset not found; refresh the library");
-    browser_.emitEventIfBrowserIsVisible("prophecyPresetError",juce::var(error));
+    if(id.isNotEmpty())loadPresetSafely(id);
+}
+
+void ProphecYWebEditor::loadPresetSafely(const juce::String& id)
+{
+    const juce::Component::SafePointer<ProphecYWebEditor> safe(this);
+    auto load=[safe,id]{
+        if(!safe||!safe->presetLibrary_)return;
+        if(const auto* preset=safe->presetLibrary_->find(id)){
+            safe->processor_.loadMusicalPreset(preset->state,preset->id,preset->name);
+            safe->forceFullState_=true;safe->lastPresetId_.clear();return;
+        }
+        auto* error=new juce::DynamicObject;error->setProperty("message","Preset not found; refresh the library");
+        safe->browser_.emitEventIfBrowserIsVisible("prophecyPresetError",juce::var(error));
+    };
+    if(!processor_.presetDirty()){load();return;}
+    juce::AlertWindow::showAsync(juce::MessageBoxOptions{}.withIconType(juce::MessageBoxIconType::WarningIcon)
+        .withTitle("Unsaved preset edits").withMessage("Cancel to save your changes, or discard them and load the selected preset.")
+        .withButton("Discard and load").withButton("Cancel"),[safe,load=std::move(load)](int result){
+            if(!safe)return;
+            if(result==1)load();else {auto* error=new juce::DynamicObject;error->setProperty("message","Preset load cancelled; edits retained");safe->browser_.emitEventIfBrowserIsVisible("prophecyPresetError",juce::var(error));}
+        });
 }
 
 void ProphecYWebEditor::handlePresetFavorite(const juce::var& payload)
@@ -301,6 +321,7 @@ void ProphecYWebEditor::timerCallback()
     meter->setProperty("characterInput",c.inputRms);
     meter->setProperty("characterActive",c.active);
     meter->setProperty("characterType",c.type);
+    meter->setProperty("characterSampleRate",processor_.getSampleRate());
     meter->setProperty("rotaryHorn",c.device.values[0]);
     meter->setProperty("rotaryDrum",c.device.values[1]);
     juce::Array<juce::var> deviceValues, wetTrace;

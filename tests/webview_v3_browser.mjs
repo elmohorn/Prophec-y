@@ -129,6 +129,9 @@ try {
   await page.locator('prophecy-glass-panel .capacitive[data-page="PRESETS"]').click();
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyPresetCatalogRequest')), true);
+  await page.locator('#g-manage').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyPresetManage')), true);
   await page.evaluate(() => window.__nativeListeners.prophecyPresetCatalog([
     { id: 'factory-1', name: 'REAL BRASS', category: 'Auto / Brass', bank: 'Factory', source: 'FACTORY', favorite: false, bankNumber: 0, program: 0 },
     { id: 'factory-2', name: 'REAL ORGAN', category: 'Auto / Organ', bank: 'Factory', source: 'FACTORY', favorite: true, bankNumber: 0, program: 1 },

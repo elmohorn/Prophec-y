@@ -6,6 +6,7 @@
 #include <set>
 class P6AudioProcessor;
 namespace p6plugin { class PresetLibrary; }
+class PresetBrowser;
 
 // Experimental JUCE 9 WebView editor. Native DSP and host state stay in C++.
 class ProphecYWebEditor final : public juce::AudioProcessorEditor, private juce::Timer
@@ -22,6 +23,8 @@ private:
     void handlePresetNavigate(const juce::var&);
     void handlePresetLoad(const juce::var&);
     void handlePresetFavorite(const juce::var&);
+    void loadPresetSafely(const juce::String& id);
+    void openPresetManager();
     void emitPresetCatalog();
     void emitSequenceState();
     void handleSequenceEdit(const juce::var&);
@@ -29,6 +32,7 @@ private:
     P6AudioProcessor& processor_;
     juce::WebBrowserComponent browser_;
     std::unique_ptr<p6plugin::PresetLibrary> presetLibrary_;
+    std::unique_ptr<PresetBrowser> presetManager_;
     juce::String lastPresetId_, lastPresetName_;
     bool ready_{false};
     bool forceFullState_{true};

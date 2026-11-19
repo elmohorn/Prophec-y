@@ -1354,7 +1354,8 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   <div class="ghead">
    <div class="gtitle">PRESET LIBRARY<span class="gtitle-rule"></span></div>
    <span class="gstatus">BANKS · PATCHES</span>
-   <button class="gload" id="g-load" title="Load selected preset">LOAD SELECTED</button>
+   <button class="gload" id="g-manage" title="Save, import and export presets">MANAGE</button>
+  <button class="gload" id="g-load" title="Load selected preset">LOAD SELECTED</button>
    <button class="gclose" id="g-close" aria-label="Close preset library">×</button>
   </div>
   <label class="gsearch"><span class="gsearch-icon">⌕</span><input id="g-search" placeholder="Search name, code, category or bank…" autocomplete="off" /></label>
@@ -2045,6 +2046,9 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     input.addEventListener('pointerdown',()=>bridge.gesture(id,'begin'));
     input.addEventListener('pointerup',()=>bridge.gesture(id,'end'));
     input.addEventListener('pointercancel',()=>bridge.gesture(id,'end'));
+    input.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(e.key))bridge.gesture(id,'begin');});
+    input.addEventListener('keyup',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(e.key))bridge.gesture(id,'end');});
+    input.addEventListener('blur',()=>bridge.gesture(id,'end'));
     input.addEventListener('input',()=>{
       input.nextElementSibling.textContent=String(Math.round(Number(input.value)/10));
       bridge.setNormalized(id,Number(input.value)/1000);
@@ -2084,6 +2088,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     document.querySelector('.character-bottom').before(card);
     card.querySelectorAll('input').forEach(bindCharacterSlider);
   }
+  const rotaryWarning=document.createElement('div');rotaryWarning.className='character-rotary-warning';rotaryWarning.hidden=true;rotaryWarning.textContent='ROTARY UNAVAILABLE AT THIS SAMPLE RATE';document.querySelector('.character-fx.rotary').appendChild(rotaryWarning);
   const rotaryPanel=document.createElement('div');rotaryPanel.className='character-extra-controls';
   rotaryPanel.innerHTML=[['motion','MOTION'],['wheel_depth','MOD WHEEL'],['speed','SLOW / STOP / FAST'],['mix','MIX'],['output','OUTPUT']].map(([name,label])=>'<label>'+label+'<input type="range" min="0" max="1000" value="0" data-param="character_rotary_'+name+'"/><span>0</span></label>').join('');
   document.querySelector('.character-fx.rotary').appendChild(rotaryPanel);rotaryPanel.querySelectorAll('input').forEach(bindCharacterSlider);
@@ -2128,6 +2133,8 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
       slot.addEventListener('pointerup',()=>bridge.gesture(id,'end'),true);
       slot.addEventListener('pointercancel',()=>bridge.gesture(id,'end'),true);
       slot.addEventListener('wheel',()=>{bridge.gesture(id,'begin');queueMicrotask(()=>bridge.gesture(id,'end'));},true);
+      slot.addEventListener('dblclick',()=>{bridge.gesture(id,'begin');queueMicrotask(()=>bridge.gesture(id,'end'));},true);
+      window.addEventListener('blur',()=>bridge.gesture(id,'end'));
       characterKnobGroups.set(id,knob);
     });
     card.querySelector('.character-window')?.after(strip);
@@ -2715,6 +2722,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   document.querySelector('.character-bottom').before(characterMeter);
   let characterVisualLast=performance.now();
   function updateCharacterVisual(data) {
+    if(document.hidden||document.getElementById('character-panel').classList.contains('is-hidden'))return;
     const card=document.querySelector('.character-fx.char-active'), win=card?.querySelector('.character-window');
     if(!win)return;
     let canvas=win.querySelector('canvas.character-visual');
@@ -2738,6 +2746,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   }
   backend.addEventListener('prophecyTelemetry',data=>{
     updateCharacterVisual(data);
+    rotaryWarning.hidden=!(Number(data?.characterType)===6 && Number(data?.characterSampleRate)>192000);
     const cwin=document.querySelector('.character-fx.char-active .character-window');
     if(cwin){const lvl=data?.characterActive?Math.min(1,Number(data.characterInput||0)*4):0;cwin.style.setProperty('--audio-glow',String(lvl));}
     const rotor=document.querySelector('.character-fx.rotary .character-window');
@@ -2875,6 +2884,7 @@ body.juce-hosted .character-spring-coils{position:absolute;inset:0;width:100%;he
 body.juce-hosted .character-main-knobs{display:flex;justify-content:space-around;align-items:center;gap:2px}
 body.juce-hosted .character-main-knob{min-width:0}
 body.juce-hosted .character-panel{overflow-y:auto}
+body.juce-hosted .character-rotary-warning{color:#ffb47a;font:700 9px monospace;padding:6px;border:1px solid #884a31;background:#291912}
 body.juce-hosted .character-signal-meter{display:flex;align-items:center;gap:8px;padding:5px 6px;border:1px solid #222731;background:#0a0c10;color:#aab4c3;font:700 8px monospace;letter-spacing:.1em}
 body.juce-hosted .character-signal-meter div{height:5px;flex:1;background:#141820;border-radius:3px;overflow:hidden}
 body.juce-hosted .character-signal-meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#ff7b38,#ff4238)}
@@ -3113,6 +3123,7 @@ $('g-cats').addEventListener('click',event=>{
 });
 $('g-close').addEventListener('click',()=>setOpen(false));
 $('g-load').addEventListener('click',loadSelected);
+$('g-manage').addEventListener('click',()=>{if(hosted)backend.emitEvent('prophecyPresetManage',{});});
 if(hosted){
  $('g-meta').textContent='LOADING NATIVE PRESET CATALOG…';
  backend.addEventListener('prophecyPresetCatalog',data=>{

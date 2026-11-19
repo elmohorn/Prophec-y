@@ -7,6 +7,7 @@ public:
  RotarySetBfree(); ~RotarySetBfree();
  RotarySetBfree(const RotarySetBfree&)=delete; RotarySetBfree& operator=(const RotarySetBfree&)=delete;
  bool prepare(double sampleRate);
+ void resetAudio() noexcept;
  void setSpeed(Speed speed) noexcept;
  // Motion adds bounded rotor variation. Wheel sweeps slowly from Slow to Fast.
  // wheelDepth=0 disables modulation-wheel influence; set values on audio thread.

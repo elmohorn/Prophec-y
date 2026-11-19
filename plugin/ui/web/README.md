@@ -15,7 +15,7 @@ Windows needs the Microsoft.Web.WebView2 NuGet SDK and `JUCE_WEBVIEW2_PACKAGE_LO
 
 - 30 primary knobs, 4 mixer faders, 14 original switches, 3 arpeggiator switches, Master.
 - 6 Character knobs: Tube drive/treble/mix and Optical Spring decay/tension/mix.
-- Character Tube/Spring single-device selection and bypass, reflecting the **actual single-device** DSP architecture. Rotary is disabled because no rotary DSP exists.
+- Character Tube, Plasma, Spring, Ferrofluid, Neon and Rotary use a single-device selector and bypass. Rotary supports 8–192 kHz; above that the wet path falls back to dry and the editor warns.
 - Arp BPM, Character rhythm and motion, mode/range/division, host/internal/MIDI clock, and LP keytrack.
 - FX A/B algorithm selectors (real native effect types) and five native LFO waveform types.
 - Eight native arpeggiator Character gate switches and the DSP playhead; editing a gate enables Character rhythm.
@@ -24,10 +24,10 @@ Windows needs the Microsoft.Web.WebView2 NuGet SDK and `JUCE_WEBVIEW2_PACKAGE_LO
 
 ## Known limitations (not falsely represented as implemented)
 
-- The engine's **64-step six-track polyphonic sequencer** is not yet editable through WebView. The visible eight switches control the *separate* native eight-step Arp Character mask; other pages, per-step notes, velocities, gate lengths and tie states are disabled in hosted mode. The Arp Character playhead is sourced from DSP.
+- The six-track 64-step sequencer supports note and velocity editing. Its separate eight-step Arp Character mask is in Advanced. Variable gate length and the meaning of the imported high bit remain unverified.
 - Effect and LFO selectors are now mapped to the verified native NRPN registry. Additional DSP controls not present in the v3 HTML remain outside this WebView bridge.
 - Glass LED peak meters and VU-style RMS needles receive real native output telemetry at 20 Hz. The decorative waveform is unavailable in hosted mode because no real waveform stream exists.
-- The Rotary Ensemble module has no DSP equivalent and is disabled when hosted.
+- Rotary uses the experimental setBfree-based DSP; host and listening validation remain pending.
 - Character uses one selected effect at a time, not a three-effect parallel chain.
 - Full DAW runtime, pluginval, macOS WebKit, and multi-instance performance tests remain to be run on their respective hosts.
 
@@ -41,7 +41,7 @@ The PRESETS capacitive control opens a full-height, contiguous smoked-glass draw
 
 The WebView now requests real preset metadata from the existing `p6plugin::PresetLibrary` through `prophecyPresetCatalogRequest`/`prophecyPresetCatalog`. A single click only selects a row; double-click or LOAD SELECTED emits `prophecyPresetLoad` and applies the native musical preset. Favorites call `PresetLibrary::setFavorite` via `prophecyPresetFavorite`, using its existing persistent store. The current loaded preset is identified by stable ID in `prophecyPresetState`. Native category filtering uses the existing inferred category metadata, not invented tags; unclassified presets remain available under All patches. Standalone HTML shows a clearly labeled demo catalog, not DSP-connected presets.
 
-Known remaining gaps: the UI has no Save As or SysEx import workflow yet; categories inferred from factory patch names are approximate. Full DAW validation and cross-platform WebKit tests remain pending.
+The MANAGE button opens the existing preset manager for Save As and SysEx file import/export. Categories inferred from factory patch names are approximate. MIDI SysEx passed through the DAW is not yet applied to the current patch. Full DAW validation and cross-platform WebKit tests remain pending.
 
 ## v3.6 LUNA findings (2026-11-18)
 
@@ -59,5 +59,5 @@ Do not claim the 64-step sequencer is functional from the eight-gate UI. Do not 
 - C++ edits canonical `patch_.rawPayload` under the existing non-realtime writer/patch guards. An atomic dirty bit publishes only the 768 sequence bytes to the audio thread; `scheduler_.updateSequence()` updates playback without restarting the oscillator/filter engine or resetting transport. Preset and DAW state serialization already includes the raw sequence payload.
 - UI exposes track 1–6, four pages of 16 steps, REST/NOTE editing, MIDI note +/- (12–108), velocity, sequence length 1–64, PLAY/STOP and audio-thread playhead telemetry. Right-click toggles a step between REST and NOTE; primary click selects a step. The eight independent arpeggiator Character gates are in the Advanced section.
 - Factory velocity bit 7 is retained losslessly but **not** interpreted as tie/gate until the firmware semantics are proven. Variable gate length is not supported by the current native player and its demo editor is hidden.
-- Character FX is a **single DSP insert**, never a chain: Tube, Plasma, Optical Spring, Ferrofluid and Neon Wavefolder are mutually exclusive. A device picker selects the current module; its 7 native parameters (prominent dials plus secondary sliders) and pre/post routing are host-synchronized. Plasma Hybrid/Legacy is selectable. Rotary is explicitly disabled because there is no Rotary DSP.
+- Character FX is a **single DSP insert**, never a chain: Tube, Plasma, Optical Spring, Ferrofluid and Neon Wavefolder are mutually exclusive. A device picker selects the current module; its 7 native parameters (prominent dials plus secondary sliders) and pre/post routing are host-synchronized. Plasma Hybrid/Legacy is selectable. Rotary uses the experimental DSP; host and listening validation remain pending.
 - These are integration changes awaiting validation in a real DAW. Do not merge into main or replace the user's known-good LUNA build solely on a successful compile.

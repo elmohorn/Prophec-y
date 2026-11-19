@@ -96,7 +96,7 @@ p6::StereoSample CharacterFx::process(p6::StereoSample x) noexcept
     const float target=enabled?(p.active.type==6?p.requested.rotary[3]:selected[5]):0.f;
     // 10 ms linear crossfade, aligned to the wet latency. Finish the fade
     // before suspending the tube; reset on the stream thread before reuse.
-    if(enabled && p.blend==0.f && target>0.f){p.tube.reset();p.custom.reset();}
+    if(enabled && p.blend==0.f && target>0.f){p.tube.reset();p.custom.reset();if(p.active.type==6){p.rotary.resetAudio();p.rotaryWetDelay.fill({});}}
     p.blend+=std::clamp(target-p.blend,-p.step,p.step);
     p6::StereoSample wet=dry;
     if(enabled || p.blend>0.f) {
@@ -109,9 +109,9 @@ p6::StereoSample CharacterFx::process(p6::StereoSample x) noexcept
                 // the speaker model; physical rotor propagation remains variable.
                 const auto delayed=p.rotaryWetDelay[index];
                 const auto prev=(p.write+p.rotaryWetDelay.size()-1)%p.rotaryWetDelay.size();
-                p.rotaryWetDelay[prev]={l*p.rotaryGain,r*p.rotaryGain};
+                p.rotaryWetDelay[prev]={l,r};
                 const double side=(dry.left-dry.right)*.5;
-                wet={delayed.left+side,delayed.right-side};
+                wet={(delayed.left+side)*p.rotaryGain,(delayed.right-side)*p.rotaryGain};
             }
         }
         else if(p.active.type>=2)wet=p.custom.process(x,p.active.type,selected,p.active.plasmaMode);
