@@ -2746,7 +2746,7 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   }
   backend.addEventListener('prophecyTelemetry',data=>{
     updateCharacterVisual(data);
-    rotaryWarning.hidden=!(Number(data?.characterType)===6 && Number(data?.characterSampleRate)>192000);
+    rotaryWarning.hidden=!(Number(data?.characterType)===6 && Number(data?.characterSampleRate)>384000);
     const cwin=document.querySelector('.character-fx.char-active .character-window');
     if(cwin){const lvl=data?.characterActive?Math.min(1,Number(data.characterInput||0)*4):0;cwin.style.setProperty('--audio-glow',String(lvl));}
     const rotor=document.querySelector('.character-fx.rotary .character-window');

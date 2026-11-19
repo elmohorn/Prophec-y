@@ -15,7 +15,7 @@ Windows needs the Microsoft.Web.WebView2 NuGet SDK and `JUCE_WEBVIEW2_PACKAGE_LO
 
 - 30 primary knobs, 4 mixer faders, 14 original switches, 3 arpeggiator switches, Master.
 - 6 Character knobs: Tube drive/treble/mix and Optical Spring decay/tension/mix.
-- Character Tube, Plasma, Spring, Ferrofluid, Neon and Rotary use a single-device selector and bypass. Rotary supports 8–192 kHz; above that the wet path falls back to dry and the editor warns.
+- Character Tube, Plasma, Spring, Ferrofluid, Neon and Rotary use a single-device selector and bypass. Rotary supports 8–384 kHz; above that the wet path falls back to dry and the editor warns.
 - Arp BPM, Character rhythm and motion, mode/range/division, host/internal/MIDI clock, and LP keytrack.
 - FX A/B algorithm selectors (real native effect types) and five native LFO waveform types.
 - Eight native arpeggiator Character gate switches and the DSP playhead; editing a gate enables Character rhythm.

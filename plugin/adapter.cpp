@@ -13,7 +13,7 @@ int getConfigParameter_ir(const char*,ConfigContext*,int*,int,int){return 0;}
 namespace {float norm(float x){return std::isfinite(x)?std::clamp(x,0.f,1.f):0.f;}}
 RotarySetBfree::RotarySetBfree()=default;
 RotarySetBfree::~RotarySetBfree(){if(w_)freeWhirl(w_);}
-bool RotarySetBfree::prepare(double sr){if(!(sr>=8000&&sr<=192000))return false;if(w_)freeWhirl(w_);w_=allocWhirl();if(!w_)return false;initWhirl(w_,nullptr,sr);phase_=phaseDrum_=smoothWheel_=smoothMotion_=0;setSpeed(Slow);return true;}
+bool RotarySetBfree::prepare(double sr){if(!(sr>=8000&&sr<=384000))return false;if(w_)freeWhirl(w_);w_=allocWhirl();if(!w_)return false;initWhirl(w_,nullptr,sr);phase_=phaseDrum_=smoothWheel_=smoothMotion_=0;setSpeed(Slow);return true;}
 void RotarySetBfree::resetAudio() noexcept {
  if(!w_)return;
  for(auto* b:{w_->HLbuf,w_->HRbuf,w_->DLbuf,w_->DRbuf})std::fill_n(b,WHIRL_BUF_SIZE_SAMPLES,0.f);
