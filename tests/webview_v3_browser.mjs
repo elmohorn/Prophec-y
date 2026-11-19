@@ -22,8 +22,10 @@ try {
   await page.goto(pathToFileURL(resolve('plugin/ui/web/ProphecY_v3_0.html')).href);
   await page.waitForFunction(() => window.__nativeEvents?.some(e => e.name === 'prophecyReady'), { timeout: 15000 });
   assert.equal(await page.locator('.knob-slot').count(), 39);
-  assert.equal(await page.locator('.tactile-btn').count(), 21);
+  assert.equal(await page.locator('.tactile-btn').count(), 24);
   assert.equal(await page.locator('body').evaluate(el => el.classList.contains('juce-hosted')), true);
+  assert.equal(await page.evaluate(() => window.__nativeEvents.filter(e => e.name === 'prophecyParameter').length), 0,
+    'Creating Character knobs must not write parameter defaults to the host');
 
   // Host changes must update UI without being echoed back as parameter edits.
   const hostResult = await page.evaluate(() => {
@@ -42,6 +44,13 @@ try {
   assert.equal(hostResult.knob, '80.00');
   assert.equal(hostResult.character, '65.00');
   assert.equal(hostResult.echoed, 0, 'Host state was echoed back to the DAW');
+  await page.evaluate(() => {
+    window.__nativeEvents.length = 0;
+    window.__nativeListeners.prophecyHostState({character_neon_folds: .8, character_ferro_cutoff: .2});
+  });
+  assert.equal(await page.locator('.character-fx[data-character-type="5"] .character-main-knob .knob-val').first().textContent(), '80%');
+  assert.equal(await page.locator('.character-fx[data-character-type="4"] .character-main-knob .knob-val').first().textContent(), '20%');
+  assert.equal(await page.evaluate(() => window.__nativeEvents.filter(e => e.name === 'prophecyParameter').length), 0);
   // A preset load updates many knobs. It must NOT display the final knob
   // (typically Character MIX) as if the user had manually edited it.
   const glassModeBeforePreset = await page.locator('prophecy-glass-panel #display-mode-name').textContent();
@@ -99,6 +108,8 @@ try {
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_rotary_enable' && e.payload.value === 1)), true);
   assert.equal(await page.locator('.character-fx.rotary').isVisible(), true);
+  await page.evaluate(() => window.__nativeListeners.prophecyTelemetry({characterType:6,characterActive:true,characterInput:.1,rotaryHorn:.2,rotaryDrum:.8,characterDevice:[]}));
+  assert.equal(await page.locator('.character-fx.rotary canvas.character-visual').count(), 1);
   await page.locator('[data-param="character_rotary_motion"]').evaluate(el => { el.value='700'; el.dispatchEvent(new Event('input',{bubbles:true})); });
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_rotary_motion' && e.payload.value === .7)), true);

@@ -303,5 +303,10 @@ void ProphecYWebEditor::timerCallback()
     meter->setProperty("characterType",c.type);
     meter->setProperty("rotaryHorn",c.device.values[0]);
     meter->setProperty("rotaryDrum",c.device.values[1]);
+    juce::Array<juce::var> deviceValues, wetTrace;
+    for (const auto value : c.device.values) deviceValues.add(value);
+    for (const auto value : c.device.wet) wetTrace.add(value);
+    meter->setProperty("characterDevice", deviceValues);
+    meter->setProperty("characterWetTrace", wetTrace);
     browser_.emitEventIfBrowserIsVisible("prophecyTelemetry",juce::var(meter));
 }
