@@ -95,6 +95,12 @@ try {
   });
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_plasma_drive' && e.payload.value === .8)), true);
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('[data-param="character_plasma_drive"]').focus();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.evaluate(() => ['begin','end'].every(phase => window.__nativeEvents.some(e =>
+    e.name === 'prophecyGesture' && e.payload.id === 'character_plasma_drive' && e.payload.phase === phase))), true,
+    'Keyboard edits must delimit host automation gestures');
   assert.equal(await page.locator('.character-fx.char-active').count(), 1,
     'Only one Character FX device may be displayed as active');
   await page.locator('#character-position').selectOption('1');
