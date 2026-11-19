@@ -26,14 +26,15 @@ struct WrapperState {
 };
 
 inline constexpr std::array<std::uint8_t, 4> kStateMagic { 'P', '6', 'V', '1' };
-inline constexpr std::uint16_t kStateVersion = 7;
+inline constexpr std::uint16_t kStateVersion = 8;
 inline constexpr std::size_t kV1StateBytes = 4 + 2 + 2 + 2 + 1024 + 8 + 8;
 inline constexpr std::size_t kV2StateBytes = kV1StateBytes + 3 + 14;
 inline constexpr std::size_t kV3StateBytes = kV2StateBytes + 2;
 inline constexpr std::size_t kV4StateBytes = kV3StateBytes + 57;
 inline constexpr std::size_t kV5StateBytes = kV4StateBytes + 1;
 inline constexpr std::size_t kV6StateBytes = kV5StateBytes + 1;
-inline constexpr std::size_t kEncodedStateBytes = kV6StateBytes + 10;
+inline constexpr std::size_t kV7StateBytes = kV6StateBytes + 10;
+inline constexpr std::size_t kEncodedStateBytes = kV7StateBytes + 10;
 inline constexpr const char* kMidiInputChannelID = "wrapper_midi_input_channel";
 
 std::vector<std::uint8_t> encodeState(const WrapperState& state);

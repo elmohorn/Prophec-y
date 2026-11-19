@@ -71,7 +71,7 @@ assert len(switch_ids) == 17, "Arp switches not connected"
 assert "character_tube_drive" in bridge and "character_spring_mix" in bridge
 assert "character_bypass" in CPP and "character_custom_type" in CPP
 assert "window.__prophecyUpdateADSR?.()" in bridge
-assert "rotaryButton.disabled=true" in bridge, "Unsupported rotary should not be interactive"
+assert "character_rotary_enable" in bridge and "wheel_depth" in bridge, "Rotary bridge missing"
 assert 'data:image/webp;base64' not in HTML, "Defective embedded striped-metal texture returned"
 assert '--brushed-metal:repeating-linear-gradient' in HTML, "Brushed metal must use subtle transparent micrograin"
 assert 'transform:skewX(-6deg)' not in HTML, "Neon logo must not be skewed twice"

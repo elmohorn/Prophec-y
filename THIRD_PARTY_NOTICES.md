@@ -104,3 +104,7 @@ The panoramic header embeds Michroma Regular by Vernon Adams, from
 https://github.com/google/fonts/tree/main/ofl/michroma, under the SIL Open Font
 License 1.1. The full license is in `plugin/assets/fonts/OFL-Michroma.txt` and is
 also included in the VST3 bundle's Resources directory.
+
+
+## setBfree Rotary
+The Rotary Character DSP includes setBfree Whirl by its contributors (GPL-2.0-or-later), source https://github.com/pantherb/setBfree commit 2f41983b5b535bda9b1b1db38a06da29d50ff557. Full license: third_party/setBfree/COPYING. This version includes GPL code.

@@ -172,6 +172,8 @@ private:
         characterTelemetryMailbox_{};
     static_assert(std::atomic<unsigned>::is_always_lock_free);
     std::atomic<float>* customType_{};
+    std::atomic<float>* rotaryEnable_{};
+    std::array<std::atomic<float>*,5> rotaryParams_{};
     std::array<std::array<std::atomic<float>*,7>,4> customParameters_{};
     std::array<std::atomic<float>*, 7> tubeParameters_{};
     std::array<std::atomic<float>*, 3> characterParameters_{};

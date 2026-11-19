@@ -73,6 +73,7 @@ std::vector<std::uint8_t> encodeState(const WrapperState& state)
     putU16(out,static_cast<std::uint16_t>(std::lround(1000.f*(std::isfinite(state.arpCharacterMotion)?std::clamp(state.arpCharacterMotion,0.f,1.f):0.f))));
     putU16(out,static_cast<std::uint16_t>(state.arpVariationSeed&0xffffu));
     putU16(out,static_cast<std::uint16_t>(state.arpVariationSeed>>16u));
+    for(size_t i=0;i<5;++i){float v=state.character.rotary[i];putU16(out,static_cast<std::uint16_t>(std::lround(1000.f*(std::isfinite(v)?std::clamp(v,0.f,1.f):kRotaryDefaults[i]))));}
     return out;
 }
 
@@ -84,7 +85,7 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
 
     std::size_t offset = kStateMagic.size();
     const auto version=getU16(bytes, offset);
-    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kV3StateBytes) || (version==4 && bytes.size()<kV4StateBytes) || (version==5 && bytes.size()<kV5StateBytes) || (version==6 && bytes.size()<kV6StateBytes) || (version==7 && bytes.size()<kEncodedStateBytes))
+    if (version<1 || version>kStateVersion || (version==2 && bytes.size()<kV2StateBytes) || (version==3 && bytes.size()<kV3StateBytes) || (version==4 && bytes.size()<kV4StateBytes) || (version==5 && bytes.size()<kV5StateBytes) || (version==6 && bytes.size()<kV6StateBytes) || (version==7 && bytes.size()<kV7StateBytes) || (version==8 && bytes.size()<kEncodedStateBytes))
         return false;
 
     WrapperState decoded;
@@ -112,7 +113,7 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
         decoded.character.type=bytes[offset++];
         decoded.character.position=bytes[offset++];
         const auto bypass=bytes[offset++];
-        if(decoded.character.type>(version>=4?kCharacterTypes-1:1) || decoded.character.position>1 || bypass>1) return false;
+        if(decoded.character.type>(version>=8?6:version>=4?5:1) || decoded.character.position>1 || bypass>1) return false;
         decoded.character.bypass=bypass!=0;
         for(auto& v:decoded.character.tube) {
             const auto raw=getU16(bytes,offset);
@@ -143,6 +144,7 @@ bool decodeState(std::span<const std::uint8_t> bytes, WrapperState& state)
         const auto seedLow=getU16(bytes,offset),seedHigh=getU16(bytes,offset);
         decoded.arpVariationSeed=static_cast<std::uint32_t>(seedLow)|(static_cast<std::uint32_t>(seedHigh)<<16u);
     }
+    if(version>=8)for(auto& v:decoded.character.rotary){auto raw=getU16(bytes,offset);if(raw>1000)return false;v=static_cast<float>(raw)/1000.f;}
     state = std::move(decoded);
     return true;
 }

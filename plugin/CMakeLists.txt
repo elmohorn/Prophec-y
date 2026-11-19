@@ -147,6 +147,9 @@ get_target_property(P6_VST3_BUNDLE P6CorePlugin_VST3 JUCE_PLUGIN_ARTEFACT_FILE)
 add_custom_command(TARGET P6CorePlugin_VST3 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${P6_VST3_BUNDLE}/Contents/Resources"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/third_party/setBfree/COPYING"
+        "${P6_VST3_BUNDLE}/Contents/Resources/setBfree-GPL.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/third_party/DSPark/LICENSE"
         "${P6_VST3_BUNDLE}/Contents/Resources/DSPark-LICENSE.txt"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

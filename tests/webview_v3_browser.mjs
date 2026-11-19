@@ -94,7 +94,14 @@ try {
   await page.locator('#character-plasma-mode').selectOption('1');
   assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
     e.name === 'prophecyParameter' && e.payload.id === 'character_plasma_mode' && e.payload.value === 1)), true);
-  assert.equal(await page.locator('.tactile-btn').nth(19).isDisabled(), true);
+  await page.evaluate(() => { window.__nativeEvents.length = 0; });
+  await page.locator('.character-device-picker [data-character-type="6"]').click();
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_rotary_enable' && e.payload.value === 1)), true);
+  assert.equal(await page.locator('.character-fx.rotary').isVisible(), true);
+  await page.locator('[data-param="character_rotary_motion"]').evaluate(el => { el.value='700'; el.dispatchEvent(new Event('input',{bubbles:true})); });
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_rotary_motion' && e.payload.value === .7)), true);
   assert.equal(await page.locator('#reset-btn').isDisabled(), true);
 
   // Glass preset navigation must reach native library, not rotate demo names.

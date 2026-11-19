@@ -48,7 +48,8 @@ enable_testing()
 add_executable(p6_led_ring_tests tests/led_ring_test.cpp)
 target_include_directories(p6_led_ring_tests PRIVATE plugin)
 add_test(NAME p6_led_ring_tests COMMAND p6_led_ring_tests)
-add_library(p6character plugin/CharacterFx.cpp plugin/CustomCharacter.cpp
+add_library(p6character plugin/CharacterFx.cpp plugin/CustomCharacter.cpp plugin/adapter.cpp
+    third_party/setBfree/b_whirl/whirl.c third_party/setBfree/b_whirl/eqcomp.c
     third_party/DaisySP/Source/Effects/wavefolder.cpp
     third_party/DaisySP/Source/Filters/svf.cpp
     third_party/DaisySP/Source/Utility/dcblock.cpp)
@@ -122,6 +123,16 @@ else()
 endif()
 add_test(NAME p6_v019_reference_tests COMMAND p6_v019_reference_tests)
 
+add_executable(p6_rotary_motion_tests tests/rotary_motion_test.cpp)
+target_include_directories(p6_rotary_motion_tests PRIVATE plugin)
+target_link_libraries(p6_rotary_motion_tests PRIVATE p6character)
+target_compile_options(p6_rotary_motion_tests PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-UNDEBUG> $<$<CXX_COMPILER_ID:MSVC>:/UNDEBUG>)
+add_test(NAME p6_rotary_motion_tests COMMAND p6_rotary_motion_tests)
+add_executable(p6_rotary_integration_tests tests/rotary_integration_test.cpp plugin/PluginStateCodec.cpp)
+target_include_directories(p6_rotary_integration_tests PRIVATE plugin)
+target_link_libraries(p6_rotary_integration_tests PRIVATE p6character)
+target_compile_options(p6_rotary_integration_tests PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-UNDEBUG> $<$<CXX_COMPILER_ID:MSVC>:/UNDEBUG>)
+add_test(NAME p6_rotary_integration_tests COMMAND p6_rotary_integration_tests)
 add_executable(p6_character_tests tests/character_fx_test.cpp)
 target_link_libraries(p6_character_tests PRIVATE p6character)
 add_test(NAME p6_character_tests COMMAND p6_character_tests)

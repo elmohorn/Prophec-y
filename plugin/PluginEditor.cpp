@@ -261,7 +261,7 @@ P6PluginEditor::P6PluginEditor(P6AudioProcessor& p,juce::File presetRoot):AudioP
         c->setLookAndFeel(&look_);addAndMakeVisible(c);
     }
     for(auto* c:{&type_,&position_,&keyTrack_,&fxAType_,&fxBType_}) c->setColour(juce::ComboBox::textColourId,ink);
-    for(int t=0;t<p6plugin::kCharacterTypes;++t)type_.addItem(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(t)]).toUpperCase(),t+1);type_.setTitle("Prophec-y effect");
+    for(int t=0;t<6;++t)type_.addItem(juce::String(p6plugin::kCharacterNames[static_cast<std::size_t>(t)]).toUpperCase(),t+1);type_.setTitle("Prophec-y effect");
     type_.getProperties().set("characterPlate",true);position_.getProperties().set("characterPlate",true);
     position_.addItem("START OF FX",1);position_.addItem("END OF FX",2);position_.setTitle("Effect position");
     keyTrack_.addItem("OFF",1);keyTrack_.addItem("HALF",2);keyTrack_.addItem("FULL",3);keyTrack_.setTitle("Low-pass keyboard tracking");
@@ -716,7 +716,7 @@ void P6PluginEditor::refreshVisibility()
     for(auto* c:std::array<juce::Component*,8>{&previous_,&next_,&type_,&position_,&bypass_,&collapse_,&motion_,&keyTrack_})c->setVisible(!studioView_);
     collapse_.setVisible(!studioView_&&(showTube_||opticalPreviewActive_));motion_.setVisible(!studioView_&&(showTube_||opticalPreviewActive_)&&!collapsed_);
     plasmaMode_.setVisible(!studioView_&&selected==2&&!opticalPreviewActive_);
-    position_.setEnabled(showTube_&&!opticalPreviewActive_);bypass_.setEnabled(showTube_&&!opticalPreviewActive_);previous_.setEnabled(selected>0);next_.setEnabled(selected<p6plugin::kCharacterTypes-1);
+    position_.setEnabled(showTube_&&!opticalPreviewActive_);bypass_.setEnabled(showTube_&&!opticalPreviewActive_);previous_.setEnabled(selected>0);next_.setEnabled(selected<5);
     module_.setToggleState(!studioView_,juce::dontSendNotification);studio_.setToggleState(studioView_,juce::dontSendNotification);
     collapse_.setButtonText(collapsed_?"SHOW":"HIDE");
     arpPanelSwitch_.setButtonText(arpOpen_?"HIDE":"SHOW");
@@ -1015,6 +1015,7 @@ void P6PluginEditor::paint(juce::Graphics& g)
 
 void P6PluginEditor::bindDevice(int type)
 {
+    type=std::clamp(type,0,5);
     boundType_=type;
     for(std::size_t i=0;i<7;++i) {
         auto& k=tube_[i];
@@ -1059,7 +1060,7 @@ void P6PluginEditor::bindDevice(int type)
 }
 void P6PluginEditor::updateDevice()
 {
-    if(boundType_<2)return;
+    if(boundType_<2||boundType_>5)return;
     std::array<float,7> values{};
     for(std::size_t i=0;i<7;++i)values[i]=processor_.parameters().getRawParameterValue(p6plugin::kCustomIDs[static_cast<std::size_t>(boundType_-2)][i])->load();
     auto reading=visual_;reading.active=reading.active&&reading.type==boundType_;

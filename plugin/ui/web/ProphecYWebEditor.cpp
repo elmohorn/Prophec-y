@@ -260,6 +260,8 @@ void ProphecYWebEditor::timerCallback()
     append("character_custom_type");
     append("character_position");
     append("character_plasma_mode");
+    append(p6plugin::kRotaryEnableID);
+    for(const auto* id:p6plugin::kRotaryIDs)append(id);
     for (const auto* id : p6plugin::kTubeIDs) append(id);
     for (const auto& device : p6plugin::kCustomIDs)
         for (const auto* id : device) append(id);
@@ -295,5 +297,11 @@ void ProphecYWebEditor::timerCallback()
     meter->setProperty("clips",static_cast<int>(levels.clips));
     meter->setProperty("playStep",processor_.arpPlaybackStep());
     meter->setProperty("sequenceStep",processor_.sequencePlaybackStep());
+    const auto c=processor_.characterTelemetry();
+    meter->setProperty("characterInput",c.inputRms);
+    meter->setProperty("characterActive",c.active);
+    meter->setProperty("characterType",c.type);
+    meter->setProperty("rotaryHorn",c.device.values[0]);
+    meter->setProperty("rotaryDrum",c.device.values[1]);
     browser_.emitEventIfBrowserIsVisible("prophecyTelemetry",juce::var(meter));
 }
