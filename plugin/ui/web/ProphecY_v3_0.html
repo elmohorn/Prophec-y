@@ -2259,11 +2259,19 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
   controls.className='seq-native-controls';
   controls.innerHTML='<label for="native-seq-track">TRACK</label><select id="native-seq-track" aria-label="Sequencer track">'+
     Array.from({length:6},(_,i)=>'<option value="'+i+'">'+(i+1)+'</option>').join('')+
-    '</select><button type="button" id="native-seq-play">PLAY</button>'+
+    '</select>'+
     '<label for="native-seq-length">LEN</label><input id="native-seq-length" type="number" min="1" max="64" value="64" />';
   document.querySelector('.seq-head-actions').prepend(controls);
-  document.querySelector('.seq-title-cluster .mod-title').textContent='STEP SEQUENCER';
-  document.querySelector('.seq-title-cluster .seq-muted').textContent='6 TRACKS · 64 STEPS';
+  const seqTitle=document.querySelector('.seq-title-cluster');
+  const seqPlay=document.createElement('button');
+  seqPlay.type='button';
+  seqPlay.id='native-seq-play';
+  seqPlay.className='tactile-btn';
+  seqPlay.innerHTML='<span class="tactile-led" aria-hidden="true"></span>'+
+    '<span class="seq-transport-icon" aria-hidden="true">▶</span><span>PLAY</span>';
+  seqPlay.setAttribute('aria-label','Play step sequencer');
+  seqTitle.querySelector('.mod-title').after(seqPlay);
+  seqTitle.querySelector('.seq-muted').textContent='6 TRACKS · 64 STEPS';
   document.querySelector('.seq-edit').setAttribute('title','Raw Sequential note and velocity; imported bit-7 flag is preserved');
   document.querySelector('.seq-edit .seq-edit-group label').textContent='STATE';
   document.querySelector('.seq-edit #seq-gate-editor').setAttribute('title','Variable gate length is not supported by the native sequencer');
@@ -2321,14 +2329,20 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
     const cell=seq.getNativeCell(step);
     sendCell(step,cell.note,cell.vel);
   },true);
-  const seqPlay=document.getElementById('native-seq-play');
+  const seqPlayIcon=seqPlay.querySelector('.seq-transport-icon');
+  const seqPlayLabel=seqPlay.lastElementChild;
+  const updateSeqTransport=playing=>{
+    seqPlay.classList.toggle('on',playing);
+    seqPlayIcon.textContent=playing?'■':'▶';
+    seqPlayLabel.textContent=playing?'STOP':'PLAY';
+    seqPlay.setAttribute('aria-label',playing?'Stop step sequencer':'Play step sequencer');
+  };
   seqPlay.addEventListener('click',()=>{
     const next=!seqPlay.classList.contains('on');
     bridge.gesture('runtime_sequence_play','begin');
     bridge.setNormalized('runtime_sequence_play',next?1:0);
     bridge.gesture('runtime_sequence_play','end');
-    seqPlay.classList.toggle('on',next);
-    seqPlay.textContent=next?'STOP':'PLAY';
+    updateSeqTransport(next);
   });
   document.getElementById('native-seq-length').addEventListener('change',e=>{
     const len=Math.max(1,Math.min(64,Math.round(Number(e.target.value)||64)));
@@ -2801,11 +2815,8 @@ customElements.define('prophecy-glass-panel',ProphecyGlassPanel);
         const id='arp_step_'+(i+1);
         if(id in state)arpGates.querySelector('[data-gate="'+i+'"]')?.classList.toggle('on',Number(state[id])>=.5);
       }
-      if('runtime_sequence_play' in state){
-        const playing=Number(state.runtime_sequence_play)>=.5;
-        seqPlay.classList.toggle('on',playing);
-        seqPlay.textContent=playing?'STOP':'PLAY';
-      }
+      if('runtime_sequence_play' in state)
+        updateSeqTransport(Number(state.runtime_sequence_play)>=.5);
       if('nrpn_0169' in state)
         document.getElementById('native-seq-length').value=String(1+Math.round(clamp(state.nrpn_0169)*63));
       if('character_position' in state)
@@ -2849,8 +2860,9 @@ body.juce-hosted .seq-native-controls{display:flex;align-items:center;gap:6px}
 body.juce-hosted .seq-native-controls select,body.juce-hosted .seq-native-controls input{
  background:#071016;border:1px solid #374553;border-radius:3px;color:#c4e6ef;font:700 10px monospace;height:24px}
 body.juce-hosted .seq-native-controls input{width:38px;text-align:center}
-body.juce-hosted .seq-native-controls button{border:1px solid #3b4756;border-radius:3px;background:#111923;color:#d6e0ec;font:700 9px monospace;padding:5px 7px;cursor:pointer}
-body.juce-hosted .seq-native-controls button.on{border-color:#ee4147;color:white;background:#541b23}
+body.juce-hosted .seq-title-cluster{align-items:center}
+body.juce-hosted #native-seq-play{min-width:66px;padding:5px 7px;font-size:10px;color:#f1f5f9}
+body.juce-hosted #native-seq-play:focus-visible{outline:2px solid #f1f5f9;outline-offset:2px}
 body.juce-hosted .seq-arp-character-gates{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:5px}
 body.juce-hosted .seq-arp-character-gates button{background:#15191e;color:#9ca9b7;border:1px solid #424956;border-radius:3px;cursor:pointer;font:700 9px monospace;padding:5px 8px}
 body.juce-hosted .seq-arp-character-gates button.on{background:#661d25;border-color:#e94b51;color:#fff}
