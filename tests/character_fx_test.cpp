@@ -1,5 +1,6 @@
 #include "CharacterFx.h"
 #include "CustomCharacter.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -59,6 +60,37 @@ int main()
         for(int setting=0;setting<2;++setting){p6plugin::CharacterFx fx;fx.prepare(48000);p6plugin::CharacterState s;s.type=2;s.plasmaMode=1;s.custom[0][5]=1.f;s.custom[0][6]=setting?.7f:.3f;fx.setState(s);
             for(int n=0;n<24000;++n){fx.advanceRoute();const auto y=fx.process({.1*std::sin(n*.11),0});if(n>12000)energies[setting]+=y.left*y.left;}}
         CHECK(energies[0]>1.e-6);CHECK(energies[1]>energies[0]*20.);
+    }
+    // An accent ignites Hybrid at either Sustain setting. The soft signal
+    // that follows should keep conducting only at the longer setting.
+    for (double rate : {44100., 48000., 96000., 192000.}) {
+        p6plugin::CustomCharacter shortRelease, longRelease;
+        shortRelease.prepare(rate, 71);
+        longRelease.prepare(rate, 71);
+        auto shortControls = p6plugin::kCustomDefaults[0];
+        auto longControls = shortControls;
+        shortControls[2] = 0.f;
+        longControls[2] = 1.f;
+        double shortAccent = 0., longAccent = 0.;
+        double shortTail = 0., longTail = 0.;
+        for (int n = 0; n < static_cast<int>(rate * .15); ++n) {
+            const double t = n / rate;
+            const double amplitude = t < .05 ? .12 : .008;
+            const double x = amplitude * std::sin(6.283185307179586 * 997. * t);
+            const auto a = shortRelease.process({x, 0.}, 2, shortControls);
+            const auto b = longRelease.process({x, 0.}, 2, longControls);
+            if (t >= .035 && t < .05) {
+                shortAccent += a.left * a.left;
+                longAccent += b.left * b.left;
+            }
+            if (t >= .11) {
+                shortTail += a.left * a.left;
+                longTail += b.left * b.left;
+            }
+        }
+        CHECK(shortAccent > 1.e-5 && longAccent > 1.e-5);
+        CHECK(std::abs(shortAccent / longAccent - 1.) < .05);
+        CHECK(longTail > 1.e-5 && longTail > 20. * shortTail);
     }
     // Switching algorithms while Plasma is active must use the existing
     // click-protected route transition and remain allocation-free.
@@ -165,6 +197,34 @@ int main()
             const auto b=p6plugin::CustomCharacter::neonTransfer(1.e-7f,v);
             CHECK(std::abs(a-b)<.0001f);
         }
+    // Folds changes the reflected segments while Drive moves the first knee.
+    for (float polarity : {-1.f, 1.f}) {
+        float previousKnee = 1.f;
+        for (float drive : {.15f, .45f}) {
+            auto low = p6plugin::kCustomDefaults[3];
+            low[0] = drive;
+            low[1] = 0.f;
+            auto high = low;
+            high[1] = 1.f;
+            float knee = 0.f;
+            float shapeDifference = 0.f;
+            for (int n = 1; n <= 1000; ++n) {
+                const float x = polarity * static_cast<float>(n) * .001f;
+                const float a = p6plugin::CustomCharacter::neonTransfer(x, low);
+                const float b = p6plugin::CustomCharacter::neonTransfer(x, high);
+                if (std::abs(a - b) > .0001f && knee == 0.f)
+                    knee = std::abs(x);
+                shapeDifference = std::max(shapeDifference, std::abs(a - b));
+            }
+            CHECK(knee > 0.f && knee < previousKnee);
+            CHECK(shapeDifference > .2f);
+            // Both shapes reach unity at the same first knee.
+            const float x = polarity * (knee - .001f);
+            CHECK(std::abs(p6plugin::CustomCharacter::neonTransfer(x, low)) > .97f);
+            CHECK(std::abs(p6plugin::CustomCharacter::neonTransfer(x, high)) > .97f);
+            previousKnee = knee;
+        }
+    }
     // Measure a physical 10%-to-90% envelope rise after the real
     // oversampler, at the same step level and duration for every rate.
     for(double sr:{44100.,48000.,96000.,192000.}) {

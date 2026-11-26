@@ -12,6 +12,35 @@ namespace {
 float gain(float db){return std::pow(10.f,db/20.f);}
 float pole(float hz,double rate){return 1.f-std::exp(static_cast<float>(-6.283185307179586*hz/rate));}
 float bounded(double x){return std::isfinite(x)?static_cast<float>(32.*std::tanh(x/32.)):0.f;}
+
+float neonDrive(float drive) noexcept
+{
+    // Keep the factory knee near its previous position while leaving a
+    // unity-gain range at minimum Drive.
+    return gain(24.f * drive + 13.f * drive / (drive + .1f));
+}
+
+float neonFoldRate(float folds) noexcept
+{
+    return .4f + 2.f * folds;
+}
+
+float neonVoltage(float input, float drive, float symmetry, float bias) noexcept
+{
+    return drive * (input * (input >= 0.f ? 1.f + symmetry : 1.f - symmetry) + bias);
+}
+
+float foldNeon(daisysp::Wavefolder& folder, float voltage, float foldRate) noexcept
+{
+    const float magnitude = std::abs(voltage);
+    if (magnitude <= 1.f)
+        return voltage;
+
+    // Scale the distance between folds after the first knee. The linear
+    // region and the position of the first knee are independent of Folds.
+    const float phase = 1.f + (magnitude - 1.f) * foldRate;
+    return folder.Process(std::copysign(phase, voltage));
+}
 }
 struct CustomCharacter::Impl {
     dspark::Oversampling<float,2> os{2,dspark::Oversampling<float,2>::Quality::High};
@@ -28,7 +57,7 @@ struct CustomCharacter::Impl {
     std::array<p6::StereoSample,512> pad{};std::size_t write{};int delay{},neonDelay{};std::uint32_t tick{},scopeTick{};
     std::array<float,7> current{};bool first{true};double rate{48000},highRate{96000};
     float springDecay{},springDamping{},plasmaAttack{},ferroAttack{},hybridGateAttack{},hybridGateRelease{},hybridReferenceOutput{};
-    float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},folds{},symmetry{},bias{},responseAlpha{};
+    float parameterAlpha{},meterAlpha{},drive{},threshold{},holdSamples{},toneAlpha{},output{},foldRate{},symmetry{},bias{},responseAlpha{};
     std::array<double,3> tapPower{};
     float conductionMean{},foldMean{},scopeAlpha{};
     std::array<float,2> actualCutoff{},scopePower{};int scopeChannel{};
@@ -40,7 +69,6 @@ void CustomCharacter::prepare(double rate,int latency)
 {
     auto& p=*p_;p.rate=std::max(rate,8000.);p.highRate=p.rate*2.;p.os.prepare({p.rate,1,2});p.neonOs.prepare({p.rate,1,2});p.spring.prepare(p.highRate);
     p.hybridGateAttack=1.f-std::exp(-1.f/(.002f*static_cast<float>(p.highRate)));
-    p.hybridGateRelease=1.f-std::exp(-1.f/(.030f*static_cast<float>(p.highRate)));
     p.hybridReferenceOutput=gain(-6.f); // output knob midpoint; do not cancel user gain changes
     p.delay=std::max(0,latency-p.os.getLatency());p.neonDelay=std::max(0,latency-p.neonOs.getLatency());p.scopeAlpha=1.f-std::exp(static_cast<float>(-1./(.02*p.rate)));
     p.plasmaAttack=1.f-std::exp(static_cast<float>(std::log(.96)*96000./p.highRate));
@@ -54,10 +82,12 @@ void CustomCharacter::reset() noexcept
 }
 float CustomCharacter::neonTransfer(float x,const std::array<float,7>& v) noexcept
 {
-    daisysp::Wavefolder folder;folder.Init();const float asym=(v[2]*2.f-1.f)*.7f;
-    folder.SetGain(gain(24.f*v[0])*(1.f+7.f*v[1]));folder.SetOffset((v[3]*2.f-1.f)*.35f);
-    x=std::clamp(x,-32.f,32.f);
-    return folder.Process(x*(x>=0?1.f+asym:1.f-asym));
+    daisysp::Wavefolder folder;
+    folder.Init();
+    const float symmetry = (2.f * v[2] - 1.f) * .7f;
+    const float bias = (2.f * v[3] - 1.f) * .35f;
+    const float voltage = neonVoltage(std::clamp(x, -32.f, 32.f), neonDrive(v[0]), symmetry, bias);
+    return foldNeon(folder, voltage, neonFoldRate(v[1]));
 }
 p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const std::array<float,7>& values,int plasmaMode) noexcept
 {
@@ -77,10 +107,20 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
         const auto& v=p.current;
         if(p.tick++%16==0) {
             p.springDecay=v[1];p.springDamping=1.f-v[4];
-            p.drive=type==3?gain(-12.f+24.f*v[0]):type==5?gain(24.f*v[0]):gain(36.f*v[0]);
-            p.threshold=.015f+.735f*v[1];p.holdSamples=static_cast<float>(p.highRate)*(.00005f+.00995f*v[2]);
+            p.drive=type==3?gain(-12.f+24.f*v[0]):type==5?neonDrive(v[0]):gain(36.f*v[0]);
+            p.threshold=.015f+.735f*v[1];
+            if (type == 2) {
+                if (plasmaMode == 1) {
+                    // A short release at minimum and a longer discharge toward
+                    // maximum. The factory Sustain of .4 still gives 30 ms.
+                    const float releaseSeconds = .006f + .15f * v[2] * v[2];
+                    p.hybridGateRelease = 1.f - std::exp(-1.f / (releaseSeconds * static_cast<float>(p.highRate)));
+                } else {
+                    p.holdSamples = static_cast<float>(p.highRate) * (.00005f + .00995f * v[2]);
+                }
+            }
             p.toneAlpha=pole(500.f*std::pow(36.f,v[4]),p.highRate);p.output=gain(-24.f+36.f*v[6]);
-            p.folds=1.f+7.f*v[1];p.symmetry=(2.f*v[2]-1.f)*.7f;p.bias=(2.f*v[3]-1.f)*.35f;
+            p.foldRate=neonFoldRate(v[1]);p.symmetry=(2.f*v[2]-1.f)*.7f;p.bias=(2.f*v[3]-1.f)*.35f;
             p.responseAlpha=1.f-std::exp(static_cast<float>(-1./(p.highRate*(.01+.29*v[3]))));
             if(type==4)for(auto& c:p.channels)c.filter.SetRes(.1f+.8f*v[1]);
         }
@@ -99,14 +139,23 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
             auto& channel=p.channels[c];const float x=samples[c];float y=x;
             if(type==2) {
                 const float voltage=x*p.drive;
-                if(std::abs(voltage)>p.threshold){channel.lit=true;channel.hold=p.holdSamples;}
-                else if(std::abs(voltage)<p.threshold*.65f){channel.hold=std::max(0.f,channel.hold-1.f);if(channel.hold==0)channel.lit=false;}
-                float target=channel.lit?1.f:0.f;
-                if(plasmaMode==1) {
-                    const float envelopeRate=std::abs(voltage)>channel.envelope?p.hybridGateAttack:p.hybridGateRelease;
-                    channel.envelope+=envelopeRate*(std::abs(voltage)-channel.envelope);
-                    const float knee=std::clamp((channel.envelope-p.threshold*.5f)/std::max(p.threshold,1.e-6f),0.f,1.f);
-                    target=knee*knee*(3.f-2.f*knee);
+                const float magnitude = std::abs(voltage);
+                float target;
+                if (plasmaMode == 1) {
+                    const float envelopeRate = magnitude > channel.envelope ? p.hybridGateAttack : p.hybridGateRelease;
+                    channel.envelope += envelopeRate * (magnitude - channel.envelope);
+                    const float knee = std::clamp((channel.envelope - p.threshold * .5f) / p.threshold, 0.f, 1.f);
+                    target = knee * knee * (3.f - 2.f * knee);
+                } else {
+                    if (magnitude > p.threshold) {
+                        channel.lit = true;
+                        channel.hold = p.holdSamples;
+                    } else if (magnitude < p.threshold * .65f) {
+                        channel.hold = std::max(0.f, channel.hold - 1.f);
+                        if (channel.hold == 0.f)
+                            channel.lit = false;
+                    }
+                    target = channel.lit ? 1.f : 0.f;
                 }
                 channel.conduction+=p.plasmaAttack*(target-channel.conduction);
                 const float character=v[3],offset=(character-.5f)*.2f;
@@ -122,9 +171,9 @@ p6::StereoSample CustomCharacter::process(p6::StereoSample input,int type,const 
                 }
                 channel.filter.Process(std::tanh(1.5f*x));y=channel.dc.Process(channel.filter.Low())*p.output;
             } else if(type==5) {
-                const float g=p.drive*p.folds;const float shaped=x*(x>=0?1.f+p.symmetry:1.f-p.symmetry);
-                channel.folder.SetGain(g);channel.folder.SetOffset(p.bias);y=channel.folder.Process(shaped);
-                foldTarget=std::max(foldTarget,std::abs((shaped+p.bias)*g)>1.f?1.f:0.f);
+                const float voltage = neonVoltage(x, p.drive, p.symmetry, p.bias);
+                y = foldNeon(channel.folder, voltage, p.foldRate);
+                foldTarget = std::max(foldTarget, std::abs(voltage) > 1.f ? 1.f : 0.f);
                 channel.tone+=p.toneAlpha*(y-channel.tone);y=channel.dc.Process(channel.tone)*p.output;
             }
             samples[c]=std::isfinite(y)?y:0.f;
