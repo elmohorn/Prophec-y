@@ -11,9 +11,10 @@ inline constexpr std::array<const char*, 7> kTubeIDs {
     "character_tube_middle", "character_tube_treble", "character_tube_mix", "character_tube_output" };
 inline constexpr std::array<const char*, 7> kTubeNames {
     "Drive", "Sag", "Bass", "Middle", "Treble", "Mix", "Output" };
-inline constexpr std::array<float, 7> kTubeDefaults { .25f, .3f, .5f, .5f, .5f, 1.f, .5f };
+inline constexpr std::array<float, 7> kTubeDefaults { .25f, .3f, .5f, .5f, .5f, 1.f, .667f };
 inline constexpr const char* kCharacterTypeID = "character_type";
 inline constexpr const char* kCharacterPositionID = "character_position";
+inline constexpr const char* kCharacterAutoLevelID = "character_auto_level";
 inline constexpr const char* kCharacterBypassID = "character_bypass";
 
 inline constexpr int kCharacterTypes=7;
@@ -33,14 +34,14 @@ inline constexpr std::array<std::array<const char*,7>,4> kCustomNames{{
     {"Drive","Folds","Symmetry","Bias","Tone","Mix","Output"}
 }};
 inline constexpr std::array<std::array<float,7>,4> kCustomDefaults{{
-    {.35f,.25f,.4f,.35f,.65f,.5f,.5f},
-    {.5f,.5f,.5f,.5f,.5f,.35f,.5f},
-    {.55f,.3f,.5f,.4f,1.f,1.f,.5f},
-    {.3f,.3f,.5f,.5f,.65f,1.f,.5f}
+    {.35f,.15f,.4f,.35f,.65f,.35f,.667f},     // Plasma Hybrid, 0 dB
+    {.625f,.6f,.5f,.35f,.5f,.28f,.75f},      // Optical Spring, +3 dB
+    {.4f,.35f,.62f,.3f,1.f,.55f,.667f},      // Ferrofluid, 0 dB
+    {.3f,.3f,.5f,.5f,.65f,.45f,.417f}        // Neon Wavefolder, -9 dB
 }};
 inline constexpr const char* kRotaryEnableID="character_rotary_enable";
 inline constexpr std::array<const char*,5> kRotaryIDs{"character_rotary_motion","character_rotary_wheel_depth","character_rotary_speed","character_rotary_mix","character_rotary_output"};
-inline constexpr std::array<float,5> kRotaryDefaults{0.f,0.f,0.f,1.f,.5f};
+inline constexpr std::array<float,5> kRotaryDefaults{.3f,1.f,0.f,.75f,.5f};
 struct DeviceTelemetry {
     std::array<float,8> values{};
     std::array<float,32> input{},wet{};
@@ -51,6 +52,7 @@ struct CharacterState {
     int legacyType{}; // underlying None/Tube automation while a custom device is selected
     int position{1}; // 0 start; 1 end
     bool bypass{};
+    bool autoLevel{};
     int plasmaMode{1}; // 0 Legacy, 1 Hybrid
     std::array<float,5> rotary{kRotaryDefaults};
     std::array<float, 7> tube{kTubeDefaults};

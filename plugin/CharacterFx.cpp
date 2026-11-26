@@ -19,6 +19,18 @@ struct CharacterFx::Impl {
     std::array<float,7> lastParameters{};
     float step{1.f/480.f};
     double inputPower{}, outputPower{}, changePower{}, meterAlpha{};
+    // Linked stereo meter, independent of the visual and manual output trims.
+    double dryLevel{}, mixedLevel{}, inputEnvelope{}, levelGain{1.}, targetGain{1.}, levelAmount{};
+    double envelopeDecay{}, gainAlpha{}, referenceTrim{1.};
+    std::array<double,7> levelAlpha{};
+    int levelTick{}, levelInterval{1};
+
+    void resetLevel() noexcept
+    {
+        dryLevel=mixedLevel=inputEnvelope=levelAmount=0.;
+        levelGain=targetGain=1.;
+        levelTick=0;
+    }
 };
 CharacterFx::CharacterFx() : impl_(std::make_unique<Impl>()) {}
 CharacterFx::~CharacterFx() = default;
@@ -35,6 +47,14 @@ void CharacterFx::prepare(double sr)
     p.ready=true; p.initial=true; p.parametersInitial=true;
     p.inputPower=p.outputPower=p.changePower=0.;
     p.meterAlpha=1.-std::exp(-1./(sr*.02));
+    p.envelopeDecay=std::exp(-1./(sr*.025));
+    p.gainAlpha=1.-std::exp(-1./(sr*.2));
+    p.levelInterval=std::max(1, static_cast<int>(sr*.01));
+    // Time constants in device order. Spring and Rotary retain their movement.
+    constexpr std::array seconds{.45,.45,.65,1.1,1.1,.45,2.5};
+    for (std::size_t i=0;i<seconds.size();++i)
+        p.levelAlpha[i]=1.-std::exp(-1./(sr*seconds[i]));
+    p.resetLevel();
 }
 void CharacterFx::setState(const CharacterState& state) noexcept
 {
@@ -78,6 +98,7 @@ bool CharacterFx::advanceRoute() noexcept
         if(p.gain==0.f) {
             p.active.position=desired;p.active.type=p.requested.type;p.active.plasmaMode=p.requested.plasmaMode;
             p.tube.reset();p.custom.reset(); p.dry.fill({}); p.rotaryWetDelay.fill({}); p.write=0; p.blend=0;
+            p.resetLevel();
             p.hold=p.delay;
             return true;
         }
@@ -123,7 +144,40 @@ p6::StereoSample CharacterFx::process(p6::StereoSample x) noexcept
         }
     }
     p.meter=std::max(static_cast<float>(std::max(std::abs(x.left),std::abs(x.right))), p.meter*.9995f);
-    const p6::StereoSample out{dry.left+(wet.left-dry.left)*p.blend, dry.right+(wet.right-dry.right)*p.blend};
+    p6::StereoSample out{dry.left+(wet.left-dry.left)*p.blend, dry.right+(wet.right-dry.right)*p.blend};
+    const bool levelEnabled=p.requested.autoLevel && enabled && target>0.f
+        && (p.active.type!=6 || p.rotaryReady);
+    if(levelEnabled || p.levelAmount>0.) {
+        p.levelAmount+=std::clamp((levelEnabled?1.:0.)-p.levelAmount,-double(p.step),double(p.step));
+        if(levelEnabled) {
+            if(p.levelTick==0) {
+                const int type=p.active.type;
+                // Refer the wet measurement to its factory trim so manual Output remains audible.
+                const double deltaDb=type==6
+                    ? 24.*(p.requested.rotary[4]-kRotaryDefaults[4])
+                    : 36.*(selected[6]-(type==1?kTubeDefaults[6]:kCustomDefaults[static_cast<std::size_t>(type-2)][6]));
+                p.referenceTrim=std::pow(10.,-deltaDb/20.);
+                p.levelTick=p.levelInterval;
+                if(p.inputEnvelope>0.000316 && p.dryLevel>1.e-7 && p.mixedLevel>1.e-9)
+                    p.targetGain=std::sqrt(std::clamp(p.dryLevel/p.mixedLevel,.0630957,15.8489));
+            }
+            --p.levelTick;
+            p.inputEnvelope=std::max({std::abs(dry.left),std::abs(dry.right),p.inputEnvelope*p.envelopeDecay});
+            if(p.inputEnvelope>0.000316) {
+                const double alpha=p.levelAlpha[static_cast<std::size_t>(p.active.type)];
+                const double refL=dry.left+(wet.left*p.referenceTrim-dry.left)*p.blend;
+                const double refR=dry.right+(wet.right*p.referenceTrim-dry.right)*p.blend;
+                p.dryLevel+=alpha*(.5*(dry.left*dry.left+dry.right*dry.right)-p.dryLevel);
+                p.mixedLevel+=alpha*(.5*(refL*refL+refR*refR)-p.mixedLevel);
+                p.levelGain+=p.gainAlpha*(p.targetGain-p.levelGain);
+            }
+        }
+        const double correction=1.+p.levelAmount*(p.levelGain-1.);
+        out.left*=correction;
+        out.right*=correction;
+        if(p.levelAmount==0.)
+            p.resetLevel();
+    }
     const double dl=out.left-dry.left, dr=out.right-dry.right;
     p.inputPower+=p.meterAlpha*(.5*(x.left*x.left+x.right*x.right)-p.inputPower);
     p.outputPower+=p.meterAlpha*(.5*(out.left*out.left+out.right*out.right)-p.outputPower);

@@ -22,6 +22,37 @@ static p6::StereoSample scale(void*,p6::StereoSample x) noexcept {return {x.left
 
 int main()
 {
+    {
+        constexpr double rate = 48000.;
+        p6plugin::CharacterState state;
+        state.type = 1;
+        state.tube[0] = .6f;
+        state.autoLevel = true;
+        p6plugin::CharacterFx factory, trimmed;
+        factory.prepare(rate);
+        trimmed.prepare(rate);
+        factory.setState(state);
+        state.tube[6] -= .16666667f; // 6 dB below the factory trim
+        trimmed.setState(state);
+        double inputPower = 0., factoryPower = 0., trimmedPower = 0.;
+        counting = true;
+        for (int n = 0; n < 4 * rate; ++n) {
+            const p6::StereoSample x{.18 * std::sin(n * .08), .09 * std::cos(n * .11)};
+            factory.advanceRoute();
+            trimmed.advanceRoute();
+            const auto a = factory.process(x);
+            const auto b = trimmed.process(x);
+            if (n >= 3 * rate) {
+                inputPower += x.left * x.left + x.right * x.right;
+                factoryPower += a.left * a.left + a.right * a.right;
+                trimmedPower += b.left * b.left + b.right * b.right;
+            }
+        }
+        counting = false;
+        CHECK(allocations == 0);
+        CHECK(std::abs(10. * std::log10(factoryPower / inputPower)) < .5);
+        CHECK(std::abs(10. * std::log10(trimmedPower / factoryPower) + 6.) < .15);
+    }
     // Hybrid compensation must not cancel the user's Output knob.
     {
         double energies[2]{};

@@ -55,6 +55,7 @@ int main()
     a.extras = { 3, 2, 1, 1, 0, 1, 1, 1 };
     a.midiInputChannel=16;
     a.character.type=1;a.character.position=0;a.character.bypass=true;
+    a.character.autoLevel=true;
     a.character.plasmaMode=1;
     a.character.tube={.123f,.456f,.789f,.1f,.2f,.3f,.9f};
 
@@ -72,6 +73,7 @@ int main()
     P6_CHECK(b.midiInputChannel==16);
     P6_CHECK(b.character.type==1 && b.character.position==0 && b.character.bypass);
     P6_CHECK(b.character.plasmaMode==1);
+    P6_CHECK(b.character.autoLevel);
     for(std::size_t i=0;i<a.character.tube.size();++i)
         P6_CHECK(std::abs(b.character.tube[i]-a.character.tube[i])<.00001f);
     // Previous sessions contain no extension and must reopen with None.
@@ -79,6 +81,15 @@ int main()
     P6_CHECK(p6plugin::decodeState(legacy,b));
     P6_CHECK(b.character.type==0 && b.character.tube==p6plugin::kTubeDefaults);
     P6_CHECK(b.patch.rawPayload==a.patch.rawPayload);
+    auto version8 = bytes;
+    version8.resize(p6plugin::kV8StateBytes);
+    version8[4] = 8;
+    P6_CHECK(p6plugin::decodeState(version8,b));
+    P6_CHECK(!b.character.autoLevel);
+    P6_CHECK(b.character.tube == a.character.tube);
+    auto invalidAutoLevel = bytes;
+    invalidAutoLevel.back() = 2;
+    P6_CHECK(!p6plugin::decodeState(invalidAutoLevel,b));
     auto invalid=bytes;invalid[p6plugin::kV1StateBytes]=9;
     P6_CHECK(!p6plugin::decodeState(invalid,b));
 

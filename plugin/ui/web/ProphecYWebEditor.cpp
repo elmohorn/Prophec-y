@@ -276,6 +276,7 @@ void ProphecYWebEditor::timerCallback()
     append(nrpnId(160));
     append(nrpnId(168));
     append("character_bypass");
+    append(p6plugin::kCharacterAutoLevelID);
     append("character_type");
     append("character_custom_type");
     append("character_position");

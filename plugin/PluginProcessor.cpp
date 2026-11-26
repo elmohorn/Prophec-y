@@ -118,7 +118,8 @@ P6AudioProcessor::P6AudioProcessor()
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)customParameters_[d][i]=apvts_.getRawParameterValue(p6plugin::kCustomIDs[d][i]);
     characterParameters_={apvts_.getRawParameterValue(p6plugin::kCharacterTypeID),
                           apvts_.getRawParameterValue(p6plugin::kCharacterPositionID),
-                          apvts_.getRawParameterValue(p6plugin::kCharacterBypassID)};
+                          apvts_.getRawParameterValue(p6plugin::kCharacterBypassID),
+                          apvts_.getRawParameterValue(p6plugin::kCharacterAutoLevelID)};
     syncHostParametersFromPatch (patch_);
     hostSequencePlayObserved_.store (
         apvts_.getRawParameterValue (kSequencePlayID)->load() >= 0.5f ? 1 : 0,
@@ -300,6 +301,8 @@ P6AudioProcessor::createParameterLayout (const p6::P6PatchState& defaults)
         layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{p6plugin::kArpStepIDs[i],1},"Arp Step "+juce::String(static_cast<int>(i+1)),true));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{p6plugin::kRotaryEnableID,1},"Rotary Selected",false));
     for(size_t i=0;i<5;++i)layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{p6plugin::kRotaryIDs[i],1},p6plugin::kRotaryIDs[i],juce::NormalisableRange<float>{0.f,1.f,.001f},p6plugin::kRotaryDefaults[i]));
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{p6plugin::kCharacterAutoLevelID,1},"Character Auto Level",false));
     return layout;
 }
 
@@ -704,6 +707,7 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
             characterState.type=selectedCharacterType();
             characterState.position=static_cast<int>(characterParameters_[1]->load());
             characterState.bypass=characterParameters_[2]->load()>=.5f;
+            characterState.autoLevel=characterParameters_[3]->load()>=.5f;
             characterState.plasmaMode=static_cast<int>(plasmaMode_->load());
             for(std::size_t i=0;i<tubeParameters_.size();++i)characterState.tube[i]=tubeParameters_[i]->load();
             for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)characterState.custom[d][i]=customParameters_[d][i]->load();
@@ -847,6 +851,7 @@ void P6AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.character.legacyType=static_cast<int>(characterParameters_[0]->load());
     state.character.position=static_cast<int>(characterParameters_[1]->load());
     state.character.bypass=characterParameters_[2]->load()>=.5f;
+    state.character.autoLevel=characterParameters_[3]->load()>=.5f;
     state.character.plasmaMode=static_cast<int>(plasmaMode_->load());
     for(std::size_t i=0;i<tubeParameters_.size();++i) state.character.tube[i]=tubeParameters_[i]->load();
     for(std::size_t d=0;d<4;++d)for(std::size_t i=0;i<7;++i)state.character.custom[d][i]=customParameters_[d][i]->load();
@@ -916,6 +921,7 @@ void P6AudioProcessor::setStateInformation (const void* data, int sizeInBytes)
         if(auto* p=apvts_.getParameter(p6plugin::kCustomIDs[d][i]))p->setValueNotifyingHost(state.character.custom[d][i]);
     setActual(p6plugin::kCharacterPositionID,state.character.position);
     setActual(p6plugin::kCharacterBypassID,state.character.bypass?1:0);
+    setActual(p6plugin::kCharacterAutoLevelID,state.character.autoLevel?1:0);
     for(std::size_t i=0;i<p6plugin::kTubeIDs.size();++i)
         if(auto* p=apvts_.getParameter(p6plugin::kTubeIDs[i])) p->setValueNotifyingHost(state.character.tube[i]);
     if(auto* master=apvts_.getParameter(p6plugin::kMasterOutputID))
@@ -980,7 +986,11 @@ juce::String P6AudioProcessor::activePresetId() const {const juce::ScopedLock lo
 juce::String P6AudioProcessor::activePresetName() const {const juce::ScopedLock lock(presetIdentityLock_);return activePresetName_;}
 void P6AudioProcessor::loadMusicalPreset(const p6plugin::WrapperState& source,const juce::String& id,const juce::String& name)
 {
-    auto current=presetSnapshot();current.patch=source.patch;current.sequenceControls=source.sequenceControls;current.character=source.character;
+    auto current=presetSnapshot();
+    const bool autoLevel=current.character.autoLevel;
+    current.patch=source.patch;current.sequenceControls=source.sequenceControls;
+    current.character=source.character;
+    current.character.autoLevel=autoLevel;
     current.arpCharacterEnabled=source.arpCharacterEnabled;current.arpCharacterFreeze=source.arpCharacterFreeze;
     current.arpCharacterMask=source.arpCharacterMask;current.arpCharacterRhythm=source.arpCharacterRhythm;current.arpCharacterMotion=source.arpCharacterMotion;
     current.arpVariationSeed=source.arpVariationSeed;

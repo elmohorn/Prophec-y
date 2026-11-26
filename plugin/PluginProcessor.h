@@ -176,7 +176,7 @@ private:
     std::array<std::atomic<float>*,5> rotaryParams_{};
     std::array<std::array<std::atomic<float>*,7>,4> customParameters_{};
     std::array<std::atomic<float>*, 7> tubeParameters_{};
-    std::array<std::atomic<float>*, 3> characterParameters_{};
+    std::array<std::atomic<float>*, 4> characterParameters_{};
     p6::P6PerformanceScheduler scheduler_ { engine_ };
     p6::P6MidiRouter midiRouter_{};
     juce::AudioProcessorValueTreeState apvts_;

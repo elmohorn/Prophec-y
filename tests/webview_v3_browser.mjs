@@ -22,10 +22,19 @@ try {
   await page.goto(pathToFileURL(resolve('plugin/ui/web/ProphecY_v3_0.html')).href);
   await page.waitForFunction(() => window.__nativeEvents?.some(e => e.name === 'prophecyReady'), { timeout: 15000 });
   assert.equal(await page.locator('.knob-slot').count(), 39);
-  assert.equal(await page.locator('.tactile-btn').count(), 24);
+  assert.equal(await page.locator('.tactile-btn').count(), 25);
   assert.equal(await page.locator('body').evaluate(el => el.classList.contains('juce-hosted')), true);
   assert.equal(await page.evaluate(() => window.__nativeEvents.filter(e => e.name === 'prophecyParameter').length), 0,
     'Creating Character knobs must not write parameter defaults to the host');
+  assert.equal(await page.locator('[data-param="character_rotary_mix"]').inputValue(), '750');
+  assert.equal(await page.locator('[data-param="character_neon_output"]').inputValue(), '417');
+  const autoLevel = page.locator('.character-auto-level');
+  assert.equal(await autoLevel.getAttribute('aria-pressed'), 'false');
+  await autoLevel.evaluate(button => button.click());
+  assert.equal(await page.evaluate(() => window.__nativeEvents.some(e =>
+    e.name === 'prophecyParameter' && e.payload.id === 'character_auto_level' && e.payload.value === 1)), true);
+  await page.evaluate(() => window.__nativeListeners.prophecyHostState({character_auto_level: 0}));
+  assert.equal(await autoLevel.getAttribute('aria-pressed'), 'false');
 
   // Host changes must update UI without being echoed back as parameter edits.
   const hostResult = await page.evaluate(() => {
@@ -249,7 +258,7 @@ try {
   await page.evaluate(() => window.__nativeListeners.prophecyHostState({
     runtime_sequence_play:0,nrpn_0169:31/63,arp_step_1:1
   }));
-  assert.equal(await page.locator('#native-seq-play').textContent(),'PLAY');
+  assert.equal(await page.locator('#native-seq-play').getAttribute('aria-label'),'Play step sequencer');
   assert.equal(await page.locator('#native-seq-length').inputValue(),'32');
   await page.locator('#arp-advanced-btn').click();
   assert.equal(await page.locator('.seq-arp-character-gates button').count(),8);
