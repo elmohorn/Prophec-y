@@ -696,6 +696,10 @@ void P6AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
                 sequenceEditPending_.store(false,std::memory_order_release);
             }
             applyRuntimeControls(false);
+            // A full patch load resets the scheduler even when the host's
+            // Play parameter has not changed. Restore the resolved transport.
+            if (fullLoad)
+                scheduler_.setSequencePlaying(sequencePlay_.load(std::memory_order_acquire));
             p6plugin::CharacterState characterState;
             characterState.type=selectedCharacterType();
             characterState.position=static_cast<int>(characterParameters_[1]->load());
